@@ -1,0 +1,122 @@
+replicaCount: 1
+
+image:
+  repository: apecloud/hermes-agent
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+  automountServiceAccountToken: false
+
+rbac:
+  create: false
+  rules: []
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 10000
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8642
+  annotations: {}
+
+apiServer:
+  enabled: true
+  host: 0.0.0.0
+  port: 8642
+  corsOrigins: ""
+  modelName: hermes-agent
+  apiKey: ""
+  existingSecret: ""
+  existingSecretKey: api-server-key
+
+model:
+  provider: custom
+  name: ""
+  baseURL: ""
+  apiKey: ""
+  existingSecret: ""
+  existingSecretKey: model-api-key
+
+secret:
+  create: true
+  name: ""
+
+config:
+  create: true
+  mountPath: /opt/data/config.yaml
+  yaml: |
+    model:
+      provider: "${HERMES_MODEL_PROVIDER}"
+      default: "${HERMES_MODEL_NAME}"
+      base_url: "${HERMES_MODEL_BASE_URL}"
+      api_key: "${HERMES_MODEL_API_KEY}"
+    terminal:
+      backend: local
+      cwd: /opt/data/workspace
+
+hermesHome:
+  mountPath: /opt/data
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+  annotations: {}
+
+kubeconfig:
+  enabled: false
+  existingSecret: ""
+  key: config
+  mountPath: /opt/data/.kube
+
+dashboard:
+  enabled: false
+  host: 0.0.0.0
+  port: 9119
+
+env:
+  HERMES_UID: "10000"
+  HERMES_GID: "10000"
+
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+
+resources: {}
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 20
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+terminationGracePeriodSeconds: 30

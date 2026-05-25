@@ -1,0 +1,179 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hermes-agent.fullname" . }}
+  labels:
+    {{- include "hermes-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "hermes-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hermes-agent.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "hermes-agent.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+        - name: hermes-agent
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - gateway
+            - run
+          ports:
+            - name: http
+              containerPort: {{ .Values.apiServer.port }}
+              protocol: TCP
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: HERMES_HOME
+              value: {{ .Values.hermesHome.mountPath | quote }}
+            - name: API_SERVER_ENABLED
+              value: {{ ternary "true" "false" .Values.apiServer.enabled | quote }}
+            - name: API_SERVER_HOST
+              value: {{ .Values.apiServer.host | quote }}
+            - name: API_SERVER_PORT
+              value: {{ .Values.apiServer.port | quote }}
+            - name: API_SERVER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hermes-agent.apiServerSecretName" . }}
+                  key: {{ .Values.apiServer.existingSecretKey }}
+            - name: API_SERVER_MODEL_NAME
+              value: {{ .Values.apiServer.modelName | quote }}
+            {{- if .Values.apiServer.corsOrigins }}
+            - name: API_SERVER_CORS_ORIGINS
+              value: {{ .Values.apiServer.corsOrigins | quote }}
+            {{- end }}
+            - name: HERMES_MODEL_PROVIDER
+              value: {{ .Values.model.provider | quote }}
+            - name: HERMES_MODEL_NAME
+              value: {{ .Values.model.name | quote }}
+            - name: HERMES_MODEL_BASE_URL
+              value: {{ .Values.model.baseURL | quote }}
+            - name: HERMES_MODEL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hermes-agent.modelSecretName" . }}
+                  key: {{ .Values.model.existingSecretKey }}
+                  optional: true
+            - name: HERMES_DASHBOARD
+              value: {{ ternary "1" "" .Values.dashboard.enabled | quote }}
+            - name: HERMES_DASHBOARD_HOST
+              value: {{ .Values.dashboard.host | quote }}
+            - name: HERMES_DASHBOARD_PORT
+              value: {{ .Values.dashboard.port | quote }}
+            {{- if .Values.kubeconfig.enabled }}
+            - name: KUBECONFIG
+              value: {{ printf "%s/%s" .Values.kubeconfig.mountPath .Values.kubeconfig.key | quote }}
+            {{- end }}
+            {{- range $name, $value := .Values.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: hermes-home
+              mountPath: {{ .Values.hermesHome.mountPath }}
+            {{- if .Values.config.create }}
+            - name: hermes-config
+              mountPath: {{ .Values.config.mountPath }}
+              subPath: config.yaml
+              readOnly: true
+            {{- end }}
+            {{- if .Values.kubeconfig.enabled }}
+            - name: kubeconfig
+              mountPath: {{ .Values.kubeconfig.mountPath }}
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: hermes-home
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (include "hermes-agent.fullname" .) .Values.persistence.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.config.create }}
+        - name: hermes-config
+          configMap:
+            name: {{ include "hermes-agent.fullname" . }}
+        {{- end }}
+        {{- if .Values.kubeconfig.enabled }}
+        - name: kubeconfig
+          secret:
+            secretName: {{ required "kubeconfig.existingSecret is required when kubeconfig.enabled=true" .Values.kubeconfig.existingSecret }}
+            items:
+              - key: {{ .Values.kubeconfig.key }}
+                path: {{ .Values.kubeconfig.key }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

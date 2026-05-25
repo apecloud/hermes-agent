@@ -1,0 +1,16 @@
+Hermes Agent has been installed.
+
+Service:
+  {{ include "hermes-agent.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+The API server is enabled via API_SERVER_ENABLED={{ .Values.apiServer.enabled }} and listens on {{ .Values.apiServer.host }}:{{ .Values.apiServer.port }} inside the pod.
+
+The API key is stored in:
+  Secret: {{ include "hermes-agent.apiServerSecretName" . }}
+  Key: {{ .Values.apiServer.existingSecretKey }}
+
+HERMES_HOME is mounted at:
+  {{ .Values.hermesHome.mountPath }}
+
+If kubeconfig.enabled=true, KUBECONFIG points at:
+  {{ .Values.kubeconfig.mountPath }}/{{ .Values.kubeconfig.key }}
