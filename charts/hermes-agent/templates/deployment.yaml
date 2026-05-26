@@ -34,10 +34,10 @@ spec:
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       containers:
         - name: hermes-agent
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- $registry := trimSuffix "/" (.Values.image.registry | default "") }}
+          {{- $repository := trimPrefix "/" .Values.image.repository }}
+          image: "{{ if $registry }}{{ $registry }}/{{ end }}{{ $repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - hermes-runtime-manager
           ports:
             - name: http
               containerPort: {{ .Values.runtimeManager.port }}
@@ -53,6 +53,10 @@ spec:
               value: {{ .Values.runtimeManager.host | quote }}
             - name: RUNTIME_MANAGER_PORT
               value: {{ .Values.runtimeManager.port | quote }}
+            {{- if .Values.runtimeManager.pythonExecutable }}
+            - name: RUNTIME_MANAGER_PYTHON
+              value: {{ .Values.runtimeManager.pythonExecutable | quote }}
+            {{- end }}
             - name: RUNTIME_MANAGER_USERS_ROOT
               value: {{ .Values.runtimeManager.usersRoot | quote }}
             - name: RUNTIME_MANAGER_LOG_LEVEL
@@ -73,17 +77,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "hermes-agent.secretName" . }}
-                  key: runtime-manager-api-key
-            - name: HERMES_DASHBOARD
-              value: {{ ternary "1" "" .Values.dashboard.enabled | quote }}
-            - name: HERMES_DASHBOARD_HOST
-              value: {{ .Values.dashboard.host | quote }}
-            - name: HERMES_DASHBOARD_PORT
-              value: {{ .Values.dashboard.port | quote }}
-            {{- range $name, $value := .Values.env }}
-            - name: {{ $name }}
-              value: {{ $value | quote }}
-            {{- end }}
+                  key: {{ .Values.secret.key | quote }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -94,12 +88,6 @@ spec:
           volumeMounts:
             - name: hermes-home
               mountPath: {{ .Values.hermesHome.mountPath }}
-            {{- if .Values.config.create }}
-            - name: hermes-config
-              mountPath: {{ .Values.config.mountPath }}
-              subPath: config.yaml
-              readOnly: true
-            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -135,11 +123,6 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
-        {{- if .Values.config.create }}
-        - name: hermes-config
-          configMap:
-            name: {{ include "hermes-agent.fullname" . }}
-        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

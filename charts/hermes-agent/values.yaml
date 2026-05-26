@@ -1,9 +1,10 @@
 replicaCount: 1
 
 image:
+  registry: apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
   repository: apecloud/hermes-agent
-  tag: ""
-  pullPolicy: IfNotPresent
+  tag: "runtime-manager-v1"
+  pullPolicy: Always
 
 imagePullSecrets: []
 nameOverride: ""
@@ -31,6 +32,7 @@ service:
 runtimeManager:
   host: 0.0.0.0
   port: 8765
+  pythonExecutable: ""
   usersRoot: /opt/data/users
   apiKey: ""
   logLevel: info
@@ -44,14 +46,7 @@ runtimeManager:
 secret:
   create: true
   name: ""
-
-config:
-  create: true
-  mountPath: /opt/data/config.yaml
-  yaml: |
-    terminal:
-      backend: local
-      cwd: /opt/data/workspace
+  key: runtime-manager-api-key
 
 hermesHome:
   mountPath: /opt/data
@@ -63,16 +58,6 @@ persistence:
     - ReadWriteOnce
   size: 20Gi
   annotations: {}
-
-dashboard:
-  enabled: false
-  host: 0.0.0.0
-  port: 9119
-
-env:
-  HERMES_UID: "10000"
-  HERMES_GID: "10000"
-  S6_KEEP_ENV: "1"
 
 extraEnv: []
 extraEnvFrom: []
