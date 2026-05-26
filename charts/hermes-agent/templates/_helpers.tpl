@@ -64,10 +64,10 @@ Create the name of the chart-managed secret.
 {{- end -}}
 
 {{/*
-Resolve the API server secret name.
+Resolve the runtime manager secret name.
 */}}
-{{- define "hermes-agent.apiServerSecretName" -}}
-{{- default (include "hermes-agent.secretName" .) .Values.apiServer.existingSecret -}}
+{{- define "hermes-agent.runtimeManagerSecretName" -}}
+{{- default (include "hermes-agent.secretName" .) .Values.runtimeManager.existingSecret -}}
 {{- end -}}
 
 {{/*

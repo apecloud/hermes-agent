@@ -29,18 +29,21 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 8642
+  port: 8765
   annotations: {}
 
-apiServer:
-  enabled: true
+runtimeManager:
   host: 0.0.0.0
-  port: 8642
-  corsOrigins: ""
-  modelName: hermes-agent
+  port: 8765
+  usersRoot: /opt/data/users
   apiKey: ""
   existingSecret: ""
-  existingSecretKey: api-server-key
+  existingSecretKey: runtime-manager-api-key
+  logLevel: info
+  stopGraceSeconds: 10
+  maxActiveRuns: 50
+  maxActiveRunsPerUser: 2
+  allowUnauthenticated: false
 
 model:
   provider: custom

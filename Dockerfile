@@ -16,8 +16,17 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/hermes/.playwright
 # zombies non-blockingly on SIGCHLD and additionally supervises the main
 # hermes process, the dashboard, and per-profile gateways.
 ARG TARGETARCH
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+ARG DEBIAN_MIRROR=http://deb.debian.org/debian
+ARG DEBIAN_SECURITY_MIRROR=http://deb.debian.org/debian-security
+RUN set -eu; \
+    find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i \
+            -e "s|http://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR}|g" \
+            -e "s|http://deb.debian.org/debian|${DEBIAN_MIRROR}|g" {} +; \
+    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update && \
+    DEBIAN_FRONTEND=noninteractive apt-get \
+        -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
+        install -y --no-install-recommends \
     bind9-dnsutils build-essential ca-certificates conntrack curl docker-cli \
     ethtool ffmpeg gcc git inetutils-telnet iperf3 iproute2 iptables \
     iputils-ping jq less libffi-dev lsof mtr-tiny net-tools netcat-openbsd \

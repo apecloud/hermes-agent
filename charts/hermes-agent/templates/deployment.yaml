@@ -37,11 +37,10 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - gateway
-            - run
+            - hermes-runtime-manager
           ports:
             - name: http
-              containerPort: {{ .Values.apiServer.port }}
+              containerPort: {{ .Values.runtimeManager.port }}
               protocol: TCP
           {{- with .Values.securityContext }}
           securityContext:
@@ -50,23 +49,27 @@ spec:
           env:
             - name: HERMES_HOME
               value: {{ .Values.hermesHome.mountPath | quote }}
-            - name: API_SERVER_ENABLED
-              value: {{ ternary "true" "false" .Values.apiServer.enabled | quote }}
-            - name: API_SERVER_HOST
-              value: {{ .Values.apiServer.host | quote }}
-            - name: API_SERVER_PORT
-              value: {{ .Values.apiServer.port | quote }}
-            - name: API_SERVER_KEY
+            - name: RUNTIME_MANAGER_HOST
+              value: {{ .Values.runtimeManager.host | quote }}
+            - name: RUNTIME_MANAGER_PORT
+              value: {{ .Values.runtimeManager.port | quote }}
+            - name: RUNTIME_MANAGER_USERS_ROOT
+              value: {{ .Values.runtimeManager.usersRoot | quote }}
+            - name: RUNTIME_MANAGER_LOG_LEVEL
+              value: {{ .Values.runtimeManager.logLevel | quote }}
+            - name: RUNTIME_MANAGER_STOP_GRACE_SECONDS
+              value: {{ .Values.runtimeManager.stopGraceSeconds | quote }}
+            - name: RUNTIME_MANAGER_MAX_ACTIVE_RUNS
+              value: {{ .Values.runtimeManager.maxActiveRuns | quote }}
+            - name: RUNTIME_MANAGER_MAX_ACTIVE_RUNS_PER_USER
+              value: {{ .Values.runtimeManager.maxActiveRunsPerUser | quote }}
+            - name: RUNTIME_MANAGER_ALLOW_UNAUTHENTICATED
+              value: {{ ternary "true" "false" .Values.runtimeManager.allowUnauthenticated | quote }}
+            - name: RUNTIME_MANAGER_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "hermes-agent.apiServerSecretName" . }}
-                  key: {{ .Values.apiServer.existingSecretKey }}
-            - name: API_SERVER_MODEL_NAME
-              value: {{ .Values.apiServer.modelName | quote }}
-            {{- if .Values.apiServer.corsOrigins }}
-            - name: API_SERVER_CORS_ORIGINS
-              value: {{ .Values.apiServer.corsOrigins | quote }}
-            {{- end }}
+                  name: {{ include "hermes-agent.runtimeManagerSecretName" . }}
+                  key: {{ .Values.runtimeManager.existingSecretKey }}
             - name: HERMES_MODEL_PROVIDER
               value: {{ .Values.model.provider | quote }}
             - name: HERMES_MODEL_NAME
