@@ -96,6 +96,7 @@ dashboard:
 env:
   HERMES_UID: "10000"
   HERMES_GID: "10000"
+  S6_KEEP_ENV: "1"
 
 extraEnv: []
 extraEnvFrom: []
