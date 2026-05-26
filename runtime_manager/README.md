@@ -95,6 +95,13 @@ Expected health response:
 - Keep LLM provider/model/baseURL/API key out of the Helm chart and container
   environment. Apiserver must resolve the effective Cloud LLM config for the
   current conversation and pass it in each `POST /agent/runs` request.
+- Runtime Manager defaults new runs to the `terminal,file` toolsets unless
+  `POST /agent/runs` explicitly supplies `enabled_toolsets`. This keeps the
+  clean runtime image from loading optional browser, TTS, image, or messaging
+  tool dependencies during KubeBlocks diagnosis. Set
+  `runtimeManager.defaultEnabledToolsets` in Helm to tune this runtime-manager
+  behavior; use `all` only for development images that intentionally include
+  every optional dependency.
 - `uv` is currently kept in the final image. It costs about `48MB`, but allows
   Hermes lazy dependency installation for optional backends/tools. Remove it
   only if Runtime Manager production mode explicitly forbids runtime dependency

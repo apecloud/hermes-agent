@@ -42,6 +42,9 @@ runtimeManager:
   maxEventsPerRun: 1000
   completedRunTtlSeconds: 3600
   allowUnauthenticated: false
+  defaultEnabledToolsets:
+    - terminal
+    - file
 
 secret:
   create: true

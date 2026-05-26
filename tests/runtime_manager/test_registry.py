@@ -178,6 +178,102 @@ async def test_runtime_manager_forwards_per_run_llm_config_to_worker(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_path, monkeypatch):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'enabled_toolsets': req.get('enabled_toolsets'), 'disabled_toolsets': req.get('disabled_toolsets')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS", raising=False)
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+        }
+    )
+
+    for _ in range(50):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    output = json.loads(handle.output)
+    assert output == {
+        "enabled_toolsets": ["terminal", "file"],
+        "disabled_toolsets": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_runtime_manager_payload_toolsets_override_default(tmp_path, monkeypatch):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'enabled_toolsets': req.get('enabled_toolsets'), 'disabled_toolsets': req.get('disabled_toolsets')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS", "terminal,file")
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+            "enabled_toolsets": ["web"],
+            "disabled_toolsets": "browser,tts",
+        }
+    )
+
+    for _ in range(50):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    output = json.loads(handle.output)
+    assert output == {
+        "enabled_toolsets": ["web"],
+        "disabled_toolsets": ["browser", "tts"],
+    }
+
+
+@pytest.mark.asyncio
 async def test_runtime_manager_rejects_approval_when_not_waiting(tmp_path):
     from runtime_manager.manager import RuntimeManager
 

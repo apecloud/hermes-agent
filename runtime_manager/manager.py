@@ -15,6 +15,8 @@ from .registry import RunHandle, RunRegistry
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_ENABLED_TOOLSETS = ("terminal", "file")
+
 
 class RuntimeManager:
     def __init__(
@@ -44,6 +46,10 @@ class RuntimeManager:
         self.max_active_runs = int(os.getenv("RUNTIME_MANAGER_MAX_ACTIVE_RUNS", "50"))
         self.max_active_runs_per_user = int(os.getenv("RUNTIME_MANAGER_MAX_ACTIVE_RUNS_PER_USER", "2"))
         self.stop_grace_seconds = float(os.getenv("RUNTIME_MANAGER_STOP_GRACE_SECONDS", "10"))
+        self.default_enabled_toolsets = _parse_toolset_env(
+            os.getenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS"),
+            default=list(_DEFAULT_ENABLED_TOOLSETS),
+        )
         insecure_allow = os.getenv(
             "RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED",
             os.getenv("RUNTIME_MANAGER_ALLOW_UNAUTHENTICATED", ""),
@@ -89,6 +95,14 @@ class RuntimeManager:
         run_id = f"run_{uuid.uuid4().hex}"
         session_id = str(payload.get("session_id") or conversation_id)
         user_home = self.resolver.resolve(user_id)
+        enabled_toolsets = _normalize_toolsets(payload.get("enabled_toolsets"))
+        if enabled_toolsets is None:
+            enabled_toolsets = (
+                list(self.default_enabled_toolsets)
+                if self.default_enabled_toolsets is not None
+                else None
+            )
+        disabled_toolsets = _normalize_toolsets(payload.get("disabled_toolsets"))
         await self._reserve_run(run_id=run_id, user_id=user_id, conversation_id=conversation_id)
         handle = self.registry.create(
             run_id=run_id,
@@ -137,8 +151,8 @@ class RuntimeManager:
             "base_url": base_url,
             "llm_config": llm_config,
             "system_prompt": payload.get("system_prompt"),
-            "enabled_toolsets": payload.get("enabled_toolsets"),
-            "disabled_toolsets": payload.get("disabled_toolsets"),
+            "enabled_toolsets": enabled_toolsets,
+            "disabled_toolsets": disabled_toolsets,
             "skip_memory": bool(payload.get("skip_memory", False)),
             "skip_context_files": bool(payload.get("skip_context_files", True)),
             "max_iterations": payload.get("max_iterations"),
@@ -320,3 +334,24 @@ def _first_present(*values: Any) -> Any:
             continue
         return value
     return None
+
+
+def _normalize_toolsets(value: Any) -> list[str] | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.lower() == "all":
+            return None
+        return [item.strip() for item in stripped.split(",") if item.strip()]
+    if isinstance(value, list):
+        if len(value) == 1 and str(value[0]).strip().lower() == "all":
+            return None
+        return [str(item).strip() for item in value if str(item).strip()]
+    return None
+
+
+def _parse_toolset_env(value: str | None, *, default: list[str]) -> list[str] | None:
+    if value is None:
+        return default
+    return _normalize_toolsets(value)

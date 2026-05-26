@@ -71,6 +71,13 @@ spec:
               value: {{ .Values.runtimeManager.maxEventsPerRun | quote }}
             - name: RUNTIME_MANAGER_COMPLETED_RUN_TTL_SECONDS
               value: {{ .Values.runtimeManager.completedRunTtlSeconds | quote }}
+            - name: RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS
+              {{- $defaultToolsets := .Values.runtimeManager.defaultEnabledToolsets }}
+              {{- if kindIs "slice" $defaultToolsets }}
+              value: {{ join "," $defaultToolsets | quote }}
+              {{- else }}
+              value: {{ $defaultToolsets | quote }}
+              {{- end }}
             - name: RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED
               value: {{ ternary "true" "false" .Values.runtimeManager.allowUnauthenticated | quote }}
             - name: RUNTIME_MANAGER_API_KEY

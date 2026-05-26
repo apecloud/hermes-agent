@@ -40,8 +40,11 @@ The chart values only configure the Runtime Manager process and Kubernetes deplo
 - `runtimeManager.completedRunTtlSeconds`
 - `runtimeManager.allowUnauthenticated`
 - `runtimeManager.pythonExecutable`
+- `runtimeManager.defaultEnabledToolsets`
 
 The runtime manager API key is stored in the chart Secret. If `secret.create=false` or `secret.name` points to a pre-created Secret, the key name must match `secret.key` (default `runtime-manager-api-key`).
+
+`runtimeManager.defaultEnabledToolsets` defaults to `terminal,file` so the lean runtime image does not initialize optional browser, TTS, image, or messaging tool dependencies during KubeBlocks diagnosis. The apiserver may override `enabled_toolsets` per run; set this value to `all` only for development images that include every optional dependency.
 
 ## Kubernetes Access
 
