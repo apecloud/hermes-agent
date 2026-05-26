@@ -1,0 +1,102 @@
+replicaCount: 1
+
+image:
+  repository: apecloud/hermes-agent
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+  automountServiceAccountToken: true
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 10000
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8765
+  annotations: {}
+
+runtimeManager:
+  host: 0.0.0.0
+  port: 8765
+  usersRoot: /opt/data/users
+  apiKey: ""
+  logLevel: info
+  stopGraceSeconds: 10
+  maxActiveRuns: 50
+  maxActiveRunsPerUser: 2
+  maxEventsPerRun: 1000
+  completedRunTtlSeconds: 3600
+  allowUnauthenticated: false
+
+secret:
+  create: true
+  name: ""
+
+config:
+  create: true
+  mountPath: /opt/data/config.yaml
+  yaml: |
+    terminal:
+      backend: local
+      cwd: /opt/data/workspace
+
+hermesHome:
+  mountPath: /opt/data
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+  annotations: {}
+
+dashboard:
+  enabled: false
+  host: 0.0.0.0
+  port: 9119
+
+env:
+  HERMES_UID: "10000"
+  HERMES_GID: "10000"
+  S6_KEEP_ENV: "1"
+
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+
+resources: {}
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 20
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+terminationGracePeriodSeconds: 30

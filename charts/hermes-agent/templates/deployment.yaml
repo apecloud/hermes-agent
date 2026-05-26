@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hermes-agent.fullname" . }}
+  labels:
+    {{- include "hermes-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "hermes-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hermes-agent.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "hermes-agent.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+        - name: hermes-agent
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - hermes-runtime-manager
+          ports:
+            - name: http
+              containerPort: {{ .Values.runtimeManager.port }}
+              protocol: TCP
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: HERMES_HOME
+              value: {{ .Values.hermesHome.mountPath | quote }}
+            - name: RUNTIME_MANAGER_HOST
+              value: {{ .Values.runtimeManager.host | quote }}
+            - name: RUNTIME_MANAGER_PORT
+              value: {{ .Values.runtimeManager.port | quote }}
+            - name: RUNTIME_MANAGER_USERS_ROOT
+              value: {{ .Values.runtimeManager.usersRoot | quote }}
+            - name: RUNTIME_MANAGER_LOG_LEVEL
+              value: {{ .Values.runtimeManager.logLevel | quote }}
+            - name: RUNTIME_MANAGER_STOP_GRACE_SECONDS
+              value: {{ .Values.runtimeManager.stopGraceSeconds | quote }}
+            - name: RUNTIME_MANAGER_MAX_ACTIVE_RUNS
+              value: {{ .Values.runtimeManager.maxActiveRuns | quote }}
+            - name: RUNTIME_MANAGER_MAX_ACTIVE_RUNS_PER_USER
+              value: {{ .Values.runtimeManager.maxActiveRunsPerUser | quote }}
+            - name: RUNTIME_MANAGER_MAX_EVENTS_PER_RUN
+              value: {{ .Values.runtimeManager.maxEventsPerRun | quote }}
+            - name: RUNTIME_MANAGER_COMPLETED_RUN_TTL_SECONDS
+              value: {{ .Values.runtimeManager.completedRunTtlSeconds | quote }}
+            - name: RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED
+              value: {{ ternary "true" "false" .Values.runtimeManager.allowUnauthenticated | quote }}
+            - name: RUNTIME_MANAGER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hermes-agent.secretName" . }}
+                  key: runtime-manager-api-key
+            - name: HERMES_DASHBOARD
+              value: {{ ternary "1" "" .Values.dashboard.enabled | quote }}
+            - name: HERMES_DASHBOARD_HOST
+              value: {{ .Values.dashboard.host | quote }}
+            - name: HERMES_DASHBOARD_PORT
+              value: {{ .Values.dashboard.port | quote }}
+            {{- range $name, $value := .Values.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: hermes-home
+              mountPath: {{ .Values.hermesHome.mountPath }}
+            {{- if .Values.config.create }}
+            - name: hermes-config
+              mountPath: {{ .Values.config.mountPath }}
+              subPath: config.yaml
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: hermes-home
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "hermes-agent.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.config.create }}
+        - name: hermes-config
+          configMap:
+            name: {{ include "hermes-agent.fullname" . }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

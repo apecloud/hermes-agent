@@ -15,10 +15,39 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/hermes/.playwright
 # replaces tini with s6-overlay's /init (PID 1 = s6-svscan), which reaps
 # zombies non-blockingly on SIGCHLD and additionally supervises the main
 # hermes process, the dashboard, and per-profile gateways.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential curl nodejs npm python3 ripgrep ffmpeg gcc python3-dev libffi-dev procps git openssh-client docker-cli xz-utils && \
+ARG TARGETARCH
+ARG DEBIAN_MIRROR=http://deb.debian.org/debian
+ARG DEBIAN_SECURITY_MIRROR=http://deb.debian.org/debian-security
+RUN set -eu; \
+    find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i \
+            -e "s|http://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR}|g" \
+            -e "s|http://deb.debian.org/debian|${DEBIAN_MIRROR}|g" {} +; \
+    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update && \
+    DEBIAN_FRONTEND=noninteractive apt-get \
+        -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
+        install -y --no-install-recommends \
+    bind9-dnsutils build-essential ca-certificates conntrack curl docker-cli \
+    ethtool ffmpeg gcc git inetutils-telnet iperf3 iproute2 iptables \
+    iputils-ping jq less libffi-dev lsof mtr-tiny net-tools netcat-openbsd \
+    nmap nodejs npm openssh-client openssl procps python3 python3-dev ripgrep \
+    socat tcpdump traceroute whois xz-utils && \
     rm -rf /var/lib/apt/lists/*
+
+ARG KUBECTL_VERSION=v1.36.1
+RUN set -eu; \
+    case "${TARGETARCH:-amd64}" in \
+        amd64|arm64) kubectl_arch="${TARGETARCH:-amd64}" ;; \
+        *) echo "Unsupported TARGETARCH=${TARGETARCH} for kubectl" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL --retry 3 -o /usr/local/bin/kubectl \
+        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${kubectl_arch}/kubectl"; \
+    curl -fsSL --retry 3 -o /tmp/kubectl.sha256 \
+        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${kubectl_arch}/kubectl.sha256"; \
+    printf '%s  %s\n' "$(cat /tmp/kubectl.sha256)" /usr/local/bin/kubectl | sha256sum -c -; \
+    chmod +x /usr/local/bin/kubectl; \
+    rm /tmp/kubectl.sha256; \
+    kubectl version --client=true
 
 # ---------- s6-overlay install ----------
 # s6-overlay provides supervision for the main hermes process, the dashboard,
@@ -40,7 +69,6 @@ RUN apt-get update && \
 # `.sha256` files from the corresponding release and update the ARGs. The
 # checksum lookup happens during build, so a compromised release artifact
 # fails the build loudly instead of silently producing a tampered image.
-ARG TARGETARCH
 ARG S6_OVERLAY_VERSION=3.2.3.0
 ARG S6_OVERLAY_NOARCH_SHA256=b720f9d9340efc8bb07528b9743813c836e4b02f8693d90241f047998b4c53cf
 ARG S6_OVERLAY_X86_64_SHA256=a93f02882c6ed46b21e7adb5c0add86154f01236c93cd82c7d682722e8840563
