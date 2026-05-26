@@ -13,11 +13,7 @@ serviceAccount:
   create: true
   annotations: {}
   name: ""
-  automountServiceAccountToken: false
-
-rbac:
-  create: false
-  rules: []
+  automountServiceAccountToken: true
 
 podAnnotations: {}
 podLabels: {}

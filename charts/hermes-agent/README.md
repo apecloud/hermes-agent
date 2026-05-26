@@ -9,7 +9,7 @@ This chart deploys Hermes Agent as an in-cluster runtime manager. It is intended
 - `Secret` for the runtime manager bearer key.
 - Optional `PersistentVolumeClaim` mounted as `HERMES_HOME`.
 - Optional kubeconfig Secret mount for Kubernetes diagnostics.
-- Optional ServiceAccount/RBAC wiring.
+- `ServiceAccount` bound to the existing `apecloud-cluster-admin` ClusterRole.
 
 ## Minimal Install
 
@@ -31,9 +31,9 @@ runtimeManager:
   existingSecretKey: runtime-manager-api-key
 ```
 
-## Kubeconfig
+## Kubernetes Access
 
-For Kubernetes diagnostics, either enable ServiceAccount/RBAC or mount a kubeconfig Secret:
+The chart always binds the runtime `ServiceAccount` to the existing `apecloud-cluster-admin` ClusterRole and enables service account token mounting by default. If an environment still requires an explicit kubeconfig, mount it as a Secret:
 
 ```yaml
 kubeconfig:
