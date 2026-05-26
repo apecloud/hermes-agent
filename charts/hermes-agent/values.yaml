@@ -45,6 +45,7 @@ runtimeManager:
   defaultEnabledToolsets:
     - terminal
     - file
+  defaultMaxIterations: 20
 
 secret:
   create: true

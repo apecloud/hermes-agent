@@ -78,6 +78,8 @@ spec:
               {{- else }}
               value: {{ $defaultToolsets | quote }}
               {{- end }}
+            - name: RUNTIME_MANAGER_DEFAULT_MAX_ITERATIONS
+              value: {{ .Values.runtimeManager.defaultMaxIterations | quote }}
             - name: RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED
               value: {{ ternary "true" "false" .Values.runtimeManager.allowUnauthenticated | quote }}
             - name: RUNTIME_MANAGER_API_KEY

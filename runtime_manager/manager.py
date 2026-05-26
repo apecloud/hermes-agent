@@ -50,6 +50,7 @@ class RuntimeManager:
             os.getenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS"),
             default=list(_DEFAULT_ENABLED_TOOLSETS),
         )
+        self.default_max_iterations = int(os.getenv("RUNTIME_MANAGER_DEFAULT_MAX_ITERATIONS", "20"))
         insecure_allow = os.getenv(
             "RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED",
             os.getenv("RUNTIME_MANAGER_ALLOW_UNAUTHENTICATED", ""),
@@ -155,7 +156,7 @@ class RuntimeManager:
             "disabled_toolsets": disabled_toolsets,
             "skip_memory": bool(payload.get("skip_memory", False)),
             "skip_context_files": bool(payload.get("skip_context_files", True)),
-            "max_iterations": payload.get("max_iterations"),
+            "max_iterations": _first_present(payload.get("max_iterations"), self.default_max_iterations),
             "metadata": payload.get("metadata") or {},
         }
         assert proc.stdin is not None

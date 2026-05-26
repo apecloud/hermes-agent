@@ -186,7 +186,7 @@ async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_pat
                 "import json, sys, time",
                 "req = json.loads(sys.stdin.readline())",
                 "run_id = req['run_id']",
-                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'enabled_toolsets': req.get('enabled_toolsets'), 'disabled_toolsets': req.get('disabled_toolsets')})}), flush=True)",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'enabled_toolsets': req.get('enabled_toolsets'), 'disabled_toolsets': req.get('disabled_toolsets'), 'max_iterations': req.get('max_iterations')})}), flush=True)",
             ]
         ),
         encoding="utf-8",
@@ -221,6 +221,7 @@ async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_pat
     assert output == {
         "enabled_toolsets": ["terminal", "file"],
         "disabled_toolsets": None,
+        "max_iterations": 20,
     }
 
 
@@ -233,7 +234,7 @@ async def test_runtime_manager_payload_toolsets_override_default(tmp_path, monke
                 "import json, sys, time",
                 "req = json.loads(sys.stdin.readline())",
                 "run_id = req['run_id']",
-                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'enabled_toolsets': req.get('enabled_toolsets'), 'disabled_toolsets': req.get('disabled_toolsets')})}), flush=True)",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'enabled_toolsets': req.get('enabled_toolsets'), 'disabled_toolsets': req.get('disabled_toolsets'), 'max_iterations': req.get('max_iterations')})}), flush=True)",
             ]
         ),
         encoding="utf-8",
@@ -257,6 +258,7 @@ async def test_runtime_manager_payload_toolsets_override_default(tmp_path, monke
             "model": "openai/test",
             "enabled_toolsets": ["web"],
             "disabled_toolsets": "browser,tts",
+            "max_iterations": 7,
         }
     )
 
@@ -270,6 +272,7 @@ async def test_runtime_manager_payload_toolsets_override_default(tmp_path, monke
     assert output == {
         "enabled_toolsets": ["web"],
         "disabled_toolsets": ["browser", "tts"],
+        "max_iterations": 7,
     }
 
 

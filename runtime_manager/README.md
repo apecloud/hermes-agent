@@ -102,6 +102,10 @@ Expected health response:
   `runtimeManager.defaultEnabledToolsets` in Helm to tune this runtime-manager
   behavior; use `all` only for development images that intentionally include
   every optional dependency.
+- Runtime Manager defaults `max_iterations` to `20` unless `POST /agent/runs`
+  explicitly supplies a value. This bounds diagnostic loops and lets Hermes ask
+  the model for a final toolless summary when the budget is exhausted, instead
+  of letting a worker run indefinitely.
 - `uv` is currently kept in the final image. It costs about `48MB`, but allows
   Hermes lazy dependency installation for optional backends/tools. Remove it
   only if Runtime Manager production mode explicitly forbids runtime dependency
