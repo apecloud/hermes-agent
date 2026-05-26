@@ -27,6 +27,7 @@ class RunRequest(BaseModel):
     provider: str | None = None
     api_key: str | None = None
     base_url: str | None = None
+    llm_config: dict[str, Any] = Field(default_factory=dict)
     system_prompt: str | None = None
     enabled_toolsets: list[str] | None = None
     disabled_toolsets: list[str] | None = None

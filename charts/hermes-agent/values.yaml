@@ -47,14 +47,6 @@ runtimeManager:
   completedRunTtlSeconds: 3600
   allowUnauthenticated: false
 
-model:
-  provider: custom
-  name: ""
-  baseURL: ""
-  apiKey: ""
-  existingSecret: ""
-  existingSecretKey: model-api-key
-
 secret:
   create: true
   name: ""
@@ -63,11 +55,6 @@ config:
   create: true
   mountPath: /opt/data/config.yaml
   yaml: |
-    model:
-      provider: "${HERMES_MODEL_PROVIDER}"
-      default: "${HERMES_MODEL_NAME}"
-      base_url: "${HERMES_MODEL_BASE_URL}"
-      api_key: "${HERMES_MODEL_API_KEY}"
     terminal:
       backend: local
       cwd: /opt/data/workspace

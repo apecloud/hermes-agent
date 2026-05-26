@@ -6,7 +6,7 @@ This chart deploys Hermes Agent as an in-cluster runtime manager. It is intended
 
 - `Deployment` running `hermes-runtime-manager`, a thin HTTP/SSE service that starts short-lived Hermes worker subprocesses.
 - `Service` exposing the runtime manager inside the cluster.
-- `Secret` for the runtime manager bearer key and optional model API key.
+- `Secret` for the runtime manager bearer key.
 - Optional `PersistentVolumeClaim` mounted as `HERMES_HOME`.
 - Optional kubeconfig Secret mount for Kubernetes diagnostics.
 - Optional ServiceAccount/RBAC wiring.
@@ -16,14 +16,12 @@ This chart deploys Hermes Agent as an in-cluster runtime manager. It is intended
 ```bash
 helm install hermes-agent ./charts/hermes-agent \
   --set image.repository=apecloud/hermes-agent \
-  --set image.tag=latest \
-  --set model.provider=custom \
-  --set model.name=qwen-plus \
-  --set model.baseURL=https://example.com/v1 \
-  --set model.apiKey=replace-me
+  --set image.tag=latest
 ```
 
 The chart generates a random runtime manager API key when `runtimeManager.apiKey` is empty and no existing Secret is supplied. For production, provide `runtimeManager.existingSecret` or set a strong generated key through your secret manager.
+
+LLM provider/model/baseURL/API-key configuration is intentionally not configured in this chart. The product backend should resolve the current user's selected model configuration for each conversation and pass it to Runtime Manager when starting a run, using `model` plus `llm_config` or the equivalent per-run fields.
 
 ## Existing Secrets
 
@@ -31,10 +29,6 @@ The chart generates a random runtime manager API key when `runtimeManager.apiKey
 runtimeManager:
   existingSecret: hermes-agent-api
   existingSecretKey: runtime-manager-api-key
-
-model:
-  existingSecret: hermes-agent-model
-  existingSecretKey: api-key
 ```
 
 ## Kubeconfig

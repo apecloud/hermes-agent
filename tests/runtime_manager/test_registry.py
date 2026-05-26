@@ -124,6 +124,60 @@ async def test_runtime_manager_runs_fake_worker_approval_flow(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_runtime_manager_forwards_per_run_llm_config_to_worker(tmp_path):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'model': req.get('model'), 'provider': req.get('provider'), 'base_url': req.get('base_url'), 'api_key': req.get('api_key')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "llm_config": {
+                "provider": "openai",
+                "model": "gpt-4.1",
+                "base_url": "https://models.example/v1",
+                "api_key": "sk-test",
+            },
+        }
+    )
+
+    for _ in range(50):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    assert handle.model == "gpt-4.1"
+    output = json.loads(handle.output)
+    assert output == {
+        "model": "gpt-4.1",
+        "provider": "openai",
+        "base_url": "https://models.example/v1",
+        "api_key": "sk-test",
+    }
+
+
+@pytest.mark.asyncio
 async def test_runtime_manager_rejects_approval_when_not_waiting(tmp_path):
     from runtime_manager.manager import RuntimeManager
 

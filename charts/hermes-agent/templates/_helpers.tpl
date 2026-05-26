@@ -69,10 +69,3 @@ Resolve the runtime manager secret name.
 {{- define "hermes-agent.runtimeManagerSecretName" -}}
 {{- default (include "hermes-agent.secretName" .) .Values.runtimeManager.existingSecret -}}
 {{- end -}}
-
-{{/*
-Resolve the model secret name.
-*/}}
-{{- define "hermes-agent.modelSecretName" -}}
-{{- default (include "hermes-agent.secretName" .) .Values.model.existingSecret -}}
-{{- end -}}

@@ -68,7 +68,24 @@ class RuntimeManager:
         message = payload.get("message")
         if not isinstance(message, str) or not message.strip():
             raise ValueError("message is required")
-        model = str(payload.get("model") or "").strip()
+        llm_config = payload.get("llm_config")
+        if not isinstance(llm_config, dict):
+            llm_config = {}
+        model = str(
+            payload.get("model")
+            or llm_config.get("model")
+            or llm_config.get("name")
+            or llm_config.get("default")
+            or ""
+        ).strip()
+        provider = _first_present(payload.get("provider"), llm_config.get("provider"))
+        api_key = _first_present(payload.get("api_key"), llm_config.get("api_key"), llm_config.get("apiKey"))
+        base_url = _first_present(
+            payload.get("base_url"),
+            payload.get("baseURL"),
+            llm_config.get("base_url"),
+            llm_config.get("baseURL"),
+        )
         run_id = f"run_{uuid.uuid4().hex}"
         session_id = str(payload.get("session_id") or conversation_id)
         user_home = self.resolver.resolve(user_id)
@@ -115,9 +132,10 @@ class RuntimeManager:
             "message": message,
             "history": payload.get("history") or [],
             "model": model,
-            "provider": payload.get("provider"),
-            "api_key": payload.get("api_key"),
-            "base_url": payload.get("base_url"),
+            "provider": provider,
+            "api_key": api_key,
+            "base_url": base_url,
+            "llm_config": llm_config,
             "system_prompt": payload.get("system_prompt"),
             "enabled_toolsets": payload.get("enabled_toolsets"),
             "disabled_toolsets": payload.get("disabled_toolsets"),
@@ -292,3 +310,13 @@ class RuntimeManager:
             proc.kill()
         except ProcessLookupError:
             return
+
+
+def _first_present(*values: Any) -> Any:
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, str) and value.strip() == "":
+            continue
+        return value
+    return None

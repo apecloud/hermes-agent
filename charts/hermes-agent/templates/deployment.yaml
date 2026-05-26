@@ -74,18 +74,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "hermes-agent.runtimeManagerSecretName" . }}
                   key: {{ .Values.runtimeManager.existingSecretKey }}
-            - name: HERMES_MODEL_PROVIDER
-              value: {{ .Values.model.provider | quote }}
-            - name: HERMES_MODEL_NAME
-              value: {{ .Values.model.name | quote }}
-            - name: HERMES_MODEL_BASE_URL
-              value: {{ .Values.model.baseURL | quote }}
-            - name: HERMES_MODEL_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "hermes-agent.modelSecretName" . }}
-                  key: {{ .Values.model.existingSecretKey }}
-                  optional: true
             - name: HERMES_DASHBOARD
               value: {{ ternary "1" "" .Values.dashboard.enabled | quote }}
             - name: HERMES_DASHBOARD_HOST
