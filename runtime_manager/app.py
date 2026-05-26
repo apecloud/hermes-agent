@@ -52,19 +52,37 @@ async def _authorize(state: RuntimeManagerState, authorization: str | None) -> N
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-async def _sse_stream(handle):
-    replay = list(handle.events)
-    for event in replay:
-        yield f"data: {json.dumps(event, ensure_ascii=False)}\\n\\n"
+def _format_sse(event: dict[str, Any]) -> str:
+    event_id = event.get("event_id")
+    prefix = f"id: {event_id}\n" if event_id is not None else ""
+    return f"{prefix}data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+
+async def _sse_stream(handle, *, last_event_id: int | None = None):
     queue = handle.subscribe()
     try:
+        replay = list(handle.events)
+        replayed_event_id = last_event_id or 0
+        for event in replay:
+            event_id = int(event.get("event_id") or 0)
+            if last_event_id is not None and event_id <= last_event_id:
+                continue
+            replayed_event_id = max(replayed_event_id, event_id)
+            yield _format_sse(event)
+        latest_event_id = int(handle.events[-1].get("event_id") or 0) if handle.events else 0
+        if handle.status in {"completed", "failed", "cancelled"} and latest_event_id <= replayed_event_id:
+            return
         while True:
             try:
                 event = await asyncio.wait_for(queue.get(), timeout=15.0)
             except asyncio.TimeoutError:
-                yield ": keepalive\\n\\n"
+                yield ": keepalive\n\n"
                 continue
-            yield f"data: {json.dumps(event, ensure_ascii=False)}\\n\\n"
+            event_id = int(event.get("event_id") or 0)
+            if event_id <= replayed_event_id:
+                continue
+            replayed_event_id = max(replayed_event_id, event_id)
+            yield _format_sse(event)
             if event.get("event") in {"run.completed", "run.failed", "run.cancelled"}:
                 break
     finally:
@@ -115,14 +133,24 @@ def create_app(
         return handle.snapshot()
 
     @app.get("/agent/runs/{run_id}/events")
-    async def events(run_id: str, authorization: str | None = Header(default=None)):
+    async def events(
+        run_id: str,
+        authorization: str | None = Header(default=None),
+        last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
+    ):
         state = app.state.runtime_manager
         await _authorize(state, authorization)
         handle = state.manager.registry.get(run_id)
         if handle is None:
             raise HTTPException(status_code=404, detail="Run not found")
+        cursor: int | None = None
+        if last_event_id:
+            try:
+                cursor = int(last_event_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Last-Event-ID must be an integer") from None
         return StreamingResponse(
-            _sse_stream(handle),
+            _sse_stream(handle, last_event_id=cursor),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

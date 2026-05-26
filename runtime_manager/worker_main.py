@@ -39,15 +39,9 @@ def main() -> int:
     approval_session_key = session_id
 
     hermes_home = str(request["hermes_home"])
-    os.environ["HERMES_HOME"] = hermes_home
-    os.environ.setdefault("PYTHONUNBUFFERED", "1")
+    from runtime_manager.bootstrap import load_profile_environment
 
-    env_path = Path(hermes_home) / ".env"
-    if env_path.exists():
-        from dotenv import load_dotenv
-
-        load_dotenv(env_path, override=True)
-        os.environ["HERMES_HOME"] = hermes_home
+    load_profile_environment(hermes_home)
 
     project_root = Path(__file__).resolve().parent.parent
     if str(project_root) not in sys.path:

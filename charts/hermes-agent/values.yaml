@@ -43,6 +43,8 @@ runtimeManager:
   stopGraceSeconds: 10
   maxActiveRuns: 50
   maxActiveRunsPerUser: 2
+  maxEventsPerRun: 1000
+  completedRunTtlSeconds: 3600
   allowUnauthenticated: false
 
 model:

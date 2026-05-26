@@ -1,4 +1,6 @@
 import asyncio
+import os
+import stat
 
 import pytest
 
@@ -40,8 +42,10 @@ def test_user_home_resolver_creates_bootstrap_dirs(tmp_path):
     resolver = UserHomeResolver(tmp_path)
     home = resolver.resolve("user-1")
     assert home == tmp_path / "user-1"
-    for name in ("sessions", "memories", "skills", "logs"):
+    for name in ("home", "sessions", "memories", "skills", "logs"):
         assert (home / name).is_dir()
+    assert stat.S_IMODE(home.stat().st_mode) == 0o700
+    assert stat.S_IMODE((home / "home").stat().st_mode) == 0o700
 
 
 def test_user_home_resolver_rejects_invalid_ids(tmp_path):
@@ -54,10 +58,11 @@ def test_runtime_manager_requires_api_key_unless_explicitly_allowed(tmp_path, mo
     from runtime_manager.manager import RuntimeManager
 
     monkeypatch.delenv("RUNTIME_MANAGER_ALLOW_UNAUTHENTICATED", raising=False)
+    monkeypatch.delenv("RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED", raising=False)
     manager = RuntimeManager(users_root=tmp_path / "users", api_key="")
     assert not manager.authorize(None)
 
-    monkeypatch.setenv("RUNTIME_MANAGER_ALLOW_UNAUTHENTICATED", "true")
+    monkeypatch.setenv("RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED", "true")
     manager = RuntimeManager(users_root=tmp_path / "users", api_key="")
     assert manager.authorize(None)
 
@@ -115,6 +120,7 @@ async def test_runtime_manager_runs_fake_worker_approval_flow(tmp_path):
     assert handle.status == "completed"
     assert handle.output == "once"
     assert (tmp_path / "users" / "user-1" / "sessions").is_dir()
+    assert (tmp_path / "users" / "user-1" / "home").is_dir()
 
 
 @pytest.mark.asyncio
@@ -185,6 +191,105 @@ async def test_runtime_manager_rejects_second_active_conversation_run(tmp_path):
             break
         await asyncio.sleep(0.02)
     assert handle.status == "cancelled"
+
+
+def test_run_registry_caps_replay_events_and_prunes_terminal_runs():
+    registry = RunRegistry(max_events_per_run=2, completed_run_ttl_seconds=10)
+    handle = registry.create(
+        run_id="run-1",
+        user_id="user-1",
+        conversation_id="conv-1",
+        session_id="conv-1",
+        model="openai/test",
+    )
+    handle.publish({"event": "run.running", "run_id": "run-1", "timestamp": 1.0})
+    handle.publish({"event": "message.delta", "run_id": "run-1", "timestamp": 2.0, "delta": "a"})
+    handle.publish({"event": "run.completed", "run_id": "run-1", "timestamp": 3.0, "output": "done"})
+
+    assert [event["event"] for event in handle.events] == ["message.delta", "run.completed"]
+    assert [event["event_id"] for event in handle.events] == [2, 3]
+    assert registry.prune(now=20.0) == 1
+    assert registry.get("run-1") is None
+
+
+def test_profile_environment_bridges_home_and_config(tmp_path, monkeypatch):
+    from runtime_manager.bootstrap import load_profile_environment
+
+    hermes_home = tmp_path / "user-1"
+    (hermes_home / "home").mkdir(parents=True)
+    (hermes_home / ".env").write_text("TERMINAL_TIMEOUT=12\n", encoding="utf-8")
+    (hermes_home / "config.yaml").write_text(
+        "\n".join(
+            [
+                "terminal:",
+                "  backend: local",
+                f"  cwd: {hermes_home / 'workspace'}",
+                "auxiliary:",
+                "  approval:",
+                "    provider: openai",
+                "    model: gpt-4.1",
+                "agent:",
+                "  max_turns: 7",
+                "timezone: Asia/Shanghai",
+                "security:",
+                "  redact_secrets: true",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    for key in (
+        "HERMES_HOME",
+        "HOME",
+        "TERMINAL_ENV",
+        "TERMINAL_CWD",
+        "TERMINAL_TIMEOUT",
+        "AUXILIARY_APPROVAL_PROVIDER",
+        "AUXILIARY_APPROVAL_MODEL",
+        "HERMES_MAX_ITERATIONS",
+        "HERMES_TIMEZONE",
+        "HERMES_REDACT_SECRETS",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    load_profile_environment(hermes_home)
+
+    assert os.environ["HERMES_HOME"] == str(hermes_home.resolve())
+    assert os.environ["HOME"] == str((hermes_home / "home").resolve())
+    assert os.environ["TERMINAL_ENV"] == "local"
+    assert os.environ["TERMINAL_CWD"] == str(hermes_home / "workspace")
+    assert os.environ["TERMINAL_TIMEOUT"] == "12"
+    assert os.environ["AUXILIARY_APPROVAL_PROVIDER"] == "openai"
+    assert os.environ["AUXILIARY_APPROVAL_MODEL"] == "gpt-4.1"
+    assert os.environ["HERMES_MAX_ITERATIONS"] == "7"
+    assert os.environ["HERMES_TIMEZONE"] == "Asia/Shanghai"
+    assert os.environ["HERMES_REDACT_SECRETS"] == "true"
+
+
+@pytest.mark.asyncio
+async def test_sse_stream_uses_event_ids_and_last_event_id_cursor():
+    from runtime_manager.app import _sse_stream
+
+    registry = RunRegistry()
+    handle = registry.create(
+        run_id="run-1",
+        user_id="user-1",
+        conversation_id="conv-1",
+        session_id="conv-1",
+        model="openai/test",
+    )
+    handle.publish({"event": "run.running", "run_id": "run-1", "timestamp": 1.0})
+    handle.publish({"event": "run.completed", "run_id": "run-1", "timestamp": 2.0, "output": "done"})
+
+    stream = _sse_stream(handle, last_event_id=1)
+    try:
+        chunk = await asyncio.wait_for(stream.__anext__(), timeout=1)
+    finally:
+        await stream.aclose()
+
+    assert chunk.startswith("id: 2\n")
+    assert '"event": "run.completed"' in chunk
+    assert '"event_id": 2' in chunk
 
 
 @pytest.mark.asyncio

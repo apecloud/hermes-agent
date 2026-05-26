@@ -11,7 +11,7 @@ def main() -> None:
     app = create_app()
     uvicorn.run(
         app,
-        host=os.getenv("RUNTIME_MANAGER_HOST", "0.0.0.0"),
+        host=os.getenv("RUNTIME_MANAGER_HOST", "127.0.0.1"),
         port=int(os.getenv("RUNTIME_MANAGER_PORT", "8765")),
         log_level=os.getenv("RUNTIME_MANAGER_LOG_LEVEL", "info"),
     )

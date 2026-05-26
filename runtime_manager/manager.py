@@ -26,8 +26,13 @@ class RuntimeManager:
         worker_script: str | Path | None = None,
     ) -> None:
         self.api_key = api_key or ""
+        max_events_per_run = int(os.getenv("RUNTIME_MANAGER_MAX_EVENTS_PER_RUN", "1000"))
+        completed_run_ttl_seconds = float(os.getenv("RUNTIME_MANAGER_COMPLETED_RUN_TTL_SECONDS", "3600"))
         self.resolver = UserHomeResolver(users_root)
-        self.registry = RunRegistry()
+        self.registry = RunRegistry(
+            max_events_per_run=max_events_per_run,
+            completed_run_ttl_seconds=completed_run_ttl_seconds,
+        )
         self.python_executable = python_executable
         self.worker_script = Path(worker_script or (Path(__file__).resolve().parent / "worker_main.py")).resolve()
         self._tasks: set[asyncio.Task] = set()
@@ -39,7 +44,11 @@ class RuntimeManager:
         self.max_active_runs = int(os.getenv("RUNTIME_MANAGER_MAX_ACTIVE_RUNS", "50"))
         self.max_active_runs_per_user = int(os.getenv("RUNTIME_MANAGER_MAX_ACTIVE_RUNS_PER_USER", "2"))
         self.stop_grace_seconds = float(os.getenv("RUNTIME_MANAGER_STOP_GRACE_SECONDS", "10"))
-        self.allow_unauthenticated = os.getenv("RUNTIME_MANAGER_ALLOW_UNAUTHENTICATED", "").lower() in {
+        insecure_allow = os.getenv(
+            "RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED",
+            os.getenv("RUNTIME_MANAGER_ALLOW_UNAUTHENTICATED", ""),
+        )
+        self.allow_unauthenticated = insecure_allow.lower() in {
             "1",
             "true",
             "yes",
@@ -81,6 +90,7 @@ class RuntimeManager:
             proc_env = os.environ.copy()
             proc_env["PYTHONUNBUFFERED"] = "1"
             proc_env["HERMES_HOME"] = str(user_home)
+            proc_env["HOME"] = str(user_home / "home")
             proc = await asyncio.create_subprocess_exec(
                 self.python_executable,
                 str(self.worker_script),

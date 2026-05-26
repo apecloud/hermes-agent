@@ -5,6 +5,7 @@ from pathlib import Path
 
 _USER_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}$")
 _BOOTSTRAP_DIRS = (
+    "home",
     "sessions",
     "memories",
     "skills",
@@ -33,6 +34,10 @@ class UserHomeResolver:
         home.relative_to(self.base_dir)
         if create:
             home.mkdir(parents=True, exist_ok=True)
+            home.chmod(0o700)
             for name in _BOOTSTRAP_DIRS:
-                (home / name).mkdir(exist_ok=True)
+                child = home / name
+                child.mkdir(exist_ok=True)
+                if name == "home":
+                    child.chmod(0o700)
         return home
