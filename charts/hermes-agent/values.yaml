@@ -33,8 +33,6 @@ runtimeManager:
   port: 8765
   usersRoot: /opt/data/users
   apiKey: ""
-  existingSecret: ""
-  existingSecretKey: runtime-manager-api-key
   logLevel: info
   stopGraceSeconds: 10
   maxActiveRuns: 50
@@ -60,18 +58,11 @@ hermesHome:
 
 persistence:
   enabled: true
-  existingClaim: ""
   storageClass: ""
   accessModes:
     - ReadWriteOnce
   size: 20Gi
   annotations: {}
-
-kubeconfig:
-  enabled: false
-  existingSecret: ""
-  key: config
-  mountPath: /opt/data/.kube
 
 dashboard:
   enabled: false

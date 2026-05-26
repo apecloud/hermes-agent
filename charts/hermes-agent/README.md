@@ -8,8 +8,7 @@ This chart deploys Hermes Agent as an in-cluster runtime manager. It is intended
 - `Service` exposing the runtime manager inside the cluster.
 - `Secret` for the runtime manager bearer key.
 - Optional `PersistentVolumeClaim` mounted as `HERMES_HOME`.
-- Optional kubeconfig Secret mount for Kubernetes diagnostics.
-- `ServiceAccount` bound to the existing `apecloud-cluster-admin` ClusterRole.
+- `ServiceAccount` bound to the predefined `apecloud-cluster-admin` ClusterRole.
 
 ## Minimal Install
 
@@ -19,30 +18,13 @@ helm install hermes-agent ./charts/hermes-agent \
   --set image.tag=latest
 ```
 
-The chart generates a random runtime manager API key when `runtimeManager.apiKey` is empty and no existing Secret is supplied. For production, provide `runtimeManager.existingSecret` or set a strong generated key through your secret manager.
+The chart generates a random runtime manager API key when `runtimeManager.apiKey` is empty. For production, set a strong generated key through your secret manager.
 
 LLM provider/model/baseURL/API-key configuration is intentionally not configured in this chart. The product backend should resolve the current user's selected model configuration for each conversation and pass it to Runtime Manager when starting a run, using `model` plus `llm_config` or the equivalent per-run fields.
 
-## Existing Secrets
-
-```yaml
-runtimeManager:
-  existingSecret: hermes-agent-api
-  existingSecretKey: runtime-manager-api-key
-```
-
 ## Kubernetes Access
 
-The chart always binds the runtime `ServiceAccount` to the existing `apecloud-cluster-admin` ClusterRole and enables service account token mounting by default. If an environment still requires an explicit kubeconfig, mount it as a Secret:
-
-```yaml
-kubeconfig:
-  enabled: true
-  existingSecret: hermes-kubeconfig
-  key: config
-```
-
-The chart sets `KUBECONFIG=/opt/data/.kube/config`.
+The chart always binds the runtime `ServiceAccount` to the predefined `apecloud-cluster-admin` ClusterRole and enables service account token mounting by default. Kubernetes diagnostics should use this in-cluster ServiceAccount instead of chart-level kubeconfig Secret configuration.
 
 ## Profile Storage
 

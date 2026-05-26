@@ -72,18 +72,14 @@ spec:
             - name: RUNTIME_MANAGER_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "hermes-agent.runtimeManagerSecretName" . }}
-                  key: {{ .Values.runtimeManager.existingSecretKey }}
+                  name: {{ include "hermes-agent.secretName" . }}
+                  key: runtime-manager-api-key
             - name: HERMES_DASHBOARD
               value: {{ ternary "1" "" .Values.dashboard.enabled | quote }}
             - name: HERMES_DASHBOARD_HOST
               value: {{ .Values.dashboard.host | quote }}
             - name: HERMES_DASHBOARD_PORT
               value: {{ .Values.dashboard.port | quote }}
-            {{- if .Values.kubeconfig.enabled }}
-            - name: KUBECONFIG
-              value: {{ printf "%s/%s" .Values.kubeconfig.mountPath .Values.kubeconfig.key | quote }}
-            {{- end }}
             {{- range $name, $value := .Values.env }}
             - name: {{ $name }}
               value: {{ $value | quote }}
@@ -102,11 +98,6 @@ spec:
             - name: hermes-config
               mountPath: {{ .Values.config.mountPath }}
               subPath: config.yaml
-              readOnly: true
-            {{- end }}
-            {{- if .Values.kubeconfig.enabled }}
-            - name: kubeconfig
-              mountPath: {{ .Values.kubeconfig.mountPath }}
               readOnly: true
             {{- end }}
             {{- with .Values.extraVolumeMounts }}
@@ -140,7 +131,7 @@ spec:
         - name: hermes-home
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ default (include "hermes-agent.fullname" .) .Values.persistence.existingClaim }}
+            claimName: {{ include "hermes-agent.fullname" . }}
           {{- else }}
           emptyDir: {}
           {{- end }}
@@ -148,14 +139,6 @@ spec:
         - name: hermes-config
           configMap:
             name: {{ include "hermes-agent.fullname" . }}
-        {{- end }}
-        {{- if .Values.kubeconfig.enabled }}
-        - name: kubeconfig
-          secret:
-            secretName: {{ required "kubeconfig.existingSecret is required when kubeconfig.enabled=true" .Values.kubeconfig.existingSecret }}
-            items:
-              - key: {{ .Values.kubeconfig.key }}
-                path: {{ .Values.kubeconfig.key }}
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

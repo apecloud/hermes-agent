@@ -62,10 +62,3 @@ Create the name of the chart-managed secret.
 {{- define "hermes-agent.secretName" -}}
 {{- default (printf "%s-config" (include "hermes-agent.fullname" .)) .Values.secret.name -}}
 {{- end -}}
-
-{{/*
-Resolve the runtime manager secret name.
-*/}}
-{{- define "hermes-agent.runtimeManagerSecretName" -}}
-{{- default (include "hermes-agent.secretName" .) .Values.runtimeManager.existingSecret -}}
-{{- end -}}
