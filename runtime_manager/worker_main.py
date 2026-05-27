@@ -11,6 +11,7 @@ from typing import Any
 
 _OUTPUT_LOCK = threading.Lock()
 _AGENT_HOLDER: dict[str, Any] = {"agent": None}
+HERMES_RUNTIME_PLATFORM = "api_server"
 
 
 def emit(event: dict[str, Any]) -> None:
@@ -210,7 +211,7 @@ def main() -> int:
     try:
         approval_token = set_current_session_key(approval_session_key)
         session_tokens = set_session_vars(
-            platform="runtime_manager",
+            platform=HERMES_RUNTIME_PLATFORM,
             user_id=user_id,
             session_key=approval_session_key,
         )
@@ -225,13 +226,16 @@ def main() -> int:
             or llm_config.get("default")
             or ""
         )
-        provider = _first_present(request.get("provider"), llm_config.get("provider"))
         api_key = _first_present(request.get("api_key"), llm_config.get("api_key"), llm_config.get("apiKey"))
         base_url = _first_present(
             request.get("base_url"),
             request.get("baseURL"),
             llm_config.get("base_url"),
             llm_config.get("baseURL"),
+        )
+        provider = _normalize_agent_provider(
+            _first_present(request.get("provider"), llm_config.get("provider")),
+            base_url=base_url,
         )
 
         system_prompt = _compose_effective_system_prompt(
@@ -249,7 +253,8 @@ def main() -> int:
             session_db=SessionDB(),
             quiet_mode=True,
             verbose_logging=False,
-            platform="runtime_manager",
+            platform=HERMES_RUNTIME_PLATFORM,
+            gateway_session_key=approval_session_key,
             stream_delta_callback=on_delta,
             tool_progress_callback=on_tool_progress,
             status_callback=on_status,
@@ -337,6 +342,35 @@ def _first_present(*values: Any) -> Any:
             continue
         return value
     return None
+
+
+def _normalize_agent_provider(provider: Any, *, base_url: Any = None) -> str | None:
+    if provider is None:
+        return None
+    value = str(provider).strip().lower().replace("_", "-").replace(" ", "-")
+    if not value:
+        return None
+
+    openai_compatible_aliases = {
+        "openai-compatible",
+        "openai-compat",
+        "openai-compatible-api",
+        "openai-compat-api",
+        "openai-compatible-endpoint",
+    }
+    if value in openai_compatible_aliases:
+        return "custom"
+
+    # Hermes uses "openai-api" for its first-class OpenAI API provider and
+    # "custom" for caller-supplied OpenAI-compatible endpoints.  Cloud model
+    # configs commonly call both variants "openai"; normalize before passing
+    # the value into AIAgent so platform/provider metadata remains canonical.
+    if value == "openai":
+        if isinstance(base_url, str) and base_url.strip():
+            return "custom"
+        return "openai-api"
+
+    return value
 
 
 def _compose_effective_system_prompt(

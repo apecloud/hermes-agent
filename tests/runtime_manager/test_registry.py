@@ -54,6 +54,22 @@ def test_user_home_resolver_rejects_invalid_ids(tmp_path):
         resolver.resolve("../escape")
 
 
+def test_runtime_worker_uses_hermes_api_server_platform():
+    from runtime_manager.worker_main import HERMES_RUNTIME_PLATFORM
+
+    assert HERMES_RUNTIME_PLATFORM == "api_server"
+
+
+def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
+    from runtime_manager.worker_main import _normalize_agent_provider
+
+    assert _normalize_agent_provider("openai-compatible", base_url="https://models.example/v1") == "custom"
+    assert _normalize_agent_provider("openai_compat", base_url="https://models.example/v1") == "custom"
+    assert _normalize_agent_provider("openai", base_url="https://api.openai.com/v1") == "custom"
+    assert _normalize_agent_provider("openai") == "openai-api"
+    assert _normalize_agent_provider("qwen-oauth") == "qwen-oauth"
+
+
 def test_runtime_manager_requires_api_key_unless_explicitly_allowed(tmp_path, monkeypatch):
     from runtime_manager.manager import RuntimeManager
 
