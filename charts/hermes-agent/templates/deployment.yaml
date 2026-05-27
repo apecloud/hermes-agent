@@ -101,6 +101,11 @@ spec:
           volumeMounts:
             - name: hermes-home
               mountPath: {{ .Values.hermesHome.mountPath }}
+            {{- if .Values.runtimeManager.defaultProfileDir }}
+            - name: default-profile
+              mountPath: {{ .Values.runtimeManager.defaultProfileDir | quote }}
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -136,6 +141,17 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        {{- if .Values.runtimeManager.defaultProfileDir }}
+        - name: default-profile
+          configMap:
+            name: {{ include "hermes-agent.defaultProfileConfigMapName" . }}
+            items:
+              {{- range $path, $_ := .Files.Glob "default-profile/**" }}
+              {{- $relativePath := trimPrefix "default-profile/" $path }}
+              - key: {{ replace "/" "__" $relativePath | quote }}
+                path: {{ $relativePath | quote }}
+              {{- end }}
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

@@ -62,3 +62,10 @@ Create the name of the chart-managed secret.
 {{- define "hermes-agent.secretName" -}}
 {{- default (printf "%s-config" (include "hermes-agent.fullname" .)) .Values.secret.name -}}
 {{- end -}}
+
+{{/*
+Create the name of the chart-managed default profile ConfigMap.
+*/}}
+{{- define "hermes-agent.defaultProfileConfigMapName" -}}
+{{- printf "%s-default-profile" (include "hermes-agent.fullname" .) -}}
+{{- end -}}

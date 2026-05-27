@@ -95,12 +95,15 @@ Expected health response:
 - Keep LLM provider/model/baseURL/API key out of the Helm chart and container
   environment. Apiserver must resolve the effective Cloud LLM config for the
   current conversation and pass it in each `POST /agent/runs` request.
-- Runtime Manager supports a Cloud-maintained default profile asset directory.
-  Set `RUNTIME_MANAGER_DEFAULT_PROFILE_DIR` to a mounted directory with this
+- Runtime Manager supports a mounted default profile asset directory. The Helm
+  chart packages and mounts the default KubeBlocks profile at
+  `/opt/hermes/default-profile` by default. Set
+  `RUNTIME_MANAGER_DEFAULT_PROFILE_DIR` to the mounted directory with this
   shape:
 
   ```text
   default-profile/
+    manifest.yaml
     system-prompt.md
     skills/
       kubeblocks-k8s-diagnosis/
@@ -112,10 +115,8 @@ Expected health response:
           SKILL.md
   ```
 
-  Hermes does not package KubeBlocks business prompt/skill content. In Cloud
-  deployments, mount the version-controlled Cloud asset directory and point
-  `runtimeManager.defaultProfileDir` at it. If this value is not set, Runtime
-  Manager does not inject a default prompt or default skills.
+  If this value is not set, Runtime Manager does not inject a default prompt or
+  default skills.
 - Runtime Manager prepends the default `system-prompt.md` to any per-run
   `system_prompt` that apiserver sends, so Cloud can append message-level
   cluster contexts without replacing the safety/business boundary prompt.

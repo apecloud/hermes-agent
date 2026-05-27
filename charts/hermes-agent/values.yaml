@@ -46,7 +46,7 @@ runtimeManager:
     - terminal
     - file
   defaultMaxIterations: 20
-  defaultProfileDir: ""
+  defaultProfileDir: /opt/hermes/default-profile
 
 secret:
   create: true

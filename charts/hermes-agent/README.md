@@ -7,6 +7,8 @@ This chart deploys Hermes Agent as an in-cluster runtime manager. It is intended
 - `Deployment` running `hermes-runtime-manager`, a thin HTTP/SSE service that starts short-lived Hermes worker subprocesses.
 - `Service` exposing the runtime manager inside the cluster.
 - `Secret` for the runtime manager bearer key.
+- `ConfigMap` containing the chart-managed default Hermes profile assets
+  (`system-prompt.md`, `manifest.yaml`, and default skills).
 - Optional `PersistentVolumeClaim` mounted as `HERMES_HOME`.
 - `ServiceAccount` bound to the predefined `apecloud-cluster-admin` ClusterRole.
 
@@ -23,7 +25,11 @@ The chart generates a random runtime manager API key when `runtimeManager.apiKey
 
 LLM provider/model/baseURL/API-key configuration is intentionally not configured in this chart. The product backend should resolve the current user's selected model configuration for each conversation and pass it to Runtime Manager when starting a run, using `model` plus `llm_config` or the equivalent per-run fields.
 
-Hermes profile configuration is also intentionally not configured through Helm values. Each user workspace should be initialized by the product backend or Runtime Manager under that user's `HERMES_HOME`.
+Default Hermes profile assets are packaged with this chart instead of being
+configured through Helm values. Runtime Manager mounts those assets read-only and
+syncs the default skills into each user's `HERMES_HOME` before starting a
+worker. Per-user `.env`, `config.yaml`, session DB, memories, and runtime
+workspace still live under that user's `HERMES_HOME`.
 
 ## Runtime Manager Configuration
 
@@ -50,17 +56,24 @@ The runtime manager API key is stored in the chart Secret. If `secret.create=fal
 
 `runtimeManager.defaultMaxIterations` defaults to `20` so an agent that keeps searching can still produce a toolless summary instead of running indefinitely. The apiserver may override `max_iterations` per run when a specific workflow needs a larger budget.
 
-`runtimeManager.defaultProfileDir` optionally points Runtime Manager at a Cloud-maintained prompt/skill asset directory mounted into the pod. The directory should look like:
+`runtimeManager.defaultProfileDir` points Runtime Manager at the chart-managed
+default profile asset directory mounted into the pod. It defaults to
+`/opt/hermes/default-profile`. The packaged directory looks like:
 
 ```text
 default-profile/
+  manifest.yaml
   system-prompt.md
   skills/
     kubeblocks-k8s-diagnosis/
       SKILL.md
 ```
 
-Runtime Manager reads `system-prompt.md` as the shared default system prompt, copies `skills/*/SKILL.md` into each resolved user `HERMES_HOME`, and preloads the enabled default skills for worker runs. Use `extraVolumes` and `extraVolumeMounts` to mount this directory from a Cloud-managed ConfigMap or image asset; do not put LLM provider/model/API-key values in this profile directory.
+Runtime Manager reads `system-prompt.md` as the shared default system prompt,
+copies managed skill directories recursively into each resolved user
+`${HERMES_HOME}/skills`, and preloads the enabled default skills from
+`manifest.yaml` for worker runs. Do not put LLM provider/model/API-key values in
+this profile directory; those remain per-run values supplied by apiserver.
 
 ## Kubernetes Access
 
