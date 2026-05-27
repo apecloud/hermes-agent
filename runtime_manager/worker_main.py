@@ -83,28 +83,13 @@ def main() -> int:
     ) -> None:
         _ = unused_args
         ts = time.time()
-        if event_type == "tool.started":
-            emit(
-                {
-                    "event": "tool.started",
-                    "run_id": run_id,
-                    "timestamp": ts,
-                    "tool": tool_name,
-                    "preview": preview,
-                }
-            )
-        elif event_type == "tool.completed":
-            emit(
-                {
-                    "event": "tool.completed",
-                    "run_id": run_id,
-                    "timestamp": ts,
-                    "tool": tool_name,
-                    "duration": round(kwargs.get("duration", 0), 3),
-                    "error": kwargs.get("is_error", False),
-                }
-            )
-        elif event_type == "reasoning.available":
+        if event_type in {"tool.started", "tool.completed"}:
+            # Hermes fires tool_progress_callback side-by-side with the richer
+            # tool_start/tool_complete callbacks.  Keep start/complete events
+            # owned by those structured callbacks so every tool event has a
+            # stable tool_call_id and clients do not receive duplicates.
+            return
+        if event_type == "reasoning.available":
             emit(
                 {
                     "event": "reasoning.available",
@@ -206,6 +191,101 @@ def main() -> int:
     )
     listener.start()
 
+    tool_started_at: dict[str, float] = {}
+    tool_lock = threading.Lock()
+
+    def on_tool_start(tool_call_id: str, tool_name: str, args: Any) -> None:
+        started_at = time.time()
+        with tool_lock:
+            tool_started_at[str(tool_call_id)] = started_at
+        emit(
+            {
+                "event": "tool.started",
+                "run_id": run_id,
+                "timestamp": started_at,
+                "tool_call_id": tool_call_id,
+                "tool": tool_name,
+                "preview": _json_preview(args),
+            }
+        )
+
+    def on_tool_complete(tool_call_id: str, tool_name: str, args: Any, result: Any) -> None:
+        completed_at = time.time()
+        with tool_lock:
+            started_at = tool_started_at.pop(str(tool_call_id), None)
+        event = {
+            "event": "tool.completed",
+            "run_id": run_id,
+            "timestamp": completed_at,
+            "tool_call_id": tool_call_id,
+            "tool": tool_name,
+            "result_preview": _json_preview(result),
+            "error": _tool_result_has_error(result),
+        }
+        if started_at is not None:
+            event["duration"] = round(completed_at - started_at, 3)
+        emit(event)
+
+    def on_reasoning_delta(text: str | None) -> None:
+        if not text:
+            return
+        emit(
+            {
+                "event": "reasoning.available",
+                "run_id": run_id,
+                "timestamp": time.time(),
+                "text": text,
+            }
+        )
+
+    def on_interim_assistant(text: str | None, *unused_args, **kwargs) -> None:
+        _ = unused_args
+        if not text:
+            return
+        emit(
+            {
+                "event": "message.interim",
+                "run_id": run_id,
+                "timestamp": time.time(),
+                "text": text,
+                "already_streamed": bool(kwargs.get("already_streamed", False)),
+            }
+        )
+
+    def on_step(iteration: int, prev_tools: list[Any]) -> None:
+        emit(
+            {
+                "event": "agent.step",
+                "run_id": run_id,
+                "timestamp": time.time(),
+                "iteration": iteration,
+                "previous_tools": prev_tools,
+            }
+        )
+
+    def on_tool_generating(tool_name: str) -> None:
+        emit(
+            {
+                "event": "tool.generating",
+                "run_id": run_id,
+                "timestamp": time.time(),
+                "tool": tool_name,
+            }
+        )
+
+    def on_thinking(message: str | None) -> None:
+        if not message:
+            return
+        emit(
+            {
+                "event": "status.message",
+                "run_id": run_id,
+                "timestamp": time.time(),
+                "kind": "thinking",
+                "message": message,
+            }
+        )
+
     approval_token = None
     session_tokens = []
     try:
@@ -257,6 +337,13 @@ def main() -> int:
             gateway_session_key=approval_session_key,
             stream_delta_callback=on_delta,
             tool_progress_callback=on_tool_progress,
+            tool_start_callback=on_tool_start,
+            tool_complete_callback=on_tool_complete,
+            thinking_callback=on_thinking,
+            reasoning_callback=on_reasoning_delta,
+            step_callback=on_step,
+            interim_assistant_callback=on_interim_assistant,
+            tool_gen_callback=on_tool_generating,
             status_callback=on_status,
             enabled_toolsets=request.get("enabled_toolsets"),
             disabled_toolsets=request.get("disabled_toolsets"),
@@ -371,6 +458,34 @@ def _normalize_agent_provider(provider: Any, *, base_url: Any = None) -> str | N
         return "openai-api"
 
     return value
+
+
+def _json_preview(value: Any, *, limit: int = 500) -> str:
+    try:
+        if isinstance(value, str):
+            text = value
+        else:
+            text = json.dumps(value, ensure_ascii=False, default=str)
+    except Exception:
+        text = str(value)
+    if len(text) > limit:
+        return text[:limit] + "..."
+    return text
+
+
+def _tool_result_has_error(value: Any) -> bool:
+    if isinstance(value, dict):
+        return "error" in value or bool(value.get("is_error"))
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return False
+        try:
+            parsed = json.loads(stripped)
+        except Exception:
+            return False
+        return _tool_result_has_error(parsed)
+    return False
 
 
 def _compose_effective_system_prompt(

@@ -70,6 +70,20 @@ def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
     assert _normalize_agent_provider("qwen-oauth") == "qwen-oauth"
 
 
+def test_runtime_worker_tool_event_helpers_are_json_safe():
+    from runtime_manager.worker_main import _json_preview, _tool_result_has_error
+
+    assert _json_preview({"tool": "kubectl", "args": ["get", "pods"]}) == (
+        '{"tool": "kubectl", "args": ["get", "pods"]}'
+    )
+    assert _json_preview("x" * 520).endswith("...")
+    assert _tool_result_has_error({"error": "boom"})
+    assert _tool_result_has_error('{"error":"boom"}')
+    assert _tool_result_has_error({"is_error": True})
+    assert not _tool_result_has_error({"ok": True})
+    assert not _tool_result_has_error("plain text result")
+
+
 def test_runtime_manager_requires_api_key_unless_explicitly_allowed(tmp_path, monkeypatch):
     from runtime_manager.manager import RuntimeManager
 
