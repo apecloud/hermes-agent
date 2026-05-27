@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import stat
 import subprocess
@@ -46,10 +47,11 @@ def test_normalize_cluster_contexts_accepts_cloud_context_shapes():
 def test_cloud_kubeconfig_resolver_queries_psql_and_writes_file_under_user_home(tmp_path):
     calls = []
     kubeconfig = "apiVersion: v1\nclusters:\n- name: kb10\n"
+    encoded_kubeconfig = base64.b64encode(kubeconfig.encode("utf-8")).decode("ascii")
 
     def runner(cmd, *, timeout):
         calls.append((cmd, timeout))
-        return FakeResult(stdout=kubeconfig)
+        return FakeResult(stdout=encoded_kubeconfig)
 
     resolver = CloudKubeconfigResolver(
         CloudMetaConfig(
@@ -112,12 +114,13 @@ def test_cloud_kubeconfig_resolver_queries_psql_and_writes_file_under_user_home(
 
 def test_cloud_kubeconfig_resolver_discovers_postgres_pod_by_selector(tmp_path):
     calls = []
+    kubeconfig = base64.b64encode(b"apiVersion: v1\nclusters: []\n").decode("ascii")
 
     def runner(cmd, *, timeout):
         calls.append(cmd)
         if cmd[:3] == ["kubectl", "get", "pods"]:
             return FakeResult(stdout="apecloud-pg-0")
-        return FakeResult(stdout="apiVersion: v1\n")
+        return FakeResult(stdout=kubeconfig)
 
     resolver = CloudKubeconfigResolver(
         CloudMetaConfig(
@@ -149,6 +152,21 @@ def test_cloud_kubeconfig_resolver_rejects_unsafe_environment_names(tmp_path):
 
     with pytest.raises(ValueError, match="invalid environment name"):
         resolver.prepare_contexts(tmp_path / "home", ["kb10'; drop table admin_environment; --"])
+
+
+def test_cloud_kubeconfig_resolver_rejects_invalid_base64_kubeconfig(tmp_path):
+    resolver = CloudKubeconfigResolver(runner=lambda cmd, timeout: FakeResult(stdout="not-base64!"))
+
+    with pytest.raises(RuntimeError, match="invalid base64 kubeconfig"):
+        resolver.prepare_contexts(tmp_path / "home", ["kb10"])
+
+
+def test_cloud_kubeconfig_resolver_rejects_decoded_non_kubeconfig(tmp_path):
+    encoded = base64.b64encode(b"hello").decode("ascii")
+    resolver = CloudKubeconfigResolver(runner=lambda cmd, timeout: FakeResult(stdout=encoded))
+
+    with pytest.raises(RuntimeError, match="does not look like a Kubernetes config"):
+        resolver.prepare_contexts(tmp_path / "home", ["kb10"])
 
 
 def test_run_command_converts_timeout_to_failed_result(monkeypatch):

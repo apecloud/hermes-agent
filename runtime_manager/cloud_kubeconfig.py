@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import os
 import re
 import subprocess
@@ -193,10 +195,10 @@ class CloudKubeconfigResolver:
         result = self.runner(cmd, timeout=self.config.query_timeout_seconds)
         if result.returncode != 0:
             raise RuntimeError(_command_failure_message("query Cloud metadata kubeconfig", result))
-        kubeconfig = str(result.stdout or "").strip()
-        if not kubeconfig:
+        encoded_kubeconfig = str(result.stdout or "").strip()
+        if not encoded_kubeconfig:
             raise RuntimeError(f"no kubeconfig found for environment {environment_name!r}")
-        return kubeconfig
+        return _decode_kubeconfig(encoded_kubeconfig, environment_name)
 
     def _resolve_postgres_pod(self) -> str:
         if self.config.pg_pod_name:
@@ -296,6 +298,21 @@ def _validate_environment_name(value: str) -> None:
 def _validate_sql_identifier(value: str, label: str) -> None:
     if not _SQL_IDENTIFIER_RE.fullmatch(value):
         raise ValueError(f"invalid {label}: {value!r}")
+
+
+def _decode_kubeconfig(encoded_value: str, environment_name: str) -> str:
+    compact_value = "".join(encoded_value.split())
+    try:
+        decoded = base64.b64decode(compact_value, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise RuntimeError(f"invalid base64 kubeconfig for environment {environment_name!r}") from exc
+    try:
+        kubeconfig = decoded.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError(f"decoded kubeconfig is not UTF-8 for environment {environment_name!r}") from exc
+    if "apiVersion:" not in kubeconfig or "clusters:" not in kubeconfig:
+        raise RuntimeError(f"decoded kubeconfig does not look like a Kubernetes config for {environment_name!r}")
+    return kubeconfig
 
 
 def _safe_path_component(value: str) -> str:
