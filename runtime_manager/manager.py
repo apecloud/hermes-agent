@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import logging
 import os
@@ -18,8 +17,6 @@ from .registry import RunHandle, RunRegistry
 logger = logging.getLogger(__name__)
 
 _DEFAULT_ENABLED_TOOLSETS = ("terminal", "file")
-_DEFAULT_SKILLS = ("kubeblocks-k8s-diagnosis",)
-_DEFAULTS_DIR = Path(__file__).resolve().parent / "defaults"
 _DEFAULT_SYSTEM_PROMPT_FILENAMES = ("system-prompt.md", "system_prompt.md")
 
 
@@ -51,31 +48,27 @@ class RuntimeManager:
         self.max_active_runs = int(os.getenv("RUNTIME_MANAGER_MAX_ACTIVE_RUNS", "50"))
         self.max_active_runs_per_user = int(os.getenv("RUNTIME_MANAGER_MAX_ACTIVE_RUNS_PER_USER", "2"))
         self.stop_grace_seconds = float(os.getenv("RUNTIME_MANAGER_STOP_GRACE_SECONDS", "10"))
-        self.default_profile_dir = Path(
-            os.getenv("RUNTIME_MANAGER_DEFAULT_PROFILE_DIR") or _DEFAULTS_DIR
-        ).expanduser()
+        default_profile_dir = os.getenv("RUNTIME_MANAGER_DEFAULT_PROFILE_DIR")
+        self.default_profile_dir = Path(default_profile_dir).expanduser() if default_profile_dir else None
+        default_profile_manifest = _load_default_profile_manifest(self.default_profile_dir)
         self.default_enabled_toolsets = _parse_toolset_env(
             os.getenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS"),
             default=list(_DEFAULT_ENABLED_TOOLSETS),
         )
         self.default_max_iterations = int(os.getenv("RUNTIME_MANAGER_DEFAULT_MAX_ITERATIONS", "20"))
         self.default_system_prompt = _load_default_system_prompt(
-            os.getenv("RUNTIME_MANAGER_DEFAULT_SYSTEM_PROMPT_FILE"),
+            os.getenv("RUNTIME_MANAGER_DEFAULT_SYSTEM_PROMPT_FILE")
+            or default_profile_manifest.get("systemPrompt"),
             default_profile_dir=self.default_profile_dir,
         )
         self.default_skills = _parse_string_list_env(
             os.getenv("RUNTIME_MANAGER_DEFAULT_SKILLS"),
-            default=list(_DEFAULT_SKILLS),
-        )
-        self.default_asset_version = _build_default_asset_version(
-            self.default_profile_dir,
-            default_skills=self.default_skills,
+            default=_extract_manifest_skill_names(default_profile_manifest),
         )
         logger.info(
-            "runtime-manager default profile assets: version=%s sha256=%s dir=%s",
-            self.default_asset_version.get("version") or "",
-            self.default_asset_version.get("sha256") or "",
-            self.default_asset_version.get("profileDir") or "",
+            "runtime-manager default profile dir=%s skills=%s",
+            str(self.default_profile_dir or ""),
+            ",".join(self.default_skills),
         )
         insecure_allow = os.getenv(
             "RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED",
@@ -202,6 +195,8 @@ class RuntimeManager:
         return handle
 
     def _ensure_default_profile_assets(self, user_home: Path) -> None:
+        if self.default_profile_dir is None:
+            return
         skills_root = user_home / "skills"
         skills_root.mkdir(mode=0o700, parents=True, exist_ok=True)
         source_skills_root = self.default_profile_dir / "skills"
@@ -217,19 +212,6 @@ class RuntimeManager:
             destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
             destination.chmod(0o600)
-        self._write_asset_version(user_home)
-
-    def _write_asset_version(self, user_home: Path) -> None:
-        asset_version = {
-            **self.default_asset_version,
-            "syncedAt": time.time(),
-        }
-        path = user_home / "asset-version.json"
-        path.write_text(
-            json.dumps(asset_version, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-        path.chmod(0o600)
 
     async def _reserve_run(self, *, run_id: str, user_id: str, conversation_id: str) -> None:
         key = (user_id, conversation_id)
@@ -448,13 +430,15 @@ def _merge_string_lists(defaults: list[str], value: Any) -> list[str]:
     return merged
 
 
-def _load_default_system_prompt(path_value: str | None, *, default_profile_dir: Path) -> str:
-    if path_value:
-        prompt_path = Path(path_value).expanduser()
-    else:
-        prompt_path = _find_default_system_prompt(default_profile_dir)
+def _load_default_system_prompt(path_value: Any, *, default_profile_dir: Path | None) -> str:
+    if not isinstance(path_value, str) or not path_value.strip():
+        prompt_path = _find_default_system_prompt(default_profile_dir) if default_profile_dir is not None else None
         if prompt_path is None:
             return ""
+    else:
+        prompt_path = Path(path_value).expanduser()
+        if not prompt_path.is_absolute() and default_profile_dir is not None:
+            prompt_path = default_profile_dir / prompt_path
     try:
         return prompt_path.read_text(encoding="utf-8").strip()
     except FileNotFoundError:
@@ -469,25 +453,9 @@ def _find_default_system_prompt(default_profile_dir: Path) -> Path | None:
     return None
 
 
-def _build_default_asset_version(default_profile_dir: Path, *, default_skills: list[str]) -> dict[str, Any]:
-    manifest = _load_default_profile_manifest(default_profile_dir)
-    system_prompt = manifest.get("systemPrompt")
-    if not isinstance(system_prompt, str) or not system_prompt.strip():
-        prompt_path = _find_default_system_prompt(default_profile_dir)
-        system_prompt = prompt_path.relative_to(default_profile_dir).as_posix() if prompt_path else ""
-    version = manifest.get("version")
-    if not isinstance(version, str):
-        version = ""
-    return {
-        "version": version,
-        "systemPrompt": system_prompt.strip(),
-        "skills": list(default_skills),
-        "sha256": _hash_default_profile(default_profile_dir),
-        "profileDir": str(default_profile_dir),
-    }
-
-
-def _load_default_profile_manifest(default_profile_dir: Path) -> dict[str, Any]:
+def _load_default_profile_manifest(default_profile_dir: Path | None) -> dict[str, Any]:
+    if default_profile_dir is None:
+        return {}
     manifest_path = default_profile_dir / "manifest.yaml"
     if not manifest_path.is_file():
         return {}
@@ -502,17 +470,25 @@ def _load_default_profile_manifest(default_profile_dir: Path) -> dict[str, Any]:
         return {}
 
 
-def _hash_default_profile(default_profile_dir: Path) -> str:
-    digest = hashlib.sha256()
-    if not default_profile_dir.exists():
-        return digest.hexdigest()
-    for path in sorted(p for p in default_profile_dir.rglob("*") if p.is_file()):
-        rel = path.relative_to(default_profile_dir).as_posix()
-        digest.update(rel.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return digest.hexdigest()
+def _extract_manifest_skill_names(manifest: dict[str, Any]) -> list[str]:
+    skills = manifest.get("skills")
+    if not isinstance(skills, list):
+        return []
+    names: list[str] = []
+    for item in skills:
+        if isinstance(item, str):
+            name = item.strip()
+        elif isinstance(item, dict):
+            if item.get("enabled") is False:
+                continue
+            raw_name = item.get("name")
+            raw_path = item.get("path")
+            name = str(raw_name or Path(str(raw_path or "")).name).strip()
+        else:
+            continue
+        if name and name not in names:
+            names.append(name)
+    return names
 
 
 def _join_prompt_parts(*parts: Any) -> str | None:

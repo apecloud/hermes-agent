@@ -107,23 +107,18 @@ Expected health response:
         SKILL.md
   ```
 
-  The packaged `runtime_manager/defaults/` directory is only the image fallback
-  for development and smoke tests. In Cloud deployments, mount the
-  version-controlled Cloud asset directory and point
-  `runtimeManager.defaultProfileDir` at it.
-- Runtime Manager computes a sha256 over the default profile assets, logs the
-  active asset version at startup, and writes `${HERMES_HOME}/asset-version.json`
-  whenever a user home is initialized or refreshed. Use this file during E2E
-  and incident triage to confirm the prompt/skill version actually used in a
-  live run.
+  Hermes does not package KubeBlocks business prompt/skill content. In Cloud
+  deployments, mount the version-controlled Cloud asset directory and point
+  `runtimeManager.defaultProfileDir` at it. If this value is not set, Runtime
+  Manager does not inject a default prompt or default skills.
 - Runtime Manager prepends the default `system-prompt.md` to any per-run
   `system_prompt` that apiserver sends, so Cloud can append message-level
   cluster contexts without replacing the safety/business boundary prompt.
 - When a user home is resolved, Runtime Manager copies managed skills from the
-  default profile into `${HERMES_HOME}/skills/` and passes the default skill
-  names to the worker for preloading. The worker fails fast if a requested
-  default skill is missing instead of silently running without the diagnosis
-  guide.
+  default profile into `${HERMES_HOME}/skills/` and passes enabled skill names
+  from `manifest.yaml` (or `RUNTIME_MANAGER_DEFAULT_SKILLS`) to the worker for
+  preloading. The worker fails fast if a requested default skill is missing
+  instead of silently running without the diagnosis guide.
 - The default prompt and skill are runtime-manager deployment assets, not
   frontend settings. P0 should not expose prompt editing, skill selection, or
   Hermes profile internals to users.

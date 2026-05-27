@@ -226,7 +226,7 @@ async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_runtime_manager_installs_and_forwards_default_prompt_and_skill(tmp_path, monkeypatch):
+async def test_runtime_manager_does_not_inject_prompt_or_skills_without_default_profile(tmp_path, monkeypatch):
     worker = tmp_path / "worker.py"
     worker.write_text(
         "\n".join(
@@ -245,6 +245,7 @@ async def test_runtime_manager_installs_and_forwards_default_prompt_and_skill(tm
     import sys
 
     monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_SYSTEM_PROMPT_FILE", raising=False)
+    monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_PROFILE_DIR", raising=False)
     monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_SKILLS", raising=False)
     manager = RuntimeManager(
         users_root=tmp_path / "users",
@@ -268,27 +269,11 @@ async def test_runtime_manager_installs_and_forwards_default_prompt_and_skill(tm
 
     assert handle.status == "completed"
     output = json.loads(handle.output)
-    assert "KubeBlocks AI diagnosis assistant" in output["system_prompt"]
-    assert "Current message context: cluster=a" in output["system_prompt"]
-    assert output["skills"] == ["kubeblocks-k8s-diagnosis"]
-
-    installed_skill = (
-        tmp_path
-        / "users"
-        / "user-1"
-        / "skills"
-        / "kubeblocks-k8s-diagnosis"
-        / "SKILL.md"
-    )
-    assert installed_skill.is_file()
-    assert "kubectl debug" in installed_skill.read_text(encoding="utf-8")
-    asset_version = json.loads(
-        (tmp_path / "users" / "user-1" / "asset-version.json").read_text(encoding="utf-8")
-    )
-    assert asset_version["version"] == "v0.3"
-    assert asset_version["systemPrompt"] == "system-prompt.md"
-    assert asset_version["skills"] == ["kubeblocks-k8s-diagnosis"]
-    assert len(asset_version["sha256"]) == 64
+    assert output == {
+        "system_prompt": "Current message context: cluster=a",
+        "skills": [],
+    }
+    assert not (tmp_path / "users" / "user-1" / "asset-version.json").exists()
 
 
 def test_worker_composes_system_prompt_with_preloaded_skills():
@@ -366,7 +351,7 @@ async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, mo
     import sys
 
     monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_PROFILE_DIR", str(assets))
-    monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_SKILLS", "custom-diagnosis")
+    monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_SKILLS", raising=False)
     manager = RuntimeManager(
         users_root=tmp_path / "users",
         python_executable=sys.executable,
@@ -400,13 +385,7 @@ async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, mo
         / "custom-diagnosis"
         / "SKILL.md"
     ).is_file()
-    asset_version = json.loads(
-        (tmp_path / "users" / "user-1" / "asset-version.json").read_text(encoding="utf-8")
-    )
-    assert asset_version["version"] == "v9"
-    assert asset_version["systemPrompt"] == "system-prompt.md"
-    assert asset_version["skills"] == ["custom-diagnosis"]
-    assert len(asset_version["sha256"]) == 64
+    assert not (tmp_path / "users" / "user-1" / "asset-version.json").exists()
 
 
 @pytest.mark.asyncio
