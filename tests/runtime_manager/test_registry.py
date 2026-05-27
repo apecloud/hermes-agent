@@ -389,6 +389,85 @@ async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, mo
 
 
 @pytest.mark.asyncio
+async def test_runtime_manager_syncs_full_nested_skill_directories(tmp_path, monkeypatch):
+    assets = tmp_path / "cloud-assets"
+    skill_dir = assets / "skills" / "diagnosis" / "custom-diagnosis"
+    (skill_dir / "references").mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: custom-diagnosis\n---\n# Custom diagnosis skill\n",
+        encoding="utf-8",
+    )
+    (skill_dir / "references" / "runbook.md").write_text(
+        "# Runbook\nUse kubectl describe first.\n",
+        encoding="utf-8",
+    )
+    (assets / "manifest.yaml").write_text(
+        "\n".join(
+            [
+                "skills:",
+                "  - path: skills/diagnosis/custom-diagnosis",
+                "    name: custom-diagnosis",
+                "    enabled: true",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'skills': req.get('skills')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_PROFILE_DIR", str(assets))
+    monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_SKILLS", raising=False)
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+        }
+    )
+
+    for _ in range(50):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    assert json.loads(handle.output) == {"skills": ["custom-diagnosis"]}
+    copied_skill_dir = (
+        tmp_path
+        / "users"
+        / "user-1"
+        / "skills"
+        / "diagnosis"
+        / "custom-diagnosis"
+    )
+    assert (copied_skill_dir / "SKILL.md").is_file()
+    assert (copied_skill_dir / "references" / "runbook.md").read_text(
+        encoding="utf-8"
+    ) == "# Runbook\nUse kubectl describe first.\n"
+
+
+@pytest.mark.asyncio
 async def test_runtime_manager_payload_toolsets_override_default(tmp_path, monkeypatch):
     worker = tmp_path / "worker.py"
     worker.write_text(

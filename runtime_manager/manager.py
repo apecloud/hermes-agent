@@ -202,16 +202,12 @@ class RuntimeManager:
         source_skills_root = self.default_profile_dir / "skills"
         if not source_skills_root.exists():
             return
-        for skill_dir in source_skills_root.iterdir():
-            if not skill_dir.is_dir():
+        for skill_md in source_skills_root.rglob("SKILL.md"):
+            source_skill_dir = skill_md.parent
+            if _has_excluded_path_part(source_skill_dir.relative_to(source_skills_root)):
                 continue
-            source = skill_dir / "SKILL.md"
-            if not source.is_file():
-                continue
-            destination = skills_root / skill_dir.name / "SKILL.md"
-            destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-            shutil.copyfile(source, destination)
-            destination.chmod(0o600)
+            destination = skills_root / source_skill_dir.relative_to(source_skills_root)
+            _copy_skill_directory(source_skill_dir, destination)
 
     async def _reserve_run(self, *, run_id: str, user_id: str, conversation_id: str) -> None:
         key = (user_id, conversation_id)
@@ -496,3 +492,38 @@ def _join_prompt_parts(*parts: Any) -> str | None:
     if not rendered:
         return None
     return "\n\n".join(rendered)
+
+
+_SKILL_COPY_IGNORE_NAMES = {
+    ".DS_Store",
+    ".git",
+    ".github",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "node_modules",
+}
+
+
+def _has_excluded_path_part(path: Path) -> bool:
+    return any(part in _SKILL_COPY_IGNORE_NAMES for part in path.parts)
+
+
+def _copy_skill_directory(source: Path, destination: Path) -> None:
+    if destination.exists():
+        shutil.rmtree(destination)
+    shutil.copytree(
+        source,
+        destination,
+        ignore=shutil.ignore_patterns(*_SKILL_COPY_IGNORE_NAMES),
+    )
+    _chmod_tree(destination)
+
+
+def _chmod_tree(root: Path) -> None:
+    root.chmod(0o700)
+    for item in root.rglob("*"):
+        if item.is_dir():
+            item.chmod(0o700)
+        else:
+            item.chmod(0o600)

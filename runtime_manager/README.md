@@ -105,6 +105,11 @@ Expected health response:
     skills/
       kubeblocks-k8s-diagnosis/
         SKILL.md
+        references/
+        scripts/
+      category/
+        another-skill/
+          SKILL.md
   ```
 
   Hermes does not package KubeBlocks business prompt/skill content. In Cloud
@@ -117,8 +122,11 @@ Expected health response:
 - When a user home is resolved, Runtime Manager copies managed skills from the
   default profile into `${HERMES_HOME}/skills/` and passes enabled skill names
   from `manifest.yaml` (or `RUNTIME_MANAGER_DEFAULT_SKILLS`) to the worker for
-  preloading. The worker fails fast if a requested default skill is missing
-  instead of silently running without the diagnosis guide.
+  preloading. Skill directories are copied recursively, preserving the relative
+  path below `skills/`, so Hermes can load supporting `references/`, `scripts/`,
+  `templates/`, and category paths with `skill_view`. The worker fails fast if a
+  requested default skill is missing instead of silently running without the
+  diagnosis guide.
 - The default prompt and skill are runtime-manager deployment assets, not
   frontend settings. P0 should not expose prompt editing, skill selection, or
   Hermes profile internals to users.
