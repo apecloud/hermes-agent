@@ -1,0 +1,6 @@
+version: v1
+systemPrompt: system-prompt.md
+skills:
+  - path: skills/kubeblocks-k8s-diagnosis
+    name: kubeblocks-k8s-diagnosis
+    enabled: true

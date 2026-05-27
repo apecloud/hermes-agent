@@ -34,10 +34,10 @@ spec:
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       containers:
         - name: hermes-agent
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- $registry := trimSuffix "/" (.Values.image.registry | default "") }}
+          {{- $repository := trimPrefix "/" .Values.image.repository }}
+          image: "{{ if $registry }}{{ $registry }}/{{ end }}{{ $repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - hermes-runtime-manager
           ports:
             - name: http
               containerPort: {{ .Values.runtimeManager.port }}
@@ -53,6 +53,10 @@ spec:
               value: {{ .Values.runtimeManager.host | quote }}
             - name: RUNTIME_MANAGER_PORT
               value: {{ .Values.runtimeManager.port | quote }}
+            {{- if .Values.runtimeManager.pythonExecutable }}
+            - name: RUNTIME_MANAGER_PYTHON
+              value: {{ .Values.runtimeManager.pythonExecutable | quote }}
+            {{- end }}
             - name: RUNTIME_MANAGER_USERS_ROOT
               value: {{ .Values.runtimeManager.usersRoot | quote }}
             - name: RUNTIME_MANAGER_LOG_LEVEL
@@ -67,23 +71,42 @@ spec:
               value: {{ .Values.runtimeManager.maxEventsPerRun | quote }}
             - name: RUNTIME_MANAGER_COMPLETED_RUN_TTL_SECONDS
               value: {{ .Values.runtimeManager.completedRunTtlSeconds | quote }}
+            - name: RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS
+              {{- $defaultToolsets := .Values.runtimeManager.defaultEnabledToolsets }}
+              {{- if kindIs "slice" $defaultToolsets }}
+              value: {{ join "," $defaultToolsets | quote }}
+              {{- else }}
+              value: {{ $defaultToolsets | quote }}
+              {{- end }}
+            - name: RUNTIME_MANAGER_DEFAULT_MAX_ITERATIONS
+              value: {{ .Values.runtimeManager.defaultMaxIterations | quote }}
+            {{- if .Values.runtimeManager.defaultProfileDir }}
+            - name: RUNTIME_MANAGER_DEFAULT_PROFILE_DIR
+              value: {{ .Values.runtimeManager.defaultProfileDir | quote }}
+            {{- end }}
+            - name: RUNTIME_MANAGER_CLOUD_META_NAMESPACE
+              value: {{ .Values.runtimeManager.cloudMeta.namespace | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_ENVIRONMENT_TABLE
+              value: {{ .Values.runtimeManager.cloudMeta.environmentTable | quote }}
+            - name: RUNTIME_MANAGER_KUBECTL
+              value: {{ .Values.runtimeManager.cloudMeta.kubectl | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_QUERY_TIMEOUT_SECONDS
+              value: {{ .Values.runtimeManager.cloudMeta.queryTimeoutSeconds | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME
+              value: {{ .Values.runtimeManager.cloudMeta.postgres.podName | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR
+              value: {{ .Values.runtimeManager.cloudMeta.postgres.podSelector | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER
+              value: {{ .Values.runtimeManager.cloudMeta.postgres.container | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_PG_DATABASE
+              value: {{ .Values.runtimeManager.cloudMeta.postgres.database | quote }}
             - name: RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED
               value: {{ ternary "true" "false" .Values.runtimeManager.allowUnauthenticated | quote }}
             - name: RUNTIME_MANAGER_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "hermes-agent.secretName" . }}
-                  key: runtime-manager-api-key
-            - name: HERMES_DASHBOARD
-              value: {{ ternary "1" "" .Values.dashboard.enabled | quote }}
-            - name: HERMES_DASHBOARD_HOST
-              value: {{ .Values.dashboard.host | quote }}
-            - name: HERMES_DASHBOARD_PORT
-              value: {{ .Values.dashboard.port | quote }}
-            {{- range $name, $value := .Values.env }}
-            - name: {{ $name }}
-              value: {{ $value | quote }}
-            {{- end }}
+                  key: {{ .Values.secret.key | quote }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -94,10 +117,9 @@ spec:
           volumeMounts:
             - name: hermes-home
               mountPath: {{ .Values.hermesHome.mountPath }}
-            {{- if .Values.config.create }}
-            - name: hermes-config
-              mountPath: {{ .Values.config.mountPath }}
-              subPath: config.yaml
+            {{- if .Values.runtimeManager.defaultProfileDir }}
+            - name: default-profile
+              mountPath: {{ .Values.runtimeManager.defaultProfileDir | quote }}
               readOnly: true
             {{- end }}
             {{- with .Values.extraVolumeMounts }}
@@ -135,10 +157,16 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
-        {{- if .Values.config.create }}
-        - name: hermes-config
+        {{- if .Values.runtimeManager.defaultProfileDir }}
+        - name: default-profile
           configMap:
-            name: {{ include "hermes-agent.fullname" . }}
+            name: {{ include "hermes-agent.defaultProfileConfigMapName" . }}
+            items:
+              {{- range $path, $_ := .Files.Glob "default-profile/**" }}
+              {{- $relativePath := trimPrefix "default-profile/" $path }}
+              - key: {{ replace "/" "__" $relativePath | quote }}
+                path: {{ $relativePath | quote }}
+              {{- end }}
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

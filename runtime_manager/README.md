@@ -95,6 +95,83 @@ Expected health response:
 - Keep LLM provider/model/baseURL/API key out of the Helm chart and container
   environment. Apiserver must resolve the effective Cloud LLM config for the
   current conversation and pass it in each `POST /agent/runs` request.
+- Runtime Manager supports a mounted default profile asset directory. The Helm
+  chart packages and mounts the default KubeBlocks profile at
+  `/opt/hermes/default-profile` by default. Set
+  `RUNTIME_MANAGER_DEFAULT_PROFILE_DIR` to the mounted directory with this
+  shape:
+
+  ```text
+  default-profile/
+    manifest.yaml
+    system-prompt.md
+    skills/
+      kubeblocks-k8s-diagnosis/
+        SKILL.md
+        references/
+        scripts/
+      category/
+        another-skill/
+          SKILL.md
+  ```
+
+  If this value is not set, Runtime Manager does not inject a default prompt or
+  default skills.
+- Runtime Manager prepends the default `system-prompt.md` to any per-run
+  `system_prompt` that apiserver sends, so Cloud can append message-level
+  cluster contexts without replacing the safety/business boundary prompt.
+- Runtime Manager can prepare kubeconfig files for the current message's
+  selected Cloud environments before the worker starts. The apiserver should
+  pass selected contexts in `POST /agent/runs` as `contexts[]`, using stable
+  fields such as `orgId`, `environmentName`, `clusterName`, and `namespace`.
+  Runtime Manager then:
+
+  1. Queries the Cloud metadata Postgres pod through `kubectl exec`.
+  2. Writes each kubeconfig under the user's `${HERMES_HOME}/kubeconfigs/`
+     with mode `0600`.
+  3. Injects only the kubeconfig path and context alias into the effective
+     system prompt.
+
+  Kubeconfig contents are never returned to the model, frontend, SSE events,
+  or logs. The default metadata query configuration is controlled by runtime
+  manager deployment env vars, not by per-user Hermes profile values:
+
+  ```text
+  RUNTIME_MANAGER_CLOUD_META_NAMESPACE=kb-cloud
+  RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME=apecloud-pg-0
+  RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR=
+  RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER=
+  RUNTIME_MANAGER_CLOUD_META_PG_DATABASE=kubeblockscloud
+  RUNTIME_MANAGER_CLOUD_META_ENVIRONMENT_TABLE=admin_environment
+  RUNTIME_MANAGER_CLOUD_META_QUERY_TIMEOUT_SECONDS=15
+  ```
+
+  If `RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR` is set and
+  `RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME` is empty, Runtime Manager discovers
+  the first matching pod. The `psql` command runs inside the Postgres pod and
+  normally relies on the pod's existing `PGPASSWORD` environment variable.
+- When a user home is resolved, Runtime Manager copies managed skills from the
+  default profile into `${HERMES_HOME}/skills/` and passes enabled skill names
+  from `manifest.yaml` (or `RUNTIME_MANAGER_DEFAULT_SKILLS`) to the worker for
+  preloading. Skill directories are copied recursively, preserving the relative
+  path below `skills/`, so Hermes can load supporting `references/`, `scripts/`,
+  `templates/`, and category paths with `skill_view`. The worker fails fast if a
+  requested default skill is missing instead of silently running without the
+  diagnosis guide.
+- The default prompt and skill are runtime-manager deployment assets, not
+  frontend settings. P0 should not expose prompt editing, skill selection, or
+  Hermes profile internals to users.
+- Runtime Manager defaults new runs to the `terminal,file` toolsets unless
+  `POST /agent/runs` explicitly supplies `enabled_toolsets`. This keeps the
+  clean runtime image from loading optional browser, TTS, image, or messaging
+  tool dependencies during KubeBlocks diagnosis. Set
+  `runtimeManager.defaultEnabledToolsets` in Helm to tune this runtime-manager
+  behavior; use `all` only for development images that intentionally include
+  every optional dependency.
+- Runtime Manager defaults `max_iterations` to `20` unless `POST /agent/runs`
+  explicitly supplies a value. This bounds diagnostic loops and lets Hermes ask
+  the model for a final toolless summary when the budget is exhausted, instead
+  of letting a worker run indefinitely.
 - `uv` is currently kept in the final image. It costs about `48MB`, but allows
   Hermes lazy dependency installation for optional backends/tools. Remove it
   only if Runtime Manager production mode explicitly forbids runtime dependency

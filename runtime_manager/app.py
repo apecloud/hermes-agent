@@ -9,7 +9,7 @@ from typing import Any
 try:
     from fastapi import FastAPI, Header, HTTPException
     from fastapi.responses import JSONResponse, StreamingResponse
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, ConfigDict, Field
 except ImportError as exc:  # pragma: no cover - runtime dependency
     raise SystemExit(
         "runtime_manager requires fastapi and pydantic. Install the web extra or run inside the published container."
@@ -19,6 +19,8 @@ from .manager import RuntimeManager
 
 
 class RunRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     user_id: str
     conversation_id: str
     message: str
@@ -29,8 +31,10 @@ class RunRequest(BaseModel):
     base_url: str | None = None
     llm_config: dict[str, Any] = Field(default_factory=dict)
     system_prompt: str | None = None
+    skills: list[str] | None = None
     enabled_toolsets: list[str] | None = None
     disabled_toolsets: list[str] | None = None
+    contexts: list[dict[str, Any]] = Field(default_factory=list)
     skip_memory: bool = False
     skip_context_files: bool = True
     max_iterations: int | None = None

@@ -7,7 +7,7 @@ The runtime manager listens on {{ .Values.runtimeManager.host }}:{{ .Values.runt
 
 The API key is stored in:
   Secret: {{ include "hermes-agent.secretName" . }}
-  Key: runtime-manager-api-key
+  Key: {{ .Values.secret.key }}
 
 The shared Hermes data root is mounted at:
   {{ .Values.hermesHome.mountPath }}
