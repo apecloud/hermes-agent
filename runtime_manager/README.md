@@ -120,6 +120,36 @@ Expected health response:
 - Runtime Manager prepends the default `system-prompt.md` to any per-run
   `system_prompt` that apiserver sends, so Cloud can append message-level
   cluster contexts without replacing the safety/business boundary prompt.
+- Runtime Manager can prepare kubeconfig files for the current message's
+  selected Cloud environments before the worker starts. The apiserver should
+  pass selected contexts in `POST /agent/runs` as `contexts[]`, using stable
+  fields such as `orgId`, `environmentName`, `clusterName`, and `namespace`.
+  Runtime Manager then:
+
+  1. Queries the Cloud metadata Postgres pod through `kubectl exec`.
+  2. Writes each kubeconfig under the user's `${HERMES_HOME}/kubeconfigs/`
+     with mode `0600`.
+  3. Injects only the kubeconfig path and context alias into the effective
+     system prompt.
+
+  Kubeconfig contents are never returned to the model, frontend, SSE events,
+  or logs. The default metadata query configuration is controlled by runtime
+  manager deployment env vars, not by per-user Hermes profile values:
+
+  ```text
+  RUNTIME_MANAGER_CLOUD_META_NAMESPACE=kb-cloud
+  RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME=apecloud-pg-0
+  RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR=
+  RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER=
+  RUNTIME_MANAGER_CLOUD_META_PG_DATABASE=kubeblockscloud
+  RUNTIME_MANAGER_CLOUD_META_ENVIRONMENT_TABLE=admin_environment
+  RUNTIME_MANAGER_CLOUD_META_QUERY_TIMEOUT_SECONDS=15
+  ```
+
+  If `RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR` is set and
+  `RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME` is empty, Runtime Manager discovers
+  the first matching pod. The `psql` command runs inside the Postgres pod and
+  normally relies on the pod's existing `PGPASSWORD` environment variable.
 - When a user home is resolved, Runtime Manager copies managed skills from the
   default profile into `${HERMES_HOME}/skills/` and passes enabled skill names
   from `manifest.yaml` (or `RUNTIME_MANAGER_DEFAULT_SKILLS`) to the worker for

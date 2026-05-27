@@ -49,6 +49,8 @@ The chart values only configure the Runtime Manager process and Kubernetes deplo
 - `runtimeManager.defaultEnabledToolsets`
 - `runtimeManager.defaultMaxIterations`
 - `runtimeManager.defaultProfileDir`
+- `runtimeManager.cloudMeta.*` for Runtime Manager's Cloud metadata
+  kubeconfig resolver
 
 The runtime manager API key is stored in the chart Secret. If `secret.create=false` or `secret.name` points to a pre-created Secret, the key name must match `secret.key` (default `runtime-manager-api-key`).
 
@@ -74,6 +76,34 @@ copies managed skill directories recursively into each resolved user
 `${HERMES_HOME}/skills`, and preloads the enabled default skills from
 `manifest.yaml` for worker runs. Do not put LLM provider/model/API-key values in
 this profile directory; those remain per-run values supplied by apiserver.
+
+## Cloud Metadata Kubeconfig Resolver
+
+When apiserver sends message-level `contexts[]` to `POST /agent/runs`, Runtime
+Manager can prepare kubeconfig files for the selected Cloud environments before
+starting the Hermes worker. The chart exposes only the Runtime Manager metadata
+discovery settings:
+
+```yaml
+runtimeManager:
+  cloudMeta:
+    namespace: kb-cloud
+    environmentTable: admin_environment
+    kubectl: kubectl
+    queryTimeoutSeconds: 15
+    postgres:
+      podName: apecloud-pg-0
+      podSelector: ""
+      container: ""
+      database: kubeblockscloud
+```
+
+The resolver runs `psql` inside the configured Postgres pod through
+`kubectl exec`, relying on the pod's normal `PGPASSWORD` environment when
+present. Kubeconfig contents are written under the selected user's
+`${HERMES_HOME}/kubeconfigs/` directory with mode `0600`; only the path and
+context alias are injected into the worker prompt. The kubeconfig content must
+not be emitted to frontend events, logs, or model-visible tool results.
 
 ## Kubernetes Access
 

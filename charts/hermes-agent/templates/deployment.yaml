@@ -84,6 +84,22 @@ spec:
             - name: RUNTIME_MANAGER_DEFAULT_PROFILE_DIR
               value: {{ .Values.runtimeManager.defaultProfileDir | quote }}
             {{- end }}
+            - name: RUNTIME_MANAGER_CLOUD_META_NAMESPACE
+              value: {{ .Values.runtimeManager.cloudMeta.namespace | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_ENVIRONMENT_TABLE
+              value: {{ .Values.runtimeManager.cloudMeta.environmentTable | quote }}
+            - name: RUNTIME_MANAGER_KUBECTL
+              value: {{ .Values.runtimeManager.cloudMeta.kubectl | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_QUERY_TIMEOUT_SECONDS
+              value: {{ .Values.runtimeManager.cloudMeta.queryTimeoutSeconds | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME
+              value: {{ .Values.runtimeManager.cloudMeta.postgres.podName | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR
+              value: {{ .Values.runtimeManager.cloudMeta.postgres.podSelector | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER
+              value: {{ .Values.runtimeManager.cloudMeta.postgres.container | quote }}
+            - name: RUNTIME_MANAGER_CLOUD_META_PG_DATABASE
+              value: {{ .Values.runtimeManager.cloudMeta.postgres.database | quote }}
             - name: RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED
               value: {{ ternary "true" "false" .Values.runtimeManager.allowUnauthenticated | quote }}
             - name: RUNTIME_MANAGER_API_KEY

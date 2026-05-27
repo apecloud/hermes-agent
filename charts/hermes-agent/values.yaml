@@ -47,6 +47,16 @@ runtimeManager:
     - file
   defaultMaxIterations: 20
   defaultProfileDir: /opt/hermes/default-profile
+  cloudMeta:
+    namespace: kb-cloud
+    environmentTable: admin_environment
+    kubectl: kubectl
+    queryTimeoutSeconds: 15
+    postgres:
+      podName: apecloud-pg-0
+      podSelector: ""
+      container: ""
+      database: kubeblockscloud
 
 secret:
   create: true

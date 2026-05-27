@@ -11,6 +11,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from .cloud_kubeconfig import CloudKubeconfigResolver
 from .home_resolver import UserHomeResolver
 from .registry import RunHandle, RunRegistry
 
@@ -28,6 +29,7 @@ class RuntimeManager:
         api_key: str = "",
         python_executable: str = sys.executable,
         worker_script: str | Path | None = None,
+        cloud_kubeconfig_resolver: CloudKubeconfigResolver | None = None,
     ) -> None:
         self.api_key = api_key or ""
         max_events_per_run = int(os.getenv("RUNTIME_MANAGER_MAX_EVENTS_PER_RUN", "1000"))
@@ -39,6 +41,7 @@ class RuntimeManager:
         )
         self.python_executable = python_executable
         self.worker_script = Path(worker_script or (Path(__file__).resolve().parent / "worker_main.py")).resolve()
+        self.cloud_kubeconfig_resolver = cloud_kubeconfig_resolver or CloudKubeconfigResolver()
         self._tasks: set[asyncio.Task] = set()
         self._limit_lock = asyncio.Lock()
         self._active_conversations: set[tuple[str, str]] = set()
@@ -116,6 +119,11 @@ class RuntimeManager:
         session_id = str(payload.get("session_id") or conversation_id)
         user_home = self.resolver.resolve(user_id)
         self._ensure_default_profile_assets(user_home)
+        cluster_contexts = self.cloud_kubeconfig_resolver.prepare_contexts(
+            user_home,
+            _extract_contexts_payload(payload),
+        )
+        cluster_context_prompt = self.cloud_kubeconfig_resolver.build_prompt(cluster_contexts)
         enabled_toolsets = _normalize_toolsets(payload.get("enabled_toolsets"))
         if enabled_toolsets is None:
             enabled_toolsets = (
@@ -126,6 +134,7 @@ class RuntimeManager:
         disabled_toolsets = _normalize_toolsets(payload.get("disabled_toolsets"))
         system_prompt = _join_prompt_parts(
             self.default_system_prompt,
+            cluster_context_prompt,
             payload.get("system_prompt"),
         )
         skills = _merge_string_lists(self.default_skills, payload.get("skills"))
@@ -178,6 +187,7 @@ class RuntimeManager:
             "llm_config": llm_config,
             "system_prompt": system_prompt,
             "skills": skills,
+            "cluster_contexts": cluster_contexts,
             "enabled_toolsets": enabled_toolsets,
             "disabled_toolsets": disabled_toolsets,
             "skip_memory": bool(payload.get("skip_memory", False)),
@@ -375,6 +385,18 @@ def _first_present(*values: Any) -> Any:
         if isinstance(value, str) and value.strip() == "":
             continue
         return value
+    return None
+
+
+def _extract_contexts_payload(payload: dict[str, Any]) -> Any:
+    for key in ("contexts", "cluster_contexts", "clusterContexts"):
+        if key in payload:
+            return payload.get(key)
+    metadata = payload.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("contexts", "cluster_contexts", "clusterContexts"):
+            if key in metadata:
+                return metadata.get(key)
     return None
 
 
