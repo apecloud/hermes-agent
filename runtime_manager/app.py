@@ -29,6 +29,7 @@ class RunRequest(BaseModel):
     base_url: str | None = None
     llm_config: dict[str, Any] = Field(default_factory=dict)
     system_prompt: str | None = None
+    skills: list[str] | None = None
     enabled_toolsets: list[str] | None = None
     disabled_toolsets: list[str] | None = None
     skip_memory: bool = False

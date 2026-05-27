@@ -224,6 +224,7 @@ py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajector
 [tool.setuptools.package-data]
 hermes_cli = ["web_dist/**/*", "tui_dist/**/*", "scripts/install.sh", "scripts/install.ps1"]
 gateway = ["assets/**/*"]
+runtime_manager = ["defaults/**/*"]
 plugins = [
   "*/dashboard/manifest.json",
   "*/dashboard/dist/*",

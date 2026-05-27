@@ -47,6 +47,7 @@ def main() -> int:
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
+    from agent.skill_commands import build_preloaded_skills_prompt
     from gateway.session_context import clear_session_vars, set_session_vars
     from hermes_state import SessionDB
     from run_agent import AIAgent
@@ -233,6 +234,12 @@ def main() -> int:
             llm_config.get("baseURL"),
         )
 
+        system_prompt = _compose_effective_system_prompt(
+            request,
+            session_id=session_id,
+            skill_prompt_builder=build_preloaded_skills_prompt,
+        )
+
         agent = AIAgent(
             model=str(model or ""),
             provider=provider,
@@ -250,7 +257,7 @@ def main() -> int:
             disabled_toolsets=request.get("disabled_toolsets"),
             skip_memory=bool(request.get("skip_memory", False)),
             skip_context_files=bool(request.get("skip_context_files", True)),
-            ephemeral_system_prompt=request.get("system_prompt") or None,
+            ephemeral_system_prompt=system_prompt,
             max_iterations=int(request.get("max_iterations") or 90),
         )
         _AGENT_HOLDER["agent"] = agent
@@ -330,6 +337,44 @@ def _first_present(*values: Any) -> Any:
             continue
         return value
     return None
+
+
+def _compose_effective_system_prompt(
+    request: dict[str, Any],
+    *,
+    session_id: str,
+    skill_prompt_builder=None,
+) -> str | None:
+    prompt_parts: list[str] = []
+    base_prompt = request.get("system_prompt")
+    if isinstance(base_prompt, str) and base_prompt.strip():
+        prompt_parts.append(base_prompt.strip())
+
+    skills = _normalize_string_list(request.get("skills"))
+    if skills:
+        if skill_prompt_builder is None:
+            from agent.skill_commands import build_preloaded_skills_prompt
+
+            skill_prompt_builder = build_preloaded_skills_prompt
+        skill_prompt, _loaded_skills, missing_skills = skill_prompt_builder(skills, task_id=session_id)
+        if missing_skills:
+            raise RuntimeError(f"missing Runtime Manager skills: {', '.join(missing_skills)}")
+        if skill_prompt:
+            prompt_parts.append(str(skill_prompt).strip())
+
+    if not prompt_parts:
+        return None
+    return "\n\n".join(prompt_parts)
+
+
+def _normalize_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
 
 
 if __name__ == "__main__":

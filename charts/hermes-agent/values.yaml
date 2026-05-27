@@ -46,6 +46,7 @@ runtimeManager:
     - terminal
     - file
   defaultMaxIterations: 20
+  defaultProfileDir: ""
 
 secret:
   create: true

@@ -226,6 +226,163 @@ async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_pat
 
 
 @pytest.mark.asyncio
+async def test_runtime_manager_installs_and_forwards_default_prompt_and_skill(tmp_path, monkeypatch):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'system_prompt': req.get('system_prompt'), 'skills': req.get('skills')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_SYSTEM_PROMPT_FILE", raising=False)
+    monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_SKILLS", raising=False)
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+            "system_prompt": "Current message context: cluster=a",
+        }
+    )
+
+    for _ in range(50):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    output = json.loads(handle.output)
+    assert "KubeBlocks AI diagnosis assistant" in output["system_prompt"]
+    assert "Current message context: cluster=a" in output["system_prompt"]
+    assert output["skills"] == ["kubeblocks-k8s-diagnosis"]
+
+    installed_skill = (
+        tmp_path
+        / "users"
+        / "user-1"
+        / "skills"
+        / "kubeblocks-k8s-diagnosis"
+        / "SKILL.md"
+    )
+    assert installed_skill.is_file()
+    assert "kubectl debug" in installed_skill.read_text(encoding="utf-8")
+
+
+def test_worker_composes_system_prompt_with_preloaded_skills():
+    from runtime_manager.worker_main import _compose_effective_system_prompt
+
+    def fake_skill_loader(skills, task_id=None):
+        assert skills == ["kubeblocks-k8s-diagnosis"]
+        assert task_id == "conv-1"
+        return "SKILL PROMPT", ["kubeblocks-k8s-diagnosis"], []
+
+    prompt = _compose_effective_system_prompt(
+        {
+            "system_prompt": "BASE PROMPT",
+            "skills": ["kubeblocks-k8s-diagnosis"],
+        },
+        session_id="conv-1",
+        skill_prompt_builder=fake_skill_loader,
+    )
+
+    assert prompt == "BASE PROMPT\n\nSKILL PROMPT"
+
+
+def test_worker_fails_fast_when_requested_skill_is_missing():
+    from runtime_manager.worker_main import _compose_effective_system_prompt
+
+    def fake_skill_loader(skills, task_id=None):
+        return "", [], ["missing-skill"]
+
+    with pytest.raises(RuntimeError, match="missing Runtime Manager skills"):
+        _compose_effective_system_prompt(
+            {"skills": ["missing-skill"]},
+            session_id="conv-1",
+            skill_prompt_builder=fake_skill_loader,
+        )
+
+
+@pytest.mark.asyncio
+async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, monkeypatch):
+    assets = tmp_path / "cloud-assets"
+    (assets / "skills" / "custom-diagnosis").mkdir(parents=True)
+    (assets / "system-prompt.md").write_text("CLOUD MAINTAINED PROMPT", encoding="utf-8")
+    (assets / "skills" / "custom-diagnosis" / "SKILL.md").write_text(
+        "---\nname: custom-diagnosis\n---\n# Custom diagnosis skill\n",
+        encoding="utf-8",
+    )
+
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'system_prompt': req.get('system_prompt'), 'skills': req.get('skills')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_PROFILE_DIR", str(assets))
+    monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_SKILLS", "custom-diagnosis")
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+        }
+    )
+
+    for _ in range(50):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    output = json.loads(handle.output)
+    assert output == {
+        "system_prompt": "CLOUD MAINTAINED PROMPT",
+        "skills": ["custom-diagnosis"],
+    }
+    assert (
+        tmp_path
+        / "users"
+        / "user-1"
+        / "skills"
+        / "custom-diagnosis"
+        / "SKILL.md"
+    ).is_file()
+
+
+@pytest.mark.asyncio
 async def test_runtime_manager_payload_toolsets_override_default(tmp_path, monkeypatch):
     worker = tmp_path / "worker.py"
     worker.write_text(

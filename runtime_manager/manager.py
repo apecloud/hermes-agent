@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import shutil
 import sys
 import time
 import uuid
@@ -16,6 +17,9 @@ from .registry import RunHandle, RunRegistry
 logger = logging.getLogger(__name__)
 
 _DEFAULT_ENABLED_TOOLSETS = ("terminal", "file")
+_DEFAULT_SKILLS = ("kubeblocks-k8s-diagnosis",)
+_DEFAULTS_DIR = Path(__file__).resolve().parent / "defaults"
+_DEFAULT_SYSTEM_PROMPT_FILENAMES = ("system-prompt.md", "system_prompt.md")
 
 
 class RuntimeManager:
@@ -46,11 +50,22 @@ class RuntimeManager:
         self.max_active_runs = int(os.getenv("RUNTIME_MANAGER_MAX_ACTIVE_RUNS", "50"))
         self.max_active_runs_per_user = int(os.getenv("RUNTIME_MANAGER_MAX_ACTIVE_RUNS_PER_USER", "2"))
         self.stop_grace_seconds = float(os.getenv("RUNTIME_MANAGER_STOP_GRACE_SECONDS", "10"))
+        self.default_profile_dir = Path(
+            os.getenv("RUNTIME_MANAGER_DEFAULT_PROFILE_DIR") or _DEFAULTS_DIR
+        ).expanduser()
         self.default_enabled_toolsets = _parse_toolset_env(
             os.getenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS"),
             default=list(_DEFAULT_ENABLED_TOOLSETS),
         )
         self.default_max_iterations = int(os.getenv("RUNTIME_MANAGER_DEFAULT_MAX_ITERATIONS", "20"))
+        self.default_system_prompt = _load_default_system_prompt(
+            os.getenv("RUNTIME_MANAGER_DEFAULT_SYSTEM_PROMPT_FILE"),
+            default_profile_dir=self.default_profile_dir,
+        )
+        self.default_skills = _parse_string_list_env(
+            os.getenv("RUNTIME_MANAGER_DEFAULT_SKILLS"),
+            default=list(_DEFAULT_SKILLS),
+        )
         insecure_allow = os.getenv(
             "RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED",
             os.getenv("RUNTIME_MANAGER_ALLOW_UNAUTHENTICATED", ""),
@@ -96,6 +111,7 @@ class RuntimeManager:
         run_id = f"run_{uuid.uuid4().hex}"
         session_id = str(payload.get("session_id") or conversation_id)
         user_home = self.resolver.resolve(user_id)
+        self._ensure_default_profile_assets(user_home)
         enabled_toolsets = _normalize_toolsets(payload.get("enabled_toolsets"))
         if enabled_toolsets is None:
             enabled_toolsets = (
@@ -104,6 +120,11 @@ class RuntimeManager:
                 else None
             )
         disabled_toolsets = _normalize_toolsets(payload.get("disabled_toolsets"))
+        system_prompt = _join_prompt_parts(
+            self.default_system_prompt,
+            payload.get("system_prompt"),
+        )
+        skills = _merge_string_lists(self.default_skills, payload.get("skills"))
         await self._reserve_run(run_id=run_id, user_id=user_id, conversation_id=conversation_id)
         handle = self.registry.create(
             run_id=run_id,
@@ -151,7 +172,8 @@ class RuntimeManager:
             "api_key": api_key,
             "base_url": base_url,
             "llm_config": llm_config,
-            "system_prompt": payload.get("system_prompt"),
+            "system_prompt": system_prompt,
+            "skills": skills,
             "enabled_toolsets": enabled_toolsets,
             "disabled_toolsets": disabled_toolsets,
             "skip_memory": bool(payload.get("skip_memory", False)),
@@ -167,6 +189,23 @@ class RuntimeManager:
         self._track(asyncio.create_task(self._pump_stderr(handle)))
         self._track(asyncio.create_task(self._watch_process(handle)))
         return handle
+
+    def _ensure_default_profile_assets(self, user_home: Path) -> None:
+        skills_root = user_home / "skills"
+        skills_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        source_skills_root = self.default_profile_dir / "skills"
+        if not source_skills_root.exists():
+            return
+        for skill_dir in source_skills_root.iterdir():
+            if not skill_dir.is_dir():
+                continue
+            source = skill_dir / "SKILL.md"
+            if not source.is_file():
+                continue
+            destination = skills_root / skill_dir.name / "SKILL.md"
+            destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            shutil.copyfile(source, destination)
+            destination.chmod(0o600)
 
     async def _reserve_run(self, *, run_id: str, user_id: str, conversation_id: str) -> None:
         key = (user_id, conversation_id)
@@ -356,3 +395,58 @@ def _parse_toolset_env(value: str | None, *, default: list[str]) -> list[str] | 
     if value is None:
         return default
     return _normalize_toolsets(value)
+
+
+def _parse_string_list_env(value: str | None, *, default: list[str]) -> list[str]:
+    if value is None:
+        return list(default)
+    return _normalize_string_list(value)
+
+
+def _normalize_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def _merge_string_lists(defaults: list[str], value: Any) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for item in [*defaults, *_normalize_string_list(value)]:
+        if item in seen:
+            continue
+        seen.add(item)
+        merged.append(item)
+    return merged
+
+
+def _load_default_system_prompt(path_value: str | None, *, default_profile_dir: Path) -> str:
+    if path_value:
+        prompt_path = Path(path_value).expanduser()
+    else:
+        prompt_path = _find_default_system_prompt(default_profile_dir)
+        if prompt_path is None:
+            return ""
+    try:
+        return prompt_path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return ""
+
+
+def _find_default_system_prompt(default_profile_dir: Path) -> Path | None:
+    for filename in _DEFAULT_SYSTEM_PROMPT_FILENAMES:
+        candidate = default_profile_dir / filename
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _join_prompt_parts(*parts: Any) -> str | None:
+    rendered = [str(part).strip() for part in parts if isinstance(part, str) and part.strip()]
+    if not rendered:
+        return None
+    return "\n\n".join(rendered)
