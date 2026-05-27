@@ -111,6 +111,11 @@ Expected health response:
   for development and smoke tests. In Cloud deployments, mount the
   version-controlled Cloud asset directory and point
   `runtimeManager.defaultProfileDir` at it.
+- Runtime Manager computes a sha256 over the default profile assets, logs the
+  active asset version at startup, and writes `${HERMES_HOME}/asset-version.json`
+  whenever a user home is initialized or refreshed. Use this file during E2E
+  and incident triage to confirm the prompt/skill version actually used in a
+  live run.
 - Runtime Manager prepends the default `system-prompt.md` to any per-run
   `system_prompt` that apiserver sends, so Cloud can append message-level
   cluster contexts without replacing the safety/business boundary prompt.

@@ -282,6 +282,13 @@ async def test_runtime_manager_installs_and_forwards_default_prompt_and_skill(tm
     )
     assert installed_skill.is_file()
     assert "kubectl debug" in installed_skill.read_text(encoding="utf-8")
+    asset_version = json.loads(
+        (tmp_path / "users" / "user-1" / "asset-version.json").read_text(encoding="utf-8")
+    )
+    assert asset_version["version"] == "v0.3"
+    assert asset_version["systemPrompt"] == "system-prompt.md"
+    assert asset_version["skills"] == ["kubeblocks-k8s-diagnosis"]
+    assert len(asset_version["sha256"]) == 64
 
 
 def test_worker_composes_system_prompt_with_preloaded_skills():
@@ -323,6 +330,19 @@ async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, mo
     assets = tmp_path / "cloud-assets"
     (assets / "skills" / "custom-diagnosis").mkdir(parents=True)
     (assets / "system-prompt.md").write_text("CLOUD MAINTAINED PROMPT", encoding="utf-8")
+    (assets / "manifest.yaml").write_text(
+        "\n".join(
+            [
+                "version: v9",
+                "systemPrompt: system-prompt.md",
+                "skills:",
+                "  - path: skills/custom-diagnosis",
+                "    name: custom-diagnosis",
+                "    enabled: true",
+            ]
+        ),
+        encoding="utf-8",
+    )
     (assets / "skills" / "custom-diagnosis" / "SKILL.md").write_text(
         "---\nname: custom-diagnosis\n---\n# Custom diagnosis skill\n",
         encoding="utf-8",
@@ -380,6 +400,13 @@ async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, mo
         / "custom-diagnosis"
         / "SKILL.md"
     ).is_file()
+    asset_version = json.loads(
+        (tmp_path / "users" / "user-1" / "asset-version.json").read_text(encoding="utf-8")
+    )
+    assert asset_version["version"] == "v9"
+    assert asset_version["systemPrompt"] == "system-prompt.md"
+    assert asset_version["skills"] == ["custom-diagnosis"]
+    assert len(asset_version["sha256"]) == 64
 
 
 @pytest.mark.asyncio

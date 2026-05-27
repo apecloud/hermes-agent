@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -65,6 +66,16 @@ class RuntimeManager:
         self.default_skills = _parse_string_list_env(
             os.getenv("RUNTIME_MANAGER_DEFAULT_SKILLS"),
             default=list(_DEFAULT_SKILLS),
+        )
+        self.default_asset_version = _build_default_asset_version(
+            self.default_profile_dir,
+            default_skills=self.default_skills,
+        )
+        logger.info(
+            "runtime-manager default profile assets: version=%s sha256=%s dir=%s",
+            self.default_asset_version.get("version") or "",
+            self.default_asset_version.get("sha256") or "",
+            self.default_asset_version.get("profileDir") or "",
         )
         insecure_allow = os.getenv(
             "RUNTIME_MANAGER_INSECURE_ALLOW_UNAUTHENTICATED",
@@ -206,6 +217,19 @@ class RuntimeManager:
             destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
             destination.chmod(0o600)
+        self._write_asset_version(user_home)
+
+    def _write_asset_version(self, user_home: Path) -> None:
+        asset_version = {
+            **self.default_asset_version,
+            "syncedAt": time.time(),
+        }
+        path = user_home / "asset-version.json"
+        path.write_text(
+            json.dumps(asset_version, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        path.chmod(0o600)
 
     async def _reserve_run(self, *, run_id: str, user_id: str, conversation_id: str) -> None:
         key = (user_id, conversation_id)
@@ -443,6 +467,52 @@ def _find_default_system_prompt(default_profile_dir: Path) -> Path | None:
         if candidate.is_file():
             return candidate
     return None
+
+
+def _build_default_asset_version(default_profile_dir: Path, *, default_skills: list[str]) -> dict[str, Any]:
+    manifest = _load_default_profile_manifest(default_profile_dir)
+    system_prompt = manifest.get("systemPrompt")
+    if not isinstance(system_prompt, str) or not system_prompt.strip():
+        prompt_path = _find_default_system_prompt(default_profile_dir)
+        system_prompt = prompt_path.relative_to(default_profile_dir).as_posix() if prompt_path else ""
+    version = manifest.get("version")
+    if not isinstance(version, str):
+        version = ""
+    return {
+        "version": version,
+        "systemPrompt": system_prompt.strip(),
+        "skills": list(default_skills),
+        "sha256": _hash_default_profile(default_profile_dir),
+        "profileDir": str(default_profile_dir),
+    }
+
+
+def _load_default_profile_manifest(default_profile_dir: Path) -> dict[str, Any]:
+    manifest_path = default_profile_dir / "manifest.yaml"
+    if not manifest_path.is_file():
+        return {}
+    try:
+        import yaml
+
+        with manifest_path.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        logger.warning("runtime-manager: failed to load default profile manifest %s", manifest_path, exc_info=True)
+        return {}
+
+
+def _hash_default_profile(default_profile_dir: Path) -> str:
+    digest = hashlib.sha256()
+    if not default_profile_dir.exists():
+        return digest.hexdigest()
+    for path in sorted(p for p in default_profile_dir.rglob("*") if p.is_file()):
+        rel = path.relative_to(default_profile_dir).as_posix()
+        digest.update(rel.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def _join_prompt_parts(*parts: Any) -> str | None:
