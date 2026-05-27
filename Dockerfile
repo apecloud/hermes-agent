@@ -1,4 +1,12 @@
 FROM ghcr.io/astral-sh/uv:0.11.6-python3.13-trixie@sha256:b3c543b6c4f23a5f2df22866bd7857e5d304b67a564f4feab6ac22044dde719b AS uv_source
+# Node 22 LTS source stage. Debian trixie's bundled nodejs is pinned to 20.x
+# which reached EOL in April 2026 — we copy node + npm + corepack from the
+# upstream node:22 image instead so we can stay on a supported LTS without
+# waiting for Debian 14 (forky, ~mid-2027).  Bookworm-based slim image used
+# so the produced binary links against glibc 2.36, which runs cleanly on
+# our Debian 13 (trixie, glibc 2.41) runtime.  Bumping to a new Node major
+# is a one-line ARG change; see #4977.
+FROM node:22-bookworm-slim@sha256:7af03b14a13c8cdd38e45058fd957bf00a72bbe17feac43b1c15a689c029c732 AS node_source
 FROM debian:13.4
 
 # Disable Python stdout buffering to ensure logs are printed immediately
@@ -15,23 +23,9 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/hermes/.playwright
 # replaces tini with s6-overlay's /init (PID 1 = s6-svscan), which reaps
 # zombies non-blockingly on SIGCHLD and additionally supervises the main
 # hermes process, the dashboard, and per-profile gateways.
-ARG TARGETARCH
-ARG DEBIAN_MIRROR=http://deb.debian.org/debian
-ARG DEBIAN_SECURITY_MIRROR=http://deb.debian.org/debian-security
-RUN set -eu; \
-    find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) \
-        -exec sed -i \
-            -e "s|http://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR}|g" \
-            -e "s|http://deb.debian.org/debian|${DEBIAN_MIRROR}|g" {} +; \
-    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update && \
-    DEBIAN_FRONTEND=noninteractive apt-get \
-        -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
-        install -y --no-install-recommends \
-    bind9-dnsutils build-essential ca-certificates conntrack curl docker-cli \
-    ethtool ffmpeg gcc git inetutils-telnet iperf3 iproute2 iptables \
-    iputils-ping jq less libffi-dev lsof mtr-tiny net-tools netcat-openbsd \
-    nmap nodejs npm openssh-client openssl procps python3 python3-dev ripgrep \
-    socat tcpdump traceroute whois xz-utils && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates curl python3 ripgrep ffmpeg gcc python3-dev libffi-dev procps git openssh-client docker-cli xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
 ARG KUBECTL_VERSION=v1.36.1
@@ -100,6 +94,18 @@ RUN useradd -u 10000 -m -d /opt/data hermes
 
 COPY --chmod=0755 --from=uv_source /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
+# Node 22 LTS: copy the node binary plus the bundled npm + corepack JS
+# installs from the upstream image.  npm and npx are recreated as symlinks
+# because they're symlinks in the source image (and need to live on PATH).
+# See node_source stage at the top of the file for the version-bump
+# rationale (#4977).
+COPY --chmod=0755 --from=node_source /usr/local/bin/node /usr/local/bin/
+COPY --from=node_source /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
+COPY --from=node_source /usr/local/lib/node_modules/corepack /usr/local/lib/node_modules/corepack
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
+    ln -sf /usr/local/lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack
+
 WORKDIR /opt/hermes
 
 # ---------- Layer-cached dependency install ----------
@@ -116,14 +122,15 @@ COPY ui-tui/package.json ui-tui/package-lock.json ui-tui/
 COPY ui-tui/packages/hermes-ink/ ui-tui/packages/hermes-ink/
 
 # `npm_config_install_links=false` forces npm to install `file:` deps as
-# symlinks (the npm 10+ default) even on Debian's older bundled npm 9.x,
-# which defaults to `install-links=true` and installs file deps as *copies*.
-# The host-side package-lock.json is generated with a newer npm that uses
-# symlinks, so an install-as-copy produces a hidden node_modules/.package-lock.json
-# that permanently disagrees with the root lock on the @hermes/ink entry.
-# That disagreement trips the TUI launcher's `_tui_need_npm_install()`
-# check on every startup and triggers a runtime `npm install` that then
-# fails with EACCES (node_modules/ is root-owned from build time).
+# symlinks instead of copies.  This is the default since npm 10+, which is
+# what the image ships now (via the node:22 source stage).  We set it
+# explicitly anyway as defense-in-depth: the previous Debian-bundled npm
+# 9.x defaulted to install-as-copy, which produced a hidden
+# node_modules/.package-lock.json that permanently disagreed with the root
+# lock on the @hermes/ink entry, tripped the TUI launcher's
+# `_tui_need_npm_install()` check on every startup, and triggered a
+# runtime `npm install` that then failed with EACCES.  Keeping the env
+# guards against a future regression if the source npm version changes.
 ENV npm_config_install_links=false
 
 RUN npm install --prefer-offline --no-audit && \
@@ -207,7 +214,7 @@ COPY docker/s6-rc.d/ /etc/s6-overlay/s6-rc.d/
 # slots from $HERMES_HOME/profiles/<name>/ after a container restart
 # (the /run/service/ scandir is tmpfs and wiped on restart). Phase 4.
 RUN mkdir -p /etc/cont-init.d && \
-    printf '#!/bin/sh\nexec /opt/hermes/docker/stage2-hook.sh\n' \
+    printf '#!/command/with-contenv sh\nexec /opt/hermes/docker/stage2-hook.sh\n' \
         > /etc/cont-init.d/01-hermes-setup && \
     chmod +x /etc/cont-init.d/01-hermes-setup
 COPY --chmod=0755 docker/cont-init.d/015-supervise-perms /etc/cont-init.d/015-supervise-perms
