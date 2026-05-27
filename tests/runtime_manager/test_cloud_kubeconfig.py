@@ -102,10 +102,8 @@ def test_cloud_kubeconfig_resolver_queries_psql_and_writes_file_under_user_home(
                 "-A",
                 "-v",
                 "ON_ERROR_STOP=1",
-                "-v",
-                "env_name=kb10",
                 "-c",
-                "select kubeconfig from admin_environment where name = :'env_name' and deleted_at = 0;",
+                "select kubeconfig from admin_environment where name = 'kb10' and deleted_at = 0;",
             ],
             9,
         )

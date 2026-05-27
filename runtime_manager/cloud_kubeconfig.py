@@ -164,6 +164,7 @@ class CloudKubeconfigResolver:
     def _query_kubeconfig(self, environment_name: str) -> str:
         _validate_environment_name(environment_name)
         pod_name = self._resolve_postgres_pod()
+        environment_name_literal = _sql_string_literal(environment_name)
         cmd = [
             self.config.kubectl,
             "exec",
@@ -183,12 +184,10 @@ class CloudKubeconfigResolver:
                 "-A",
                 "-v",
                 "ON_ERROR_STOP=1",
-                "-v",
-                f"env_name={environment_name}",
                 "-c",
                 (
                     f"select kubeconfig from {self.config.environment_table} "
-                    "where name = :'env_name' and deleted_at = 0;"
+                    f"where name = {environment_name_literal} and deleted_at = 0;"
                 ),
             ]
         )
@@ -298,6 +297,10 @@ def _validate_environment_name(value: str) -> None:
 def _validate_sql_identifier(value: str, label: str) -> None:
     if not _SQL_IDENTIFIER_RE.fullmatch(value):
         raise ValueError(f"invalid {label}: {value!r}")
+
+
+def _sql_string_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
 
 
 def _decode_kubeconfig(encoded_value: str, environment_name: str) -> str:
