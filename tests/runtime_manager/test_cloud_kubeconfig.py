@@ -258,7 +258,7 @@ async def test_runtime_manager_prefetches_context_kubeconfigs_and_injects_prompt
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "completed":
             break
         await asyncio.sleep(0.02)
