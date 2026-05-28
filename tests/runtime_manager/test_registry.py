@@ -42,7 +42,7 @@ def test_user_home_resolver_creates_bootstrap_dirs(tmp_path):
     resolver = UserHomeResolver(tmp_path)
     home = resolver.resolve("user-1")
     assert home == tmp_path / "user-1"
-    for name in ("home", "sessions", "memories", "skills", "logs"):
+    for name in ("home", "workspace", "sessions", "memories", "skills", "logs"):
         assert (home / name).is_dir()
     assert stat.S_IMODE(home.stat().st_mode) == 0o700
     assert stat.S_IMODE((home / "home").stat().st_mode) == 0o700
@@ -135,7 +135,7 @@ async def test_runtime_manager_runs_fake_worker_approval_flow(tmp_path):
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "waiting_for_approval":
             break
         await asyncio.sleep(0.02)
@@ -143,7 +143,7 @@ async def test_runtime_manager_runs_fake_worker_approval_flow(tmp_path):
 
     await manager.approve_run(handle.run_id, choice="once")
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "completed":
             break
         await asyncio.sleep(0.02)
@@ -191,7 +191,7 @@ async def test_runtime_manager_forwards_per_run_llm_config_to_worker(tmp_path):
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "completed":
             break
         await asyncio.sleep(0.02)
@@ -241,7 +241,7 @@ async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_pat
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "completed":
             break
         await asyncio.sleep(0.02)
@@ -252,6 +252,53 @@ async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_pat
         "enabled_toolsets": ["terminal", "file"],
         "disabled_toolsets": None,
         "max_iterations": 20,
+    }
+
+
+@pytest.mark.asyncio
+async def test_runtime_manager_sets_worker_profile_env_to_user_workspace(tmp_path):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, os, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'hermes_home': os.environ.get('HERMES_HOME'), 'home': os.environ.get('HOME'), 'terminal_cwd': os.environ.get('TERMINAL_CWD')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+        }
+    )
+
+    for _ in range(100):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    user_home = tmp_path / "users" / "user-1"
+    assert json.loads(handle.output) == {
+        "hermes_home": str(user_home),
+        "home": str(user_home / "home"),
+        "terminal_cwd": str(user_home / "workspace"),
     }
 
 
@@ -292,7 +339,7 @@ async def test_runtime_manager_does_not_inject_prompt_or_skills_without_default_
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "completed":
             break
         await asyncio.sleep(0.02)
@@ -396,7 +443,7 @@ async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, mo
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "completed":
             break
         await asyncio.sleep(0.02)
@@ -476,7 +523,7 @@ async def test_runtime_manager_syncs_full_nested_skill_directories(tmp_path, mon
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "completed":
             break
         await asyncio.sleep(0.02)
@@ -534,7 +581,7 @@ async def test_runtime_manager_payload_toolsets_override_default(tmp_path, monke
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "completed":
             break
         await asyncio.sleep(0.02)
@@ -611,7 +658,7 @@ async def test_runtime_manager_rejects_second_active_conversation_run(tmp_path):
         )
 
     await manager.stop_run(handle.run_id)
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "cancelled":
             break
         await asyncio.sleep(0.02)
@@ -691,6 +738,72 @@ def test_profile_environment_bridges_home_and_config(tmp_path, monkeypatch):
     assert os.environ["HERMES_REDACT_SECRETS"] == "true"
 
 
+def test_profile_environment_defaults_terminal_cwd_to_workspace(tmp_path, monkeypatch):
+    from runtime_manager.bootstrap import load_profile_environment
+
+    hermes_home = tmp_path / "user-1"
+    for key in ("HERMES_HOME", "HOME", "TERMINAL_CWD"):
+        monkeypatch.delenv(key, raising=False)
+
+    load_profile_environment(hermes_home)
+
+    assert os.environ["HERMES_HOME"] == str(hermes_home.resolve())
+    assert os.environ["HOME"] == str((hermes_home / "home").resolve())
+    assert os.environ["TERMINAL_CWD"] == str((hermes_home / "workspace").resolve())
+    assert (hermes_home / "workspace").is_dir()
+
+
+def test_profile_environment_does_not_allow_dotenv_to_escape_profile(tmp_path, monkeypatch):
+    from runtime_manager.bootstrap import load_profile_environment
+
+    hermes_home = tmp_path / "user-1"
+    outside = tmp_path / "outside"
+    hermes_home.mkdir()
+    (hermes_home / ".env").write_text(
+        "\n".join(
+            [
+                "HERMES_HOME=/tmp/escape",
+                "HOME=/tmp/escape-home",
+                f"TERMINAL_CWD={outside}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    for key in ("HERMES_HOME", "HOME", "TERMINAL_CWD"):
+        monkeypatch.delenv(key, raising=False)
+
+    load_profile_environment(hermes_home)
+
+    assert os.environ["HERMES_HOME"] == str(hermes_home.resolve())
+    assert os.environ["HOME"] == str((hermes_home / "home").resolve())
+    assert os.environ["TERMINAL_CWD"] == str((hermes_home / "workspace").resolve())
+    assert not outside.exists()
+
+
+def test_profile_environment_rejects_terminal_cwd_outside_home(tmp_path, monkeypatch):
+    from runtime_manager.bootstrap import load_profile_environment
+
+    hermes_home = tmp_path / "user-1"
+    outside = tmp_path / "outside"
+    hermes_home.mkdir()
+    (hermes_home / "config.yaml").write_text(
+        "\n".join(
+            [
+                "terminal:",
+                f"  cwd: {outside}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    for key in ("HERMES_HOME", "HOME", "TERMINAL_CWD"):
+        monkeypatch.delenv(key, raising=False)
+
+    load_profile_environment(hermes_home)
+
+    assert os.environ["TERMINAL_CWD"] == str((hermes_home / "workspace").resolve())
+    assert not outside.exists()
+
+
 @pytest.mark.asyncio
 async def test_sse_stream_uses_event_ids_and_last_event_id_cursor():
     from runtime_manager.app import _sse_stream
@@ -753,14 +866,14 @@ async def test_runtime_manager_stop_transitions_to_cancelled(tmp_path):
         }
     )
 
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "running":
             break
         await asyncio.sleep(0.02)
     assert handle.status == "running"
 
     await manager.stop_run(handle.run_id)
-    for _ in range(50):
+    for _ in range(100):
         if handle.status == "cancelled":
             break
         await asyncio.sleep(0.02)

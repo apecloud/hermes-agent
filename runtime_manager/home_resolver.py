@@ -6,6 +6,7 @@ from pathlib import Path
 _USER_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}$")
 _BOOTSTRAP_DIRS = (
     "home",
+    "workspace",
     "sessions",
     "memories",
     "skills",

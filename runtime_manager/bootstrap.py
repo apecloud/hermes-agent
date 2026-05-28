@@ -16,6 +16,31 @@ def _set_env_value(name: str, value: Any, *, override: bool = True) -> None:
         os.environ[name] = str(value)
 
 
+def _workspace_dir(home: Path) -> Path:
+    return home / "workspace"
+
+
+def _safe_terminal_cwd(home: Path, value: Any = None) -> Path:
+    workspace = _workspace_dir(home)
+    raw = str(value or "").strip()
+    if not raw or raw in {".", "auto", "cwd"}:
+        cwd = workspace
+    else:
+        expanded = Path(os.path.expanduser(os.path.expandvars(raw)))
+        cwd = expanded if expanded.is_absolute() else home / expanded
+    try:
+        resolved = cwd.resolve()
+        resolved.relative_to(home)
+    except Exception:
+        print(
+            f"  Warning: Runtime Manager ignored terminal.cwd outside HERMES_HOME: {raw!r}",
+            file=sys.stderr,
+        )
+        resolved = workspace.resolve()
+    resolved.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return resolved
+
+
 def load_profile_environment(hermes_home: str | os.PathLike[str]) -> None:
     """Load a Runtime Manager worker profile before importing agent modules.
 
@@ -26,9 +51,14 @@ def load_profile_environment(hermes_home: str | os.PathLike[str]) -> None:
     """
 
     home = Path(hermes_home).expanduser().resolve()
+    home_home = home / "home"
+    workspace = _workspace_dir(home)
+    home_home.mkdir(mode=0o700, parents=True, exist_ok=True)
+    workspace.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.environ["HERMES_HOME"] = str(home)
-    os.environ["HOME"] = str(home / "home")
+    os.environ["HOME"] = str(home_home)
     os.environ.setdefault("PYTHONUNBUFFERED", "1")
+    os.environ["TERMINAL_CWD"] = str(workspace.resolve())
 
     try:
         from hermes_cli.env_loader import load_hermes_dotenv
@@ -40,8 +70,12 @@ def load_profile_environment(hermes_home: str | os.PathLike[str]) -> None:
     except Exception as exc:
         print(f"  Warning: Runtime Manager .env load failed: {type(exc).__name__}: {exc}", file=sys.stderr)
 
+    os.environ["HERMES_HOME"] = str(home)
+    os.environ["HOME"] = str(home_home)
+
     config_path = home / "config.yaml"
     if not config_path.exists():
+        os.environ["TERMINAL_CWD"] = str(_safe_terminal_cwd(home, os.environ.get("TERMINAL_CWD")))
         return
 
     try:
@@ -99,11 +133,10 @@ def load_profile_environment(hermes_home: str | os.PathLike[str]) -> None:
                 continue
             value = terminal_cfg[cfg_key]
             if cfg_key == "cwd":
-                if str(value) in {".", "auto", "cwd"}:
-                    continue
-                if isinstance(value, str):
-                    value = os.path.expanduser(value)
+                value = str(_safe_terminal_cwd(home, value))
             _set_env_value(env_var, value)
+
+    os.environ["TERMINAL_CWD"] = str(_safe_terminal_cwd(home, os.environ.get("TERMINAL_CWD")))
 
     auxiliary_cfg = cfg.get("auxiliary", {})
     if isinstance(auxiliary_cfg, dict):
