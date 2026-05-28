@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import stat
 
@@ -71,7 +72,11 @@ def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
 
 
 def test_runtime_worker_tool_event_helpers_are_json_safe():
-    from runtime_manager.worker_main import _json_preview, _tool_result_has_error
+    from runtime_manager.worker_main import (
+        _json_preview,
+        _summarize_previous_tools,
+        _tool_result_has_error,
+    )
 
     assert _json_preview({"tool": "kubectl", "args": ["get", "pods"]}) == (
         '{"tool": "kubectl", "args": ["get", "pods"]}'
@@ -82,6 +87,21 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     assert _tool_result_has_error({"is_error": True})
     assert not _tool_result_has_error({"ok": True})
     assert not _tool_result_has_error("plain text result")
+
+    summary = _summarize_previous_tools(
+        [
+            {
+                "name": "terminal",
+                "arguments": {"command": "kubectl get pods -A"},
+                "result": "x" * 10000,
+            }
+        ]
+    )
+    assert len(json.dumps(summary, ensure_ascii=False)) < 2000
+    assert summary[0]["name"] == "terminal"
+    assert summary[0]["result_bytes"] == 10000
+    assert summary[0]["result_preview"].endswith("...")
+    assert "x" * 1000 not in summary[0]["result_preview"]
 
 
 def test_runtime_manager_requires_api_key_unless_explicitly_allowed(tmp_path, monkeypatch):
@@ -151,6 +171,53 @@ async def test_runtime_manager_runs_fake_worker_approval_flow(tmp_path):
     assert handle.output == "once"
     assert (tmp_path / "users" / "user-1" / "sessions").is_dir()
     assert (tmp_path / "users" / "user-1" / "home").is_dir()
+
+
+@pytest.mark.asyncio
+async def test_runtime_manager_fails_run_when_worker_stdout_line_exceeds_limit(tmp_path):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.running', 'run_id': run_id, 'timestamp': time.time()}), flush=True)",
+                "print(json.dumps({'event': 'agent.step', 'run_id': run_id, 'timestamp': time.time(), 'previous_tools': [{'name': 'terminal', 'result': 'x' * (80 * 1024)}]}), flush=True)",
+                "time.sleep(30)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import sys
+
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+        }
+    )
+    try:
+        for _ in range(100):
+            if handle.status == "failed":
+                break
+            await asyncio.sleep(0.02)
+        assert handle.status == "failed"
+        assert "stdout" in (handle.error or "")
+    finally:
+        proc = handle.process
+        if proc is not None and proc.returncode is None:
+            proc.kill()
+            await proc.wait()
 
 
 @pytest.mark.asyncio

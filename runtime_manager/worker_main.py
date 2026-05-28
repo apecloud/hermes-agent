@@ -253,13 +253,15 @@ def main() -> int:
         )
 
     def on_step(iteration: int, prev_tools: list[Any]) -> None:
+        previous_tools = _summarize_previous_tools(prev_tools)
         emit(
             {
                 "event": "agent.step",
                 "run_id": run_id,
                 "timestamp": time.time(),
                 "iteration": iteration,
-                "previous_tools": prev_tools,
+                "previous_tool_count": len(prev_tools or []),
+                "previous_tools": previous_tools,
             }
         )
 
@@ -471,6 +473,64 @@ def _json_preview(value: Any, *, limit: int = 500) -> str:
     if len(text) > limit:
         return text[:limit] + "..."
     return text
+
+
+def _serialized_size(value: Any) -> int:
+    try:
+        if isinstance(value, str):
+            text = value
+        else:
+            text = json.dumps(value, ensure_ascii=False, default=str)
+    except Exception:
+        text = str(value)
+    return len(text.encode("utf-8", errors="replace"))
+
+
+def _summarize_previous_tools(
+    previous_tools: list[Any] | None,
+    *,
+    max_tools: int = 8,
+) -> list[dict[str, Any]]:
+    """Return JSONL-safe tool history summaries for agent.step events.
+
+    AIAgent passes full previous tool results to step_callback. For kubectl
+    diagnostics those results can easily exceed asyncio's default line limit
+    when serialized as one stdout JSONL event. Runtime Manager only needs
+    progress context here, not full tool outputs, so keep bounded previews and
+    byte counts.
+    """
+    summaries: list[dict[str, Any]] = []
+    for item in (previous_tools or [])[:max_tools]:
+        if isinstance(item, dict):
+            summary: dict[str, Any] = {}
+            name = item.get("name") or item.get("tool") or item.get("tool_name")
+            if name is not None:
+                summary["name"] = str(name)
+            if "arguments" in item:
+                summary["arguments_preview"] = _json_preview(item.get("arguments"), limit=300)
+                summary["arguments_bytes"] = _serialized_size(item.get("arguments"))
+            if "result" in item:
+                summary["result_preview"] = _json_preview(item.get("result"), limit=500)
+                summary["result_bytes"] = _serialized_size(item.get("result"))
+            if not summary:
+                summary["preview"] = _json_preview(item, limit=500)
+                summary["bytes"] = _serialized_size(item)
+            summaries.append(summary)
+        else:
+            summaries.append(
+                {
+                    "preview": _json_preview(item, limit=500),
+                    "bytes": _serialized_size(item),
+                }
+            )
+    if previous_tools and len(previous_tools) > max_tools:
+        summaries.append(
+            {
+                "truncated": True,
+                "remaining_count": len(previous_tools) - max_tools,
+            }
+        )
+    return summaries
 
 
 def _tool_result_has_error(value: Any) -> bool:
