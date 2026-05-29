@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import sys
 import threading
 import time
@@ -112,6 +113,7 @@ def main() -> int:
 
     def approval_notify(data: dict[str, Any]) -> None:
         event = dict(data or {})
+        event.update(_approval_display_fields(event))
         event.update(
             {
                 "event": "approval.request",
@@ -205,7 +207,7 @@ def main() -> int:
                 "timestamp": started_at,
                 "tool_call_id": tool_call_id,
                 "tool": tool_name,
-                "preview": _json_preview(args),
+                "preview": _safe_tool_action_summary(tool_name, args),
             }
         )
 
@@ -219,7 +221,7 @@ def main() -> int:
             "timestamp": completed_at,
             "tool_call_id": tool_call_id,
             "tool": tool_name,
-            "result_preview": _json_preview(result),
+            "result_preview": _safe_tool_result_summary(result),
             "error": _tool_result_has_error(result),
         }
         if started_at is not None:
@@ -475,6 +477,167 @@ def _json_preview(value: Any, *, limit: int = 500) -> str:
     return text
 
 
+def _approval_display_fields(data: dict[str, Any]) -> dict[str, Any]:
+    command = data.get("command")
+    summary = _safe_command_summary(command)
+    fields: dict[str, Any] = {
+        "tool_name": "terminal",
+        "summary": summary,
+        "action_summary": summary,
+        "reason": summary,
+        "risk": "requires_approval",
+    }
+    description = data.get("description")
+    if isinstance(description, str) and description.strip():
+        fields["approval_reason"] = description.strip()
+    return fields
+
+
+def _safe_tool_action_summary(tool_name: Any, args: Any) -> str:
+    name = str(tool_name or "").strip()
+    command = _extract_tool_command(args)
+    if command:
+        return _safe_command_summary(command)
+
+    normalized = name.replace("_", " ").replace("-", " ").strip()
+    if not normalized:
+        return "Run tool"
+    lower = normalized.lower()
+    if "read" in lower:
+        return f"Read data with {normalized}"
+    if "search" in lower or "grep" in lower:
+        return f"Search data with {normalized}"
+    if "write" in lower or "edit" in lower or "delete" in lower:
+        return f"Run {normalized} tool that may change data"
+    return f"Run {normalized} tool"
+
+
+def _safe_command_summary(command: Any) -> str:
+    if not isinstance(command, str) or not command.strip():
+        return "Run terminal command"
+    tokens = _split_command(command)
+    if not tokens:
+        return "Run terminal command"
+
+    first = tokens[0]
+    if first == "kubectl":
+        return _safe_kubectl_summary(tokens)
+    if first in {"kbcli", "kb"}:
+        return "Inspect KubeBlocks resources with kbcli"
+    if first in {"bash", "sh", "zsh", "ksh"} and any(
+        "c" in token.lstrip("-") for token in tokens[1:3]
+    ):
+        return "Run shell command that requires approval"
+    if first in {"mongosh", "mysql", "psql", "sqlcmd"}:
+        return f"Run database client command with {first}"
+    return f"Run terminal command with {first}"
+
+
+def _safe_kubectl_summary(tokens: list[str]) -> str:
+    exec_index = _kubectl_find_verb(tokens, "exec")
+    if exec_index > 0:
+        namespace = _kubectl_namespace(tokens)
+        pod = _kubectl_exec_pod(tokens, exec_index)
+        detail = []
+        if namespace:
+            detail.append(f"namespace {namespace}")
+        if pod:
+            detail.append(f"pod {pod}")
+        suffix = f" ({', '.join(detail)})" if detail else ""
+        return f"Run command inside Kubernetes workload with kubectl exec{suffix}"
+
+    verb_index = _kubectl_first_verb_index(tokens)
+    if verb_index < 0:
+        return "Inspect Kubernetes resources with kubectl"
+    verb = tokens[verb_index]
+    if verb in {"get", "describe", "logs", "top"}:
+        resource = (
+            tokens[verb_index + 1]
+            if len(tokens) > verb_index + 1 and not tokens[verb_index + 1].startswith("-")
+            else "resources"
+        )
+        return f"Inspect Kubernetes {resource} with kubectl {verb}"
+    if verb in {"config", "cluster-info", "version"}:
+        return f"Inspect Kubernetes metadata with kubectl {verb}"
+    return f"Run kubectl {verb} command"
+
+
+def _kubectl_find_verb(tokens: list[str], verb: str) -> int:
+    for index, token in enumerate(tokens[1:], start=1):
+        if token == verb:
+            return index
+    return -1
+
+
+def _kubectl_first_verb_index(tokens: list[str]) -> int:
+    flags_with_value = {"-n", "--namespace", "-c", "--container", "--context"}
+    index = 1
+    while index < len(tokens):
+        token = tokens[index]
+        if token in flags_with_value:
+            index += 2
+            continue
+        if token.startswith("--namespace=") or token.startswith("--context="):
+            index += 1
+            continue
+        if token.startswith("-"):
+            index += 1
+            continue
+        return index
+    return -1
+
+
+def _kubectl_namespace(tokens: list[str]) -> str:
+    for index, token in enumerate(tokens):
+        if token in {"-n", "--namespace"} and index + 1 < len(tokens):
+            return tokens[index + 1]
+        if token.startswith("--namespace="):
+            return token.split("=", 1)[1]
+    return ""
+
+
+def _kubectl_exec_pod(tokens: list[str], exec_index: int) -> str:
+    index = exec_index + 1
+    flags_with_value = {"-n", "--namespace", "-c", "--container", "--context"}
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "--":
+            return ""
+        if token in flags_with_value:
+            index += 2
+            continue
+        if token.startswith("-"):
+            index += 1
+            continue
+        return token
+    return ""
+
+
+def _split_command(command: str) -> list[str]:
+    try:
+        return shlex.split(command)
+    except ValueError:
+        return command.strip().split()
+
+
+def _extract_tool_command(args: Any) -> str:
+    if isinstance(args, dict):
+        for key in ("command", "cmd", "shell_command"):
+            value = args.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    if isinstance(args, str) and args.strip():
+        return args.strip()
+    return ""
+
+
+def _safe_tool_result_summary(result: Any) -> str:
+    size = _serialized_size(result)
+    if _tool_result_has_error(result):
+        return f"Tool failed; output size {size} bytes"
+    return f"Tool completed; output size {size} bytes"
+
+
 def _serialized_size(value: Any) -> int:
     try:
         if isinstance(value, str):
@@ -496,8 +659,8 @@ def _summarize_previous_tools(
     AIAgent passes full previous tool results to step_callback. For kubectl
     diagnostics those results can easily exceed asyncio's default line limit
     when serialized as one stdout JSONL event. Runtime Manager only needs
-    progress context here, not full tool outputs, so keep bounded previews and
-    byte counts.
+    progress context here, not full tool outputs, so keep bounded display
+    summaries and byte counts.
     """
     summaries: list[dict[str, Any]] = []
     for item in (previous_tools or [])[:max_tools]:
@@ -507,19 +670,19 @@ def _summarize_previous_tools(
             if name is not None:
                 summary["name"] = str(name)
             if "arguments" in item:
-                summary["arguments_preview"] = _json_preview(item.get("arguments"), limit=300)
+                summary["action_summary"] = _safe_tool_action_summary(name, item.get("arguments"))
                 summary["arguments_bytes"] = _serialized_size(item.get("arguments"))
             if "result" in item:
-                summary["result_preview"] = _json_preview(item.get("result"), limit=500)
+                summary["result_summary"] = _safe_tool_result_summary(item.get("result"))
                 summary["result_bytes"] = _serialized_size(item.get("result"))
             if not summary:
-                summary["preview"] = _json_preview(item, limit=500)
+                summary["summary"] = "Tool history item"
                 summary["bytes"] = _serialized_size(item)
             summaries.append(summary)
         else:
             summaries.append(
                 {
-                    "preview": _json_preview(item, limit=500),
+                    "summary": "Tool history item",
                     "bytes": _serialized_size(item),
                 }
             )

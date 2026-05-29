@@ -1470,3 +1470,85 @@ class TestApprovalTimeoutIsNotConsent:
         assert last_post.get("choice") == "timeout", (
             f"hook choice should be 'timeout' on no-response, got {last_post.get('choice')!r}"
         )
+
+
+class TestGatewayOnceApprovalReuse:
+    SESSION_KEY = "test-runtime-manager-reuse"
+
+    def setup_method(self):
+        from tools import approval as mod
+
+        mod._gateway_queues.clear()
+        mod._gateway_notify_cbs.clear()
+        mod._session_approved.clear()
+        mod._pending.clear()
+        self._saved_env = {
+            k: os.environ.get(k)
+            for k in ("HERMES_GATEWAY_SESSION", "HERMES_YOLO_MODE", "HERMES_SESSION_KEY")
+        }
+        os.environ.pop("HERMES_YOLO_MODE", None)
+        os.environ["HERMES_GATEWAY_SESSION"] = "1"
+        os.environ["HERMES_SESSION_KEY"] = self.SESSION_KEY
+
+    def teardown_method(self):
+        from tools import approval as mod
+
+        mod._gateway_queues.clear()
+        mod._gateway_notify_cbs.clear()
+        mod._session_approved.clear()
+        mod._pending.clear()
+        for key, value in self._saved_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    def test_once_reuses_generic_shell_wrapper_in_gateway_session(self, monkeypatch):
+        from tools import approval as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_get_approval_config",
+            lambda: {"mode": "manual", "gateway_timeout": 2, "timeout": 2},
+        )
+
+        notified = []
+
+        def _approve_once(data):
+            notified.append(data)
+            mod.resolve_gateway_approval(self.SESSION_KEY, "once")
+
+        mod.register_gateway_notify(self.SESSION_KEY, _approve_once)
+
+        first = mod.check_all_command_guards("bash -c 'ps aux'", "local")
+        second = mod.check_all_command_guards("bash -c 'echo ok'", "local")
+
+        assert first["approved"] is True
+        assert second["approved"] is True
+        assert len(notified) == 1
+        assert mod.is_approved(self.SESSION_KEY, "shell command via -c/-lc flag")
+
+    def test_once_reuse_does_not_preapprove_more_specific_danger(self, monkeypatch):
+        from tools import approval as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_get_approval_config",
+            lambda: {"mode": "manual", "gateway_timeout": 2, "timeout": 2},
+        )
+
+        notified = []
+
+        def _approve_once(data):
+            notified.append(data)
+            mod.resolve_gateway_approval(self.SESSION_KEY, "once")
+
+        mod.register_gateway_notify(self.SESSION_KEY, _approve_once)
+
+        first = mod.check_all_command_guards("bash -c 'ps aux'", "local")
+        second = mod.check_all_command_guards("bash -c 'rm -rf /tmp/demo'", "local")
+
+        assert first["approved"] is True
+        assert second["approved"] is True
+        assert len(notified) == 2
+        assert notified[1]["pattern_key"] in {"delete in root path", "recursive delete"}
