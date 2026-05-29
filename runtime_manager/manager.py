@@ -240,19 +240,44 @@ class RuntimeManager:
     async def _pump_stdout(self, handle: RunHandle) -> None:
         proc = handle.process
         assert proc is not None and proc.stdout is not None
-        while True:
-            line = await proc.stdout.readline()
-            if not line:
-                break
-            raw = line.decode("utf-8", errors="replace").strip()
-            if not raw:
-                continue
+        try:
+            while True:
+                line = await proc.stdout.readline()
+                if not line:
+                    break
+                raw = line.decode("utf-8", errors="replace").strip()
+                if not raw:
+                    continue
+                try:
+                    event = json.loads(raw)
+                except json.JSONDecodeError:
+                    logger.warning("runtime-manager: invalid worker json for %s: %s", handle.run_id, raw)
+                    continue
+                handle.publish(event)
+        except ValueError as exc:
+            await self._fail_worker_stream(handle, f"worker stdout stream failed: {exc}")
+        except Exception as exc:
+            logger.exception("runtime-manager: stdout pump failed for %s", handle.run_id)
+            await self._fail_worker_stream(handle, f"worker stdout stream failed: {type(exc).__name__}: {exc}")
+
+    async def _fail_worker_stream(self, handle: RunHandle, message: str) -> None:
+        if handle.status in {"completed", "failed", "cancelled"}:
+            return
+        logger.error("runtime-manager: %s for %s", message, handle.run_id)
+        handle.publish(
+            {
+                "event": "run.failed",
+                "run_id": handle.run_id,
+                "timestamp": time.time(),
+                "error": message,
+            }
+        )
+        proc = handle.process
+        if proc is not None and getattr(proc, "returncode", None) is None:
             try:
-                event = json.loads(raw)
-            except json.JSONDecodeError:
-                logger.warning("runtime-manager: invalid worker json for %s: %s", handle.run_id, raw)
-                continue
-            handle.publish(event)
+                proc.terminate()
+            except ProcessLookupError:
+                pass
 
     async def _pump_stderr(self, handle: RunHandle) -> None:
         proc = handle.process
