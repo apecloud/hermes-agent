@@ -311,3 +311,4 @@ class TestUnconfiguredErrorEnvelopeParity:
         assert "FIRECRAWL_API_KEY" in result["error"]
         # No per-result burying
         assert "results" not in result
+

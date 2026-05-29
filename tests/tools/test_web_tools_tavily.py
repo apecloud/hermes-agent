@@ -224,3 +224,4 @@ class TestWebExtractTavily:
             assert "results" in result
             assert len(result["results"]) == 1
             assert result["results"][0]["url"] == "https://example.com"
+
