@@ -1,9 +1,0 @@
-apiVersion: v2
-name: hermes-agent
-description: Deploy the Hermes Agent runtime manager on Kubernetes.
-type: application
-version: 0.1.0
-appVersion: "latest"
-home: https://github.com/apecloud/hermes-agent
-sources:
-  - https://github.com/apecloud/hermes-agent
