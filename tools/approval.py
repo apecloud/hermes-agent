@@ -518,6 +518,14 @@ class _ApprovalEntry:
 _gateway_queues: dict[str, list] = {}        # session_key → [_ApprovalEntry, …]
 _gateway_notify_cbs: dict[str, object] = {}  # session_key → callable(approval_data)
 
+# Gateway Runtime Manager sessions commonly run several read-only probes via
+# ``kubectl exec ... bash -c ...``.  The generic shell-wrapper warning is
+# noisy when repeated, but more specific dangerous findings (rm, sudo,
+# systemctl, sensitive writes, Tirith findings, etc.) must continue to prompt.
+_GATEWAY_ONCE_SESSION_REUSE_KEYS = {
+    "shell command via -c/-lc flag",
+}
+
 
 def register_gateway_notify(session_key: str, cb) -> None:
     """Register a per-session callback for sending approval requests to the user.
@@ -589,6 +597,17 @@ def approve_session(session_key: str, pattern_key: str):
     """Approve a pattern for this session only."""
     with _lock:
         _session_approved.setdefault(session_key, set()).add(pattern_key)
+
+
+def _should_reuse_gateway_once_approval(key: str, is_tirith: bool) -> bool:
+    """Return True for generic gateway warnings that can be reused in-session.
+
+    This intentionally applies only to generic wrapper-shape warnings.  If a
+    later command contains an additional concrete danger such as delete,
+    system-service changes, credential writes, or Tirith findings, that new
+    warning still has its own pattern key and will request approval again.
+    """
+    return (not is_tirith) and key in _GATEWAY_ONCE_SESSION_REUSE_KEYS
 
 
 def enable_session_yolo(session_key: str) -> None:
@@ -1347,8 +1366,17 @@ def check_all_command_guards(command: str, env_type: str,
                     approve_session(session_key, key)
                     approve_permanent(key)
                     save_permanent_allowlist(_permanent_approved)
-                # choice == "once": no persistence — command allowed this
-                # single time only, matching the CLI's behavior.
+                elif choice == "once" and _should_reuse_gateway_once_approval(key, is_tirith):
+                    # Gateway Runtime Manager runs can emit a sequence of
+                    # read-only kubectl probes with the same generic shell
+                    # wrapper warning.  Reuse only that wrapper approval for
+                    # the current session so users are not forced through
+                    # consecutive identical confirmations.  More specific
+                    # dangerous patterns remain independent and will still
+                    # prompt on later commands.
+                    approve_session(session_key, key)
+                # other choice == "once": no persistence — command allowed
+                # this single time only, matching the CLI's behavior.
 
             return {"approved": True, "message": None,
                     "user_approved": True, "description": combined_desc}

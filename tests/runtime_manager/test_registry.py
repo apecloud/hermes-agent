@@ -73,7 +73,9 @@ def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
 
 def test_runtime_worker_tool_event_helpers_are_json_safe():
     from runtime_manager.worker_main import (
+        _approval_display_fields,
         _json_preview,
+        _safe_tool_action_summary,
         _summarize_previous_tools,
         _tool_result_has_error,
     )
@@ -99,9 +101,39 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     )
     assert len(json.dumps(summary, ensure_ascii=False)) < 2000
     assert summary[0]["name"] == "terminal"
+    assert summary[0]["action_summary"] == "Inspect Kubernetes pods with kubectl get"
     assert summary[0]["result_bytes"] == 10000
-    assert summary[0]["result_preview"].endswith("...")
-    assert "x" * 1000 not in summary[0]["result_preview"]
+    assert summary[0]["result_summary"] == "Tool completed; output size 10000 bytes"
+    assert "x" * 1000 not in json.dumps(summary, ensure_ascii=False)
+
+    kubectl_exec_summary = _safe_tool_action_summary(
+        "terminal",
+        {
+            "command": (
+                "kubectl exec -n kb-cloud apecloud-pg-0 -- "
+                "bash -c 'ps aux && ss -lntp && cat /var/lib/kubeconfig'"
+            )
+        },
+    )
+    assert kubectl_exec_summary == (
+        "Run command inside Kubernetes workload with kubectl exec "
+        "(namespace kb-cloud, pod apecloud-pg-0)"
+    )
+    assert "ps aux" not in kubectl_exec_summary
+    assert "/var/lib" not in kubectl_exec_summary
+
+    approval_fields = _approval_display_fields(
+        {
+            "command": "bash -c 'cat /secret/path && kubectl get pods'",
+            "description": "shell command via -c/-lc flag",
+        }
+    )
+    assert approval_fields["tool_name"] == "terminal"
+    assert approval_fields["risk"] == "requires_approval"
+    assert approval_fields["approval_reason"] == "shell command via -c/-lc flag"
+    assert approval_fields["summary"] == "Run shell command that requires approval"
+    assert approval_fields["reason"] == "Run shell command that requires approval"
+    assert "/secret/path" not in json.dumps(approval_fields, ensure_ascii=False)
 
 
 def test_runtime_manager_requires_api_key_unless_explicitly_allowed(tmp_path, monkeypatch):
