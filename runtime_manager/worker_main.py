@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ast
 import json
 import os
+import re
 import shlex
 import sys
 import threading
@@ -13,6 +15,11 @@ from typing import Any
 _OUTPUT_LOCK = threading.Lock()
 _AGENT_HOLDER: dict[str, Any] = {"agent": None}
 HERMES_RUNTIME_PLATFORM = "api_server"
+_LOOSE_COMMAND_ARG_PATTERN = re.compile(
+    r"""(?is)(?:^|[{,\s])['"]?(?:command|cmd|shell_command)['"]?\s*:\s*"""
+    r"""(?P<value>"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|[^,}]+)"""
+)
+_ENV_ASSIGNMENT_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=.*$")
 
 
 def emit(event: dict[str, Any]) -> None:
@@ -516,6 +523,7 @@ def _safe_command_summary(command: Any) -> str:
     if not isinstance(command, str) or not command.strip():
         return "Run terminal command"
     tokens = _split_command(command)
+    tokens = _drop_command_environment_prefix(tokens)
     if not tokens:
         return "Run terminal command"
 
@@ -622,13 +630,73 @@ def _split_command(command: str) -> list[str]:
 
 def _extract_tool_command(args: Any) -> str:
     if isinstance(args, dict):
-        for key in ("command", "cmd", "shell_command"):
-            value = args.get(key)
-            if isinstance(value, str) and value.strip():
-                return value.strip()
+        return _extract_tool_command_from_mapping(args)
     if isinstance(args, str) and args.strip():
-        return args.strip()
+        text = args.strip()
+        parsed = _parse_mapping_string(text)
+        if isinstance(parsed, dict):
+            command = _extract_tool_command_from_mapping(parsed)
+            if command:
+                return command
+        command = _extract_loose_command_arg(text)
+        if command:
+            return command
+        return text
     return ""
+
+
+def _extract_tool_command_from_mapping(args: dict[Any, Any]) -> str:
+    for key in ("command", "cmd", "shell_command"):
+        value = args.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _parse_mapping_string(text: str) -> Any:
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            return parser(text)
+        except Exception:
+            continue
+    return None
+
+
+def _extract_loose_command_arg(text: str) -> str:
+    match = _LOOSE_COMMAND_ARG_PATTERN.search(text)
+    if not match:
+        return ""
+    value = match.group("value").strip()
+    if not value:
+        return ""
+    if value[0] in {"'", '"'} and value[-1:] == value[0]:
+        try:
+            parsed = ast.literal_eval(value)
+            return parsed.strip() if isinstance(parsed, str) else ""
+        except Exception:
+            return value[1:-1].strip()
+    return value.strip()
+
+
+def _drop_command_environment_prefix(tokens: list[str]) -> list[str]:
+    if not tokens:
+        return tokens
+
+    index = 0
+    if tokens[index] == "export":
+        index += 1
+        while index < len(tokens) and _ENV_ASSIGNMENT_PATTERN.match(tokens[index]):
+            index += 1
+        if index < len(tokens) and tokens[index] == "&&":
+            index += 1
+        return tokens[index:]
+
+    if tokens[index] == "env":
+        index += 1
+
+    while index < len(tokens) and _ENV_ASSIGNMENT_PATTERN.match(tokens[index]):
+        index += 1
+    return tokens[index:]
 
 
 def _safe_tool_result_summary(result: Any) -> str:
