@@ -122,6 +122,23 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     assert "ps aux" not in kubectl_exec_summary
     assert "/var/lib" not in kubectl_exec_summary
 
+    assert (
+        _safe_tool_action_summary("terminal", '{"command":"kubectl describe pod demo-0 -n kb-cloud"}')
+        == "Inspect Kubernetes pod with kubectl describe"
+    )
+    assert (
+        _safe_tool_action_summary("terminal", "{command: 'kubectl logs demo-0 -n kb-cloud'}")
+        == "Inspect Kubernetes demo-0 with kubectl logs"
+    )
+    assert (
+        _safe_tool_action_summary(
+            "terminal",
+            "{'command': 'KUBECONFIG=/opt/data/users/u1/kubeconfig "
+            "kubectl get pvc -n kb-cloud'}",
+        )
+        == "Inspect Kubernetes pvc with kubectl get"
+    )
+
     approval_fields = _approval_display_fields(
         {
             "command": "bash -c 'cat /secret/path && kubectl get pods'",
@@ -134,6 +151,31 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     assert approval_fields["summary"] == "Run shell command that requires approval"
     assert approval_fields["reason"] == "Run shell command that requires approval"
     assert "/secret/path" not in json.dumps(approval_fields, ensure_ascii=False)
+
+
+def test_runtime_worker_summarizes_stringified_terminal_arguments():
+    from runtime_manager.worker_main import _summarize_previous_tools
+
+    summary = _summarize_previous_tools(
+        [
+            {
+                "name": "terminal",
+                "arguments": "{command: 'kubectl get events -n kb-cloud'}",
+                "result": "event output",
+            },
+            {
+                "name": "terminal",
+                "arguments": '{"command":"kubectl describe pvc data-demo-0 -n kb-cloud"}',
+                "result": "pvc output",
+            },
+        ]
+    )
+
+    assert summary[0]["action_summary"] == "Inspect Kubernetes events with kubectl get"
+    assert summary[1]["action_summary"] == "Inspect Kubernetes pvc with kubectl describe"
+    serialized = json.dumps(summary, ensure_ascii=False)
+    assert "Run terminal command with" not in serialized
+    assert "KUBECONFIG" not in serialized
 
 
 def test_runtime_manager_requires_api_key_unless_explicitly_allowed(tmp_path, monkeypatch):
