@@ -61,14 +61,14 @@ def main() -> int:
     session_id = str(request.get("session_id") or request.get("conversation_id") or run_id)
     approval_session_key = session_id
 
+    project_root = Path(__file__).resolve().parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
     hermes_home = str(request["hermes_home"])
     from runtime_manager.bootstrap import load_profile_environment
 
     load_profile_environment(hermes_home)
-
-    project_root = Path(__file__).resolve().parent.parent
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
 
     from agent.skill_commands import build_preloaded_skills_prompt
     from gateway.session_context import clear_session_vars, set_session_vars
