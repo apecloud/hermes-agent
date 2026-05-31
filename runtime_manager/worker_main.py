@@ -766,8 +766,26 @@ def _safe_text_preview(text: str, *, limit: int) -> str:
     return _bounded_preview(text, limit=limit)
 
 
+def _safe_output_preview(text: str, *, limit: int) -> str:
+    text = _KUBECONFIG_ASSIGNMENT_PATTERN.sub(r"\1", text)
+    text = _KUBECONFIG_FLAG_EQUAL_PATTERN.sub(" ", text)
+    text = _KUBECONFIG_FLAG_VALUE_PATTERN.sub(" ", text)
+    text = _SENSITIVE_ASSIGNMENT_PATTERN.sub(r"\1\2<redacted>", text)
+    text = _SENSITIVE_FLAG_EQUAL_PATTERN.sub(r"\1<redacted>", text)
+    text = _SENSITIVE_FLAG_VALUE_PATTERN.sub(r"\1 <redacted>", text)
+    text = _INTERNAL_USER_PATH_PATTERN.sub("/opt/data/users/<redacted>", text)
+    return _bounded_output_preview(text, limit=limit)
+
+
 def _bounded_preview(text: str, *, limit: int) -> str:
     text = _WHITESPACE_PATTERN.sub(" ", str(text or "")).strip()
+    if limit > 0 and len(text) > limit:
+        return text[:limit] + "..."
+    return text
+
+
+def _bounded_output_preview(text: str, *, limit: int) -> str:
+    text = str(text or "").strip()
     if limit > 0 and len(text) > limit:
         return text[:limit] + "..."
     return text
@@ -795,7 +813,7 @@ def _safe_tool_result_fields(result: Any) -> dict[str, Any]:
 
     stdout = _first_string(parsed, "output", "stdout")
     if stdout:
-        fields["stdout_preview"] = _safe_text_preview(stdout, limit=1200)
+        fields["stdout_preview"] = _safe_output_preview(stdout, limit=1200)
         fields["output_bytes"] = len(stdout.encode("utf-8", errors="replace"))
         if fields["output_bytes"] > 1200:
             fields["truncated"] = True
@@ -805,7 +823,7 @@ def _safe_tool_result_fields(result: Any) -> dict[str, Any]:
     if not stderr and _truthy_result_value(error):
         stderr = str(error)
     if stderr:
-        fields["stderr_preview"] = _safe_text_preview(stderr, limit=1200)
+        fields["stderr_preview"] = _safe_output_preview(stderr, limit=1200)
 
     return fields
 

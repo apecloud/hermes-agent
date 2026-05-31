@@ -184,7 +184,12 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     result_fields = _safe_tool_result_fields(
         json.dumps(
             {
-                "output": "pod demo-0 Running TOKEN=secret-token",
+                "output": (
+                    "NAME     READY   STATUS\n"
+                    "demo-0   1/1     Running TOKEN=secret-token\n"
+                    "config   /opt/data/users/u1/kubeconfig"
+                ),
+                "stderr": "warning:\tSECRET=stderr-secret\nnext line",
                 "exit_code": 0,
                 "error": None,
             }
@@ -192,8 +197,16 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     )
     assert result_fields["error"] is False
     assert result_fields["exit_code"] == 0
-    assert result_fields["stdout_preview"] == "pod demo-0 Running TOKEN=<redacted>"
+    assert result_fields["stdout_preview"] == (
+        "NAME     READY   STATUS\n"
+        "demo-0   1/1     Running TOKEN=<redacted>\n"
+        "config   /opt/data/users/<redacted>"
+    )
+    assert result_fields["stderr_preview"] == "warning:\tSECRET=<redacted>\nnext line"
+    assert "\n" in result_fields["stdout_preview"]
+    assert "NAME     READY" in result_fields["stdout_preview"]
     assert "secret-token" not in json.dumps(result_fields, ensure_ascii=False)
+    assert "stderr-secret" not in json.dumps(result_fields, ensure_ascii=False)
 
     approval_fields = _approval_display_fields(
         {
