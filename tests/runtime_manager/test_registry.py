@@ -75,7 +75,10 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     from runtime_manager.worker_main import (
         _approval_display_fields,
         _json_preview,
+        _safe_tool_command_preview,
         _safe_tool_action_summary,
+        _safe_tool_result_fields,
+        _safe_tool_result_summary,
         _summarize_previous_tools,
         _tool_result_has_error,
     )
@@ -87,8 +90,20 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     assert _tool_result_has_error({"error": "boom"})
     assert _tool_result_has_error('{"error":"boom"}')
     assert _tool_result_has_error({"is_error": True})
+    assert _tool_result_has_error({"exit_code": 1})
+    assert _tool_result_has_error({"status": "timed_out"})
+    assert not _tool_result_has_error({"error": None, "exit_code": 0})
+    assert not _tool_result_has_error({"error": "", "exit_code": 0})
+    assert not _tool_result_has_error({"error": False, "exit_code": 0})
+    assert not _tool_result_has_error('{"error": null, "exit_code": 0}')
     assert not _tool_result_has_error({"ok": True})
     assert not _tool_result_has_error("plain text result")
+    assert _safe_tool_result_summary({"output": "ok", "error": None, "exit_code": 0}).startswith(
+        "Tool completed;"
+    )
+    assert _safe_tool_result_summary({"output": "", "error": "boom", "exit_code": 1}).startswith(
+        "Tool failed;"
+    )
 
     summary = _summarize_previous_tools(
         [
@@ -138,6 +153,47 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
         )
         == "Inspect Kubernetes pvc with kubectl get"
     )
+    assert (
+        _safe_tool_action_summary(
+            "terminal",
+            {"command": "for p in demo-0 demo-1; do kubectl logs $p -n kb-cloud; done"},
+        )
+        == "Inspect Kubernetes resources with kubectl logs"
+    )
+    assert (
+        _safe_tool_action_summary(
+            "terminal",
+            {"command": "echo checking events && kubectl get events -n kb-cloud"},
+        )
+        == "Inspect Kubernetes events with kubectl get"
+    )
+    command_preview = _safe_tool_command_preview(
+        "terminal",
+        {
+            "command": (
+                "KUBECONFIG=/opt/data/users/u1/kubeconfig kubectl get pods -n kb-cloud "
+                "--token super-secret"
+            )
+        },
+    )
+    assert command_preview == "kubectl get pods -n kb-cloud --token <redacted>"
+    assert "KUBECONFIG" not in command_preview
+    assert "/opt/data/users" not in command_preview
+    assert "super-secret" not in command_preview
+
+    result_fields = _safe_tool_result_fields(
+        json.dumps(
+            {
+                "output": "pod demo-0 Running TOKEN=secret-token",
+                "exit_code": 0,
+                "error": None,
+            }
+        )
+    )
+    assert result_fields["error"] is False
+    assert result_fields["exit_code"] == 0
+    assert result_fields["stdout_preview"] == "pod demo-0 Running TOKEN=<redacted>"
+    assert "secret-token" not in json.dumps(result_fields, ensure_ascii=False)
 
     approval_fields = _approval_display_fields(
         {
