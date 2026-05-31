@@ -20,6 +20,20 @@ _LOOSE_COMMAND_ARG_PATTERN = re.compile(
     r"""(?P<value>"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|[^,}]+)"""
 )
 _ENV_ASSIGNMENT_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=.*$")
+_KUBECONFIG_ASSIGNMENT_PATTERN = re.compile(r"(?i)(^|\s)(KUBECONFIG=)(?:\"[^\"]*\"|'[^']*'|\S+)")
+_KUBECONFIG_FLAG_EQUAL_PATTERN = re.compile(r"(?i)\s*--kubeconfig=(?:\"[^\"]*\"|'[^']*'|\S+)")
+_KUBECONFIG_FLAG_VALUE_PATTERN = re.compile(r"(?i)\s*--kubeconfig\s+(?:\"[^\"]*\"|'[^']*'|\S+)")
+_SENSITIVE_ASSIGNMENT_PATTERN = re.compile(
+    r"(?i)(^|\s)([A-Z_]*(?:TOKEN|PASSWORD|SECRET|KEY)[A-Z_]*=)(?:\"[^\"]*\"|'[^']*'|\S+)"
+)
+_SENSITIVE_FLAG_EQUAL_PATTERN = re.compile(
+    r"(?i)(--(?:token|password|secret|key)=)(?:\"[^\"]*\"|'[^']*'|\S+)"
+)
+_SENSITIVE_FLAG_VALUE_PATTERN = re.compile(
+    r"(?i)(--(?:token|password|secret|key))\s+(?:\"[^\"]*\"|'[^']*'|\S+)"
+)
+_INTERNAL_USER_PATH_PATTERN = re.compile(r"/opt/data/users/[^\s'\"]+")
+_WHITESPACE_PATTERN = re.compile(r"\s+")
 
 
 def emit(event: dict[str, Any]) -> None:
@@ -47,14 +61,14 @@ def main() -> int:
     session_id = str(request.get("session_id") or request.get("conversation_id") or run_id)
     approval_session_key = session_id
 
+    project_root = Path(__file__).resolve().parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
     hermes_home = str(request["hermes_home"])
     from runtime_manager.bootstrap import load_profile_environment
 
     load_profile_environment(hermes_home)
-
-    project_root = Path(__file__).resolve().parent.parent
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
 
     from agent.skill_commands import build_preloaded_skills_prompt
     from gateway.session_context import clear_session_vars, set_session_vars
@@ -207,16 +221,17 @@ def main() -> int:
         started_at = time.time()
         with tool_lock:
             tool_started_at[str(tool_call_id)] = started_at
-        emit(
-            {
-                "event": "tool.started",
-                "run_id": run_id,
-                "timestamp": started_at,
-                "tool_call_id": tool_call_id,
-                "tool": tool_name,
-                "preview": _safe_tool_action_summary(tool_name, args),
-            }
-        )
+        event = {
+            "event": "tool.started",
+            "run_id": run_id,
+            "timestamp": started_at,
+            "tool_call_id": tool_call_id,
+            "tool": tool_name,
+            "preview": _safe_tool_action_summary(tool_name, args),
+        }
+        if command_preview := _safe_tool_command_preview(tool_name, args):
+            event["command_preview"] = command_preview
+        emit(event)
 
     def on_tool_complete(tool_call_id: str, tool_name: str, args: Any, result: Any) -> None:
         completed_at = time.time()
@@ -228,9 +243,10 @@ def main() -> int:
             "timestamp": completed_at,
             "tool_call_id": tool_call_id,
             "tool": tool_name,
-            "result_preview": _safe_tool_result_summary(result),
-            "error": _tool_result_has_error(result),
         }
+        if command_preview := _safe_tool_command_preview(tool_name, args):
+            event["command_preview"] = command_preview
+        event.update(_safe_tool_result_fields(result))
         if started_at is not None:
             event["duration"] = round(completed_at - started_at, 3)
         emit(event)
@@ -519,6 +535,15 @@ def _safe_tool_action_summary(tool_name: Any, args: Any) -> str:
     return f"Run {normalized} tool"
 
 
+def _safe_tool_command_preview(tool_name: Any, args: Any) -> str:
+    if str(tool_name or "").strip().lower() != "terminal":
+        return ""
+    command = _extract_tool_command(args)
+    if not command:
+        return ""
+    return _sanitize_command_preview(command, limit=500)
+
+
 def _safe_command_summary(command: Any) -> str:
     if not isinstance(command, str) or not command.strip():
         return "Run terminal command"
@@ -530,6 +555,9 @@ def _safe_command_summary(command: Any) -> str:
     first = tokens[0]
     if first == "kubectl":
         return _safe_kubectl_summary(tokens)
+    kubectl_index = _find_command_token(tokens, "kubectl")
+    if kubectl_index > 0:
+        return _safe_kubectl_summary(tokens[kubectl_index:])
     if first in {"kbcli", "kb"}:
         return "Inspect KubeBlocks resources with kbcli"
     if first in {"bash", "sh", "zsh", "ksh"} and any(
@@ -564,10 +592,25 @@ def _safe_kubectl_summary(tokens: list[str]) -> str:
             if len(tokens) > verb_index + 1 and not tokens[verb_index + 1].startswith("-")
             else "resources"
         )
+        resource = _safe_kubectl_resource_name(resource)
         return f"Inspect Kubernetes {resource} with kubectl {verb}"
     if verb in {"config", "cluster-info", "version"}:
         return f"Inspect Kubernetes metadata with kubectl {verb}"
     return f"Run kubectl {verb} command"
+
+
+def _find_command_token(tokens: list[str], command: str) -> int:
+    for index, token in enumerate(tokens):
+        if token == command:
+            return index
+    return -1
+
+
+def _safe_kubectl_resource_name(resource: str) -> str:
+    resource = resource.strip().strip(";")
+    if not resource or resource.startswith("$"):
+        return "resources"
+    return resource
 
 
 def _kubectl_find_verb(tokens: list[str], verb: str) -> int:
@@ -699,11 +742,117 @@ def _drop_command_environment_prefix(tokens: list[str]) -> list[str]:
     return tokens[index:]
 
 
+def _sanitize_command_preview(command: str, *, limit: int) -> str:
+    tokens = _drop_command_environment_prefix(_split_command(command))
+    text = " ".join(tokens) if tokens else command
+    text = _KUBECONFIG_ASSIGNMENT_PATTERN.sub(r"\1", text)
+    text = _KUBECONFIG_FLAG_EQUAL_PATTERN.sub(" ", text)
+    text = _KUBECONFIG_FLAG_VALUE_PATTERN.sub(" ", text)
+    text = _SENSITIVE_ASSIGNMENT_PATTERN.sub(r"\1\2<redacted>", text)
+    text = _SENSITIVE_FLAG_EQUAL_PATTERN.sub(r"\1<redacted>", text)
+    text = _SENSITIVE_FLAG_VALUE_PATTERN.sub(r"\1 <redacted>", text)
+    text = _INTERNAL_USER_PATH_PATTERN.sub("/opt/data/users/<redacted>", text)
+    return _bounded_preview(text, limit=limit)
+
+
+def _safe_text_preview(text: str, *, limit: int) -> str:
+    text = _KUBECONFIG_ASSIGNMENT_PATTERN.sub(r"\1", text)
+    text = _KUBECONFIG_FLAG_EQUAL_PATTERN.sub(" ", text)
+    text = _KUBECONFIG_FLAG_VALUE_PATTERN.sub(" ", text)
+    text = _SENSITIVE_ASSIGNMENT_PATTERN.sub(r"\1\2<redacted>", text)
+    text = _SENSITIVE_FLAG_EQUAL_PATTERN.sub(r"\1<redacted>", text)
+    text = _SENSITIVE_FLAG_VALUE_PATTERN.sub(r"\1 <redacted>", text)
+    text = _INTERNAL_USER_PATH_PATTERN.sub("/opt/data/users/<redacted>", text)
+    return _bounded_preview(text, limit=limit)
+
+
+def _safe_output_preview(text: str, *, limit: int) -> str:
+    text = _KUBECONFIG_ASSIGNMENT_PATTERN.sub(r"\1", text)
+    text = _KUBECONFIG_FLAG_EQUAL_PATTERN.sub(" ", text)
+    text = _KUBECONFIG_FLAG_VALUE_PATTERN.sub(" ", text)
+    text = _SENSITIVE_ASSIGNMENT_PATTERN.sub(r"\1\2<redacted>", text)
+    text = _SENSITIVE_FLAG_EQUAL_PATTERN.sub(r"\1<redacted>", text)
+    text = _SENSITIVE_FLAG_VALUE_PATTERN.sub(r"\1 <redacted>", text)
+    text = _INTERNAL_USER_PATH_PATTERN.sub("/opt/data/users/<redacted>", text)
+    return _bounded_output_preview(text, limit=limit)
+
+
+def _bounded_preview(text: str, *, limit: int) -> str:
+    text = _WHITESPACE_PATTERN.sub(" ", str(text or "")).strip()
+    if limit > 0 and len(text) > limit:
+        return text[:limit] + "..."
+    return text
+
+
+def _bounded_output_preview(text: str, *, limit: int) -> str:
+    text = str(text or "").strip()
+    if limit > 0 and len(text) > limit:
+        return text[:limit] + "..."
+    return text
+
+
 def _safe_tool_result_summary(result: Any) -> str:
     size = _serialized_size(result)
     if _tool_result_has_error(result):
         return f"Tool failed; output size {size} bytes"
     return f"Tool completed; output size {size} bytes"
+
+
+def _safe_tool_result_fields(result: Any) -> dict[str, Any]:
+    parsed = _parse_tool_result(result)
+    fields: dict[str, Any] = {
+        "result_preview": _safe_tool_result_summary(result),
+        "error": _tool_result_has_error(result),
+    }
+    if not isinstance(parsed, dict):
+        return fields
+
+    exit_code = _first_value(parsed, "exit_code", "exitCode", "returncode", "return_code")
+    if exit_code is not None:
+        fields["exit_code"] = exit_code
+
+    stdout = _first_string(parsed, "output", "stdout")
+    if stdout:
+        fields["stdout_preview"] = _safe_output_preview(stdout, limit=1200)
+        fields["output_bytes"] = len(stdout.encode("utf-8", errors="replace"))
+        if fields["output_bytes"] > 1200:
+            fields["truncated"] = True
+
+    stderr = _first_string(parsed, "stderr")
+    error = parsed.get("error")
+    if not stderr and _truthy_result_value(error):
+        stderr = str(error)
+    if stderr:
+        fields["stderr_preview"] = _safe_output_preview(stderr, limit=1200)
+
+    return fields
+
+
+def _parse_tool_result(result: Any) -> Any:
+    if isinstance(result, str):
+        text = result.strip()
+        if not text:
+            return result
+        for parser in (json.loads, ast.literal_eval):
+            try:
+                return parser(text)
+            except Exception:
+                continue
+    return result
+
+
+def _first_value(mapping: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key in mapping:
+            return mapping[key]
+    return None
+
+
+def _first_string(mapping: dict[str, Any], *keys: str) -> str:
+    value = _first_value(mapping, *keys)
+    if isinstance(value, str):
+        return value.strip()
+    return ""
 
 
 def _serialized_size(value: Any) -> int:
@@ -765,8 +914,26 @@ def _summarize_previous_tools(
 
 
 def _tool_result_has_error(value: Any) -> bool:
+    value = _parse_tool_result(value)
     if isinstance(value, dict):
-        return "error" in value or bool(value.get("is_error"))
+        if _truthy_result_value(value.get("is_error")):
+            return True
+        if _truthy_result_value(value.get("error")):
+            return True
+        for key in ("exit_code", "exitCode", "returncode", "return_code"):
+            if _exit_code_failed(value.get(key)):
+                return True
+        status = value.get("status")
+        if isinstance(status, str) and status.strip().lower() in {
+            "error",
+            "failed",
+            "failure",
+            "blocked",
+            "timed_out",
+            "timeout",
+        }:
+            return True
+        return False
     if isinstance(value, str):
         stripped = value.strip()
         if not stripped:
@@ -776,6 +943,37 @@ def _tool_result_has_error(value: Any) -> bool:
         except Exception:
             return False
         return _tool_result_has_error(parsed)
+    return False
+
+
+def _truthy_result_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        return normalized not in {"", "0", "false", "none", "null", "nil", "ok", "success"}
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, (list, tuple, set, dict)):
+        return len(value) > 0
+    return bool(value)
+
+
+def _exit_code_failed(value: Any) -> bool:
+    if value is None or isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return False
+        try:
+            return int(stripped) != 0
+        except ValueError:
+            return False
     return False
 
 
