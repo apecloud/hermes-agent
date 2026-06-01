@@ -2706,6 +2706,41 @@ class TestRunConversation:
         assert result["final_response"] == "Final answer"
         assert result["completed"] is True
 
+    def test_top_level_answer_is_not_reported_as_reasoning_progress(self, agent):
+        self._setup_agent(agent)
+        resp = _mock_response(content="Final answer", finish_reason="stop")
+        agent.client.chat.completions.create.return_value = resp
+        progress_events = []
+        agent.tool_progress_callback = lambda *args: progress_events.append(args)
+
+        with (
+            patch.object(agent, "_persist_session"),
+            patch.object(agent, "_save_trajectory"),
+            patch.object(agent, "_cleanup_task_resources"),
+        ):
+            result = agent.run_conversation("hello")
+
+        assert result["final_response"] == "Final answer"
+        assert not any(event[0] == "reasoning.available" for event in progress_events)
+
+    def test_subagent_answer_still_reports_parent_thinking_progress(self, agent):
+        self._setup_agent(agent)
+        resp = _mock_response(content="<think>Inspect pods</think>\nFinal answer", finish_reason="stop")
+        agent.client.chat.completions.create.return_value = resp
+        agent._delegate_depth = 1
+        progress_events = []
+        agent.tool_progress_callback = lambda *args: progress_events.append(args)
+
+        with (
+            patch.object(agent, "_persist_session"),
+            patch.object(agent, "_save_trajectory"),
+            patch.object(agent, "_cleanup_task_resources"),
+        ):
+            result = agent.run_conversation("hello")
+
+        assert result["final_response"] == "Final answer"
+        assert ("_thinking", "Inspect pods") in progress_events
+
     def test_ollama_small_runtime_context_fails_before_api_call(self, agent, caplog):
         self._setup_agent(agent)
         agent.model = "qwen3.5:9b"

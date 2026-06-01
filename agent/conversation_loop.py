@@ -3470,16 +3470,12 @@ def run_conversation(
                     r'</?(?:REASONING_SCRATCHPAD|think|reasoning)>', '', _think_text
                 ).strip()
                 # For subagents: relay first line to parent display (existing behaviour).
-                # For all agents with a structured callback: emit reasoning.available event.
+                # Top-level assistant content is an answer, not display-safe reasoning;
+                # structured reasoning should flow through the reasoning_callback path.
                 first_line = _think_text.split('\n')[0][:80] if _think_text else ""
                 if first_line and getattr(agent, '_delegate_depth', 0) > 0:
                     try:
                         agent.tool_progress_callback("_thinking", first_line)
-                    except Exception:
-                        pass
-                elif _think_text:
-                    try:
-                        agent.tool_progress_callback("reasoning.available", "_thinking", _think_text[:500], None)
                     except Exception:
                         pass
             
