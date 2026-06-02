@@ -128,6 +128,28 @@ class RunRegistry:
             raise KeyError(run_id)
         return handle
 
+    def has_active_session(self, *, user_id: str, session_id: str) -> bool:
+        self.prune()
+        return any(
+            handle.user_id == user_id
+            and handle.session_id == session_id
+            and handle.status not in self._TERMINAL_STATUSES
+            for handle in self._runs.values()
+        )
+
+    def remove_terminal_session_runs(self, *, user_id: str, session_id: str) -> int:
+        self.prune()
+        expired = [
+            run_id
+            for run_id, handle in self._runs.items()
+            if handle.user_id == user_id
+            and handle.session_id == session_id
+            and handle.status in self._TERMINAL_STATUSES
+        ]
+        for run_id in expired:
+            self._runs.pop(run_id, None)
+        return len(expired)
+
     def prune(self, *, now: float | None = None) -> int:
         if self.completed_run_ttl_seconds <= 0:
             return 0

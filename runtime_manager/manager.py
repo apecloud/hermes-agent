@@ -10,6 +10,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from hermes_state import SessionDB
+
 from .cloud_kubeconfig import CloudKubeconfigResolver
 from .profile_resolver import RuntimeProfileResolver
 from .registry import RunHandle, RunRegistry
@@ -237,6 +239,35 @@ class RuntimeManager:
         self._track(asyncio.create_task(self._force_kill_if_needed(handle)))
         return handle
 
+    async def delete_session(self, *, user_id: str, session_id: str) -> dict[str, Any]:
+        user_id = self.resolver.validate_user_id(user_id)
+        session_id = str(session_id or "").strip()
+        if not session_id:
+            raise ValueError("session_id is required")
+        if self.registry.has_active_session(user_id=user_id, session_id=session_id):
+            raise RuntimeError("session has an active run")
+
+        user_home = self.resolver.resolve(user_id, create=False)
+        deleted_from_db = False
+        deleted_files = False
+        if user_home.exists():
+            db_path = user_home / "state.db"
+            sessions_dir = user_home / "sessions"
+            if db_path.exists():
+                db = SessionDB(db_path)
+                try:
+                    deleted_from_db = db.delete_session(session_id, sessions_dir=sessions_dir)
+                finally:
+                    db.close()
+            deleted_files = _remove_session_files(sessions_dir, session_id)
+        removed_runs = self.registry.remove_terminal_session_runs(user_id=user_id, session_id=session_id)
+        return {
+            "object": "runtime_manager.session_cleanup",
+            "user_id": user_id,
+            "session_id": session_id,
+            "deleted": bool(deleted_from_db or deleted_files or removed_runs),
+        }
+
     async def _pump_stdout(self, handle: RunHandle) -> None:
         proc = handle.process
         assert proc is not None and proc.stdout is not None
@@ -346,3 +377,28 @@ def _first_present(*values: Any) -> Any:
             continue
         return value
     return None
+
+
+def _remove_session_files(sessions_dir: Path, session_id: str) -> bool:
+    removed = False
+    if not sessions_dir.exists():
+        return False
+    for suffix in (".json", ".jsonl"):
+        path = sessions_dir / f"{session_id}{suffix}"
+        if path.exists():
+            try:
+                path.unlink()
+                removed = True
+            except OSError:
+                pass
+    try:
+        request_dumps = list(sessions_dir.glob(f"request_dump_{session_id}_*.json"))
+    except OSError:
+        request_dumps = []
+    for path in request_dumps:
+        try:
+            path.unlink()
+            removed = True
+        except OSError:
+            pass
+    return removed
