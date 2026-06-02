@@ -22,6 +22,29 @@
       "metadata": "metadata.json",
       "path": "tests/fixtures/ai-agent-events/cases/normal-diagnosis-yam23-20260601-132718",
       "sha256": "6da4ca8495fff0b941d4c4b43fc106f83f0548790a659c582c39606b3cf50101"
+    },
+    {
+      "caseId": "quick-status-yam23-20260602-150122",
+      "eventCount": 405,
+      "eventTypes": {
+        "agent.step": 4,
+        "message.delta": 124,
+        "reasoning.available": 261,
+        "run.completed": 1,
+        "run.queued": 1,
+        "run.running": 1,
+        "status.message": 4,
+        "tool.completed": 3,
+        "tool.generating": 3,
+        "tool.started": 3
+      },
+      "firstEventId": 1,
+      "firstTimestamp": 1780383684.1867456,
+      "lastEventId": 405,
+      "lastTimestamp": 1780383826.4208949,
+      "metadata": "metadata.json",
+      "path": "tests/fixtures/ai-agent-events/cases/quick-status-yam23-20260602-150122",
+      "sha256": "a967a1fca1c2fc704bb33067013a748019d6ce2ff1dd53e6d9bf28e80760a43d"
     }
   ],
   "candidateCases": [
@@ -110,5 +133,5 @@
     "redaction": "Files preserve Runtime event structure and timing but redact kubeconfig paths, auth tokens, passwords, secrets, and API keys before storage."
   },
   "sourceStagingLocation": "/Users/alal/kubeblocks-console-e2e/output/hermes-runtime/base-cases",
-  "version": "2026-06-02.v1"
+  "version": "2026-06-02.v2"
 }

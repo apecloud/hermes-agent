@@ -23,6 +23,9 @@ This canonical Hermes Agent repo fixture directory freezes Hermes Runtime event 
 1. `normal-diagnosis-yam23-20260601-132718`
    - Covers ordinary diagnosis with `reasoning.available`, multiple tool phases, `agent.step`, `message.delta`, and `run.completed`.
    - Source: previous full capture `/Users/alal/kubeblocks-console-e2e/output/hermes-runtime/hermes-raw-events-20260601-132718.jsonl`.
+2. `quick-status-yam23-20260602-150122`
+   - Covers a fresh real Hermes Agent Runtime conversation against cloud-dev yam23 after the reasoning/progress contract work.
+   - Complete capture from event id 1 through `run.completed`; useful as the current canonical quick status baseline for reasoning delta, tool progress, and final answer replay.
 
 ## Current Candidate Evidence
 

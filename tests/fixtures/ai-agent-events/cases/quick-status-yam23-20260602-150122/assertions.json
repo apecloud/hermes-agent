@@ -1,0 +1,14 @@
+{
+  "completeFromEventIdOne": true,
+  "finalRunStatus": "completed",
+  "mustContainEventTypes": [
+    "reasoning.available",
+    "tool.started",
+    "tool.completed",
+    "agent.step",
+    "message.delta",
+    "run.completed"
+  ],
+  "reasoningIsDelta": true,
+  "redactionRequired": true
+}
