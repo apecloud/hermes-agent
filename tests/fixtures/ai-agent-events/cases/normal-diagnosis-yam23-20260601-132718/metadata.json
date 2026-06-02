@@ -1,0 +1,57 @@
+{
+  "capturedAt": "2026-06-01T13:27:18+08:00",
+  "caseId": "normal-diagnosis-yam23-20260601-132718",
+  "cloud": {
+    "commit": "unknown"
+  },
+  "clusterName": "yam23",
+  "conversationId": "conv_372a62b9-7e5b-4288-9ae5-a574e2b9aa6d",
+  "description": "普通诊断：reasoning -> 多轮 tool -> final answer；用于验证 reasoning/tool/message 顺序、过程投影、最终回答和 token usage。",
+  "environmentName": "kb10",
+  "expected": {
+    "finalRunStatus": "completed",
+    "mustContainEventTypes": [
+      "reasoning.available",
+      "tool.generating",
+      "tool.started",
+      "tool.completed",
+      "agent.step",
+      "message.delta",
+      "run.completed"
+    ],
+    "mustNotContainEventTypesForUserVisibleAPI": [
+      "message.interim"
+    ],
+    "reasoningIsDelta": true,
+    "redactionRequired": true
+  },
+  "orgName": "alal-test",
+  "prompt": "检查一下集群现在的运行情况",
+  "runtime": {
+    "commit": "unknown",
+    "imageDigest": "runtime-manager-v1 cloud-dev at capture time"
+  },
+  "runtimeRunId": "run_5aeabeeec8204443bf04286038651b23",
+  "source": "/Users/alal/kubeblocks-console-e2e/output/hermes-runtime/hermes-raw-events-20260601-132718.jsonl",
+  "status": "base",
+  "summary": {
+    "eventCount": 839,
+    "eventTypes": {
+      "agent.step": 5,
+      "message.delta": 185,
+      "reasoning.available": 629,
+      "run.completed": 1,
+      "run.queued": 1,
+      "run.running": 1,
+      "status.message": 5,
+      "tool.completed": 4,
+      "tool.generating": 4,
+      "tool.started": 4
+    },
+    "firstEventId": 1,
+    "firstTimestamp": 1780291413.9699821,
+    "lastEventId": 839,
+    "lastTimestamp": 1780291502.8980124
+  },
+  "turnId": "turn_e994ea57-36d8-4703-95a4-dc536ccdd856"
+}

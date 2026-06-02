@@ -1,0 +1,54 @@
+{
+  "capturedAt": "2026-06-02T15:03:50.202388+08:00",
+  "caseId": "quick-status-yam23-20260602-150122",
+  "cloud": {
+    "commit": "not used; direct Runtime Manager capture"
+  },
+  "clusterName": "yam23",
+  "conversationId": "conv_canonical_20260602_150122",
+  "description": "真实 Hermes Agent 对话：快速检查 yam23 集群健康状态；用于验证 reasoning delta、tool 过程、message delta 和 run.completed 的 Runtime raw event 合同。",
+  "environmentName": "kb10",
+  "expected": {
+    "completeFromEventIdOne": true,
+    "finalRunStatus": "completed",
+    "mustContainEventTypes": [
+      "reasoning.available",
+      "tool.started",
+      "tool.completed",
+      "agent.step",
+      "message.delta",
+      "run.completed"
+    ],
+    "reasoningIsDelta": true,
+    "redactionRequired": true
+  },
+  "orgName": "alal-test",
+  "prompt": "快速检查 yam23 集群当前是否健康，只需要做必要的只读检查（Cluster、Pod、Component、PVC 或事件），最多执行 3 到 5 组命令，给出简短结论。",
+  "runtime": {
+    "commit": "unknown",
+    "imageDigest": "cloud-dev hermes-agent at capture time"
+  },
+  "runtimeRunId": "run_8e9c3d84f55b4ef9b0aca92339c9b62b",
+  "source": "/Users/alal/kubeblocks-console-e2e/output/hermes-runtime/live-captures/quick-status-yam23-20260602-150122/events.jsonl",
+  "status": "base",
+  "summary": {
+    "eventCount": 405,
+    "eventTypes": {
+      "agent.step": 4,
+      "message.delta": 124,
+      "reasoning.available": 261,
+      "run.completed": 1,
+      "run.queued": 1,
+      "run.running": 1,
+      "status.message": 4,
+      "tool.completed": 3,
+      "tool.generating": 3,
+      "tool.started": 3
+    },
+    "firstEventId": 1,
+    "firstTimestamp": 1780383684.1867456,
+    "lastEventId": 405,
+    "lastTimestamp": 1780383826.4208949
+  },
+  "turnId": null
+}
