@@ -1,0 +1,114 @@
+{
+  "baseCases": [
+    {
+      "caseId": "normal-diagnosis-yam23-20260601-132718",
+      "eventCount": 839,
+      "eventTypes": {
+        "agent.step": 5,
+        "message.delta": 185,
+        "reasoning.available": 629,
+        "run.completed": 1,
+        "run.queued": 1,
+        "run.running": 1,
+        "status.message": 5,
+        "tool.completed": 4,
+        "tool.generating": 4,
+        "tool.started": 4
+      },
+      "firstEventId": 1,
+      "firstTimestamp": 1780291413.9699821,
+      "lastEventId": 839,
+      "lastTimestamp": 1780291502.8980124,
+      "metadata": "metadata.json",
+      "path": "tests/fixtures/ai-agent-events/cases/normal-diagnosis-yam23-20260601-132718",
+      "sha256": "6da4ca8495fff0b941d4c4b43fc106f83f0548790a659c582c39606b3cf50101"
+    }
+  ],
+  "candidateCases": [
+    {
+      "caseId": "long-tool-call-yam23-20260602-134148-partial",
+      "eventCount": 1000,
+      "eventTypes": {
+        "agent.step": 1,
+        "message.delta": 486,
+        "reasoning.available": 508,
+        "run.completed": 1,
+        "status.message": 1,
+        "tool.completed": 1,
+        "tool.generating": 1,
+        "tool.started": 1
+      },
+      "firstEventId": 472,
+      "firstTimestamp": 1780379229.4682283,
+      "lastEventId": 1471,
+      "lastTimestamp": 1780379279.8989987,
+      "metadata": "metadata.json",
+      "path": "tests/fixtures/ai-agent-events/candidates/long-tool-call-yam23-20260602-134148-partial",
+      "sha256": "aff6ea6cb608c155addf3d51ba8e883699d1c892a5749f51f7a6eaf529d92859"
+    },
+    {
+      "caseId": "long-tool-call-yam23-20260602-140657-partial",
+      "eventCount": 1000,
+      "eventTypes": {
+        "agent.step": 1,
+        "message.delta": 653,
+        "reasoning.available": 338,
+        "run.completed": 1,
+        "status.message": 1,
+        "tool.completed": 2,
+        "tool.generating": 2,
+        "tool.started": 2
+      },
+      "firstEventId": 787,
+      "firstTimestamp": 1780380547.1089666,
+      "lastEventId": 1786,
+      "lastTimestamp": 1780380608.903595,
+      "metadata": "metadata.json",
+      "path": "tests/fixtures/ai-agent-events/candidates/long-tool-call-yam23-20260602-140657-partial",
+      "sha256": "884d06538d27efc735715959fc251fd138e38042fc96751f61123c1c89cb7a99"
+    }
+  ],
+  "canonicalLocation": "tests/fixtures/ai-agent-events",
+  "pendingCases": [
+    {
+      "captureWhen": "after task #90 Runtime/Cloud contract is available; capture live from event id 1 before Runtime ring buffer truncates",
+      "caseId": "long-tool-call-complete",
+      "priority": "P0",
+      "shape": "single terminal call >1-3 minutes or heartbeat-enabled equivalent"
+    },
+    {
+      "captureWhen": "after safe owner/test approval workflow is available",
+      "caseId": "approval-approved-and-rejected",
+      "priority": "P0",
+      "shape": "approval.request -> rejected/approved -> follow-up tool/result"
+    },
+    {
+      "caseId": "tool-failed-resource-not-found",
+      "priority": "P0",
+      "shape": "tool.completed failed with concrete failureReason, stdout/stderr preview, final degraded answer"
+    },
+    {
+      "captureWhen": "when a non-reasoning model config is available",
+      "caseId": "no-reasoning-model",
+      "priority": "P1",
+      "shape": "message.delta only with agent.step/tool events and no reasoning.available"
+    },
+    {
+      "caseId": "multi-turn-clarification",
+      "priority": "P1",
+      "shape": "first turn asks for missing params; second turn continues with history and input unlocked"
+    },
+    {
+      "caseId": "runtime-cloud-interrupt-replay",
+      "priority": "P1",
+      "shape": "SSE disconnect/reconnect replay and terminal event recovery"
+    }
+  ],
+  "policy": {
+    "purpose": "Hermes Runtime raw event base cases for Cloud/API projection and Console UI replay regression.",
+    "rawEventRule": "Base raw events are refreshed only when Hermes Agent Runtime code or event contract changes. Cloud/frontend changes update assertions or test results, not raw fixtures.",
+    "redaction": "Files preserve Runtime event structure and timing but redact kubeconfig paths, auth tokens, passwords, secrets, and API keys before storage."
+  },
+  "sourceStagingLocation": "/Users/alal/kubeblocks-console-e2e/output/hermes-runtime/base-cases",
+  "version": "2026-06-02.v1"
+}

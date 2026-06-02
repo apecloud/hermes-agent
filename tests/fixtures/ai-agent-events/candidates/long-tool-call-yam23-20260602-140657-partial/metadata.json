@@ -1,0 +1,32 @@
+{
+  "capturedAt": "2026-06-02T06:23:52.421282+00:00",
+  "caseId": "long-tool-call-yam23-20260602-140657-partial",
+  "clusterName": "yam23",
+  "completeness": "partial: Runtime completed-run event buffer retained only the latest 1000 events; do not use as frozen base unless recollected live during execution.",
+  "conversationId": "conv_a4ac5039-fe9a-4dac-b6d0-97365df91422",
+  "description": "长工具调用候选：同一 conversation 的后续 turn；Runtime 只回放最后 1000 条，适合临时对比但不是完整 base。",
+  "environmentName": "kb10",
+  "expectedUse": "Evidence for long-tool-call progress gap; recollect a complete case after task #90 Runtime/Cloud contract is implemented or when Runtime changes.",
+  "orgName": "alal-test",
+  "prompt": "继续分析资源使用情况",
+  "runtimeRunId": "run_14bac14cbed34625b74fbff4271782b3",
+  "status": "candidate-partial-replay",
+  "summary": {
+    "eventCount": 1000,
+    "eventTypes": {
+      "agent.step": 1,
+      "message.delta": 653,
+      "reasoning.available": 338,
+      "run.completed": 1,
+      "status.message": 1,
+      "tool.completed": 2,
+      "tool.generating": 2,
+      "tool.started": 2
+    },
+    "firstEventId": 787,
+    "firstTimestamp": 1780380547.1089666,
+    "lastEventId": 1786,
+    "lastTimestamp": 1780380608.903595
+  },
+  "turnId": "turn_a607df2c-2b83-4633-b492-e4aba2378a4f"
+}

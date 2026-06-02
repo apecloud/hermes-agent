@@ -1,0 +1,1000 @@
+{"event": "reasoning.available", "event_id": 472, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "节点", "timestamp": 1780379229.4682283}
+{"event": "reasoning.available", "event_id": 473, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源", "timestamp": 1780379229.4684427}
+{"event": "reasoning.available", "event_id": 474, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "分配（Allocated", "timestamp": 1780379229.4693117}
+{"event": "reasoning.available", "event_id": 475, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " resources", "timestamp": 1780379229.5055554}
+{"event": "reasoning.available", "event_id": 476, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "）严重", "timestamp": 1780379229.551811}
+{"event": "reasoning.available", "event_id": 477, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "超", "timestamp": 1780379229.587492}
+{"event": "reasoning.available", "event_id": 478, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "发", "timestamp": 1780379229.6415548}
+{"event": "reasoning.available", "event_id": 479, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**：\n  ", "timestamp": 1780379229.6417575}
+{"event": "reasoning.available", "event_id": 480, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - 所有", "timestamp": 1780379229.6478784}
+{"event": "reasoning.available", "event_id": 481, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "节点的", "timestamp": 1780379229.6804}
+{"event": "reasoning.available", "event_id": 482, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CPU", "timestamp": 1780379229.709125}
+{"event": "reasoning.available", "event_id": 483, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " limit", "timestamp": 1780379229.738184}
+{"event": "reasoning.available", "event_id": 484, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "总和", "timestamp": 1780379229.786736}
+{"event": "reasoning.available", "event_id": 485, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "都", "timestamp": 1780379229.8351605}
+{"event": "reasoning.available", "event_id": 486, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "超过了", "timestamp": 1780379229.8804507}
+{"event": "reasoning.available", "event_id": 487, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "100%（", "timestamp": 1780379229.8859792}
+{"event": "reasoning.available", "event_id": 488, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "104", "timestamp": 1780379231.1426616}
+{"event": "reasoning.available", "event_id": 489, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%-170", "timestamp": 1780379231.142857}
+{"event": "reasoning.available", "event_id": 490, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%）\n  ", "timestamp": 1780379231.1471572}
+{"event": "reasoning.available", "event_id": 491, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - 所有", "timestamp": 1780379231.1473403}
+{"event": "reasoning.available", "event_id": 492, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "节点的内存limit", "timestamp": 1780379231.1475286}
+{"event": "reasoning.available", "event_id": 493, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "总和都超过了", "timestamp": 1780379231.1476905}
+{"event": "reasoning.available", "event_id": 494, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "100", "timestamp": 1780379231.1509502}
+{"event": "reasoning.available", "event_id": 495, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%（110", "timestamp": 1780379231.1527421}
+{"event": "reasoning.available", "event_id": 496, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%-186", "timestamp": 1780379231.1545928}
+{"event": "reasoning.available", "event_id": 497, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%", "timestamp": 1780379231.154836}
+{"event": "reasoning.available", "event_id": 498, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "）\n   -", "timestamp": 1780379231.1581314}
+{"event": "reasoning.available", "event_id": 499, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 这意味着", "timestamp": 1780379231.1582992}
+{"event": "reasoning.available", "event_id": 500, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "集群", "timestamp": 1780379231.1584501}
+{"event": "reasoning.available", "event_id": 501, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "依赖于", "timestamp": 1780379231.158628}
+{"event": "reasoning.available", "event_id": 502, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "容器", "timestamp": 1780379231.1647317}
+{"event": "reasoning.available", "event_id": 503, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "不会", "timestamp": 1780379231.1665611}
+{"event": "reasoning.available", "event_id": 504, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "同时", "timestamp": 1780379231.1667285}
+{"event": "reasoning.available", "event_id": 505, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "达到", "timestamp": 1780379231.1668775}
+{"event": "reasoning.available", "event_id": 506, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "其", "timestamp": 1780379231.1716857}
+{"event": "reasoning.available", "event_id": 507, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "limit", "timestamp": 1780379231.1718452}
+{"event": "reasoning.available", "event_id": 508, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "的", "timestamp": 1780379231.1719944}
+{"event": "reasoning.available", "event_id": 509, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "假设\n\n", "timestamp": 1780379231.1722424}
+{"event": "reasoning.available", "event_id": 510, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "3. **", "timestamp": 1780379231.178671}
+{"event": "reasoning.available", "event_id": 511, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "yam23", "timestamp": 1780379231.178834}
+{"event": "reasoning.available", "event_id": 512, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " Mongo", "timestamp": 1780379231.1789799}
+{"event": "reasoning.available", "event_id": 513, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "DB", "timestamp": 1780379231.179141}
+{"event": "reasoning.available", "event_id": 514, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "集群", "timestamp": 1780379231.17937}
+{"event": "reasoning.available", "event_id": 515, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（", "timestamp": 1780379231.1872559}
+{"event": "reasoning.available", "event_id": 516, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "目标", "timestamp": 1780379231.1874974}
+{"event": "reasoning.available", "event_id": 517, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "集群", "timestamp": 1780379231.4030757}
+{"event": "reasoning.available", "event_id": 518, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "）资源情况", "timestamp": 1780379231.403281}
+{"event": "reasoning.available", "event_id": 519, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**：\n", "timestamp": 1780379231.4034388}
+{"event": "reasoning.available", "event_id": 520, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "   -", "timestamp": 1780379231.4036155}
+{"event": "reasoning.available", "event_id": 521, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 3", "timestamp": 1780379231.4038723}
+{"event": "reasoning.available", "event_id": 522, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "个", "timestamp": 1780379231.404047}
+{"event": "reasoning.available", "event_id": 523, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "config", "timestamp": 1780379231.40428}
+{"event": "reasoning.available", "event_id": 524, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-server", "timestamp": 1780379231.4044278}
+{"event": "reasoning.available", "event_id": 525, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ",", "timestamp": 1780379231.404588}
+{"event": "reasoning.available", "event_id": 526, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 2", "timestamp": 1780379231.4047322}
+{"event": "reasoning.available", "event_id": 527, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "个mong", "timestamp": 1780379231.4048805}
+{"event": "reasoning.available", "event_id": 528, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "os", "timestamp": 1780379231.4051182}
+{"event": "reasoning.available", "event_id": 529, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ", 2", "timestamp": 1780379231.4053297}
+{"event": "reasoning.available", "event_id": 530, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "个shard各", "timestamp": 1780379231.4055557}
+{"event": "reasoning.available", "event_id": 531, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "3", "timestamp": 1780379231.4057777}
+{"event": "reasoning.available", "event_id": 532, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "副本", "timestamp": 1780379231.4059875}
+{"event": "reasoning.available", "event_id": 533, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " =", "timestamp": 1780379231.4062245}
+{"event": "reasoning.available", "event_id": 534, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 11", "timestamp": 1780379231.5964248}
+{"event": "reasoning.available", "event_id": 535, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "个Pod", "timestamp": 1780379231.5967524}
+{"event": "reasoning.available", "event_id": 536, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n   -", "timestamp": 1780379231.5969734}
+{"event": "reasoning.available", "event_id": 537, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 每个mongodb", "timestamp": 1780379231.597228}
+{"event": "reasoning.available", "event_id": 538, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/m", "timestamp": 1780379231.5974445}
+{"event": "reasoning.available", "event_id": 539, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "ongos", "timestamp": 1780379231.5976763}
+{"event": "reasoning.available", "event_id": 540, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "容器：", "timestamp": 1780379231.8438616}
+{"event": "reasoning.available", "event_id": 541, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CPU请求", "timestamp": 1780379231.844196}
+{"event": "reasoning.available", "event_id": 542, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "100", "timestamp": 1780379231.8444254}
+{"event": "reasoning.available", "event_id": 543, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m/", "timestamp": 1780379231.8446727}
+{"event": "reasoning.available", "event_id": 544, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "限制1", "timestamp": 1780379231.8448904}
+{"event": "reasoning.available", "event_id": 545, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "核", "timestamp": 1780379231.845129}
+{"event": "reasoning.available", "event_id": 546, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "，内存请求", "timestamp": 1780379231.8453498}
+{"event": "reasoning.available", "event_id": 547, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "102Mi", "timestamp": 1780379231.8455906}
+{"event": "reasoning.available", "event_id": 548, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/限制1", "timestamp": 1780379231.8458176}
+{"event": "reasoning.available", "event_id": 549, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Gi\n  ", "timestamp": 1780379232.0389938}
+{"event": "reasoning.available", "event_id": 550, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - 旁", "timestamp": 1780379232.0393293}
+{"event": "reasoning.available", "event_id": 551, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "路", "timestamp": 1780379232.039575}
+{"event": "reasoning.available", "event_id": 552, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "容器", "timestamp": 1780379232.039799}
+{"event": "reasoning.available", "event_id": 553, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（ex", "timestamp": 1780379232.0400305}
+{"event": "reasoning.available", "event_id": 554, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "porter", "timestamp": 1780379232.04026}
+{"event": "reasoning.available", "event_id": 555, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ",", "timestamp": 1780379232.0404856}
+{"event": "reasoning.available", "event_id": 556, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " backup-agent", "timestamp": 1780379232.0407157}
+{"event": "reasoning.available", "event_id": 557, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ", kb", "timestamp": 1780379232.0941346}
+{"event": "reasoning.available", "event_id": 558, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "agent", "timestamp": 1780379232.1046178}
+{"event": "reasoning.available", "event_id": 559, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "）没有", "timestamp": 1780379232.1671932}
+{"event": "reasoning.available", "event_id": 560, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "设置", "timestamp": 1780379232.1692464}
+{"event": "reasoning.available", "event_id": 561, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源请求", "timestamp": 1780379232.2043505}
+{"event": "reasoning.available", "event_id": 562, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/", "timestamp": 1780379232.2420833}
+{"event": "reasoning.available", "event_id": 563, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "限制\n  ", "timestamp": 1780379232.2686448}
+{"event": "reasoning.available", "event_id": 564, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - 实际", "timestamp": 1780379232.2993042}
+{"event": "reasoning.available", "event_id": 565, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "使用", "timestamp": 1780379233.0515287}
+{"event": "reasoning.available", "event_id": 566, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "：\n", "timestamp": 1780379233.0517378}
+{"event": "reasoning.available", "event_id": 567, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "     -", "timestamp": 1780379233.2582333}
+{"event": "reasoning.available", "event_id": 568, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " config-server", "timestamp": 1780379233.2584267}
+{"event": "reasoning.available", "event_id": 569, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ": CPU", "timestamp": 1780379233.2586088}
+{"event": "reasoning.available", "event_id": 570, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 15", "timestamp": 1780379233.2587569}
+{"event": "reasoning.available", "event_id": 571, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-26", "timestamp": 1780379233.2590084}
+{"event": "reasoning.available", "event_id": 572, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m, ", "timestamp": 1780379233.2591844}
+{"event": "reasoning.available", "event_id": 573, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "内存 910", "timestamp": 1780379233.2594182}
+{"event": "reasoning.available", "event_id": 574, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-1069", "timestamp": 1780379233.259587}
+{"event": "reasoning.available", "event_id": 575, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi\n    ", "timestamp": 1780379233.2597337}
+{"event": "reasoning.available", "event_id": 576, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - mongos", "timestamp": 1780379233.2598777}
+{"event": "reasoning.available", "event_id": 577, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ": CPU ", "timestamp": 1780379233.260035}
+{"event": "reasoning.available", "event_id": 578, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "30-58", "timestamp": 1780379233.2601829}
+{"event": "reasoning.available", "event_id": 579, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m, ", "timestamp": 1780379233.2603214}
+{"event": "reasoning.available", "event_id": 580, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "内存 239", "timestamp": 1780379233.2606115}
+{"event": "reasoning.available", "event_id": 581, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-316", "timestamp": 1780379233.2608447}
+{"event": "reasoning.available", "event_id": 582, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi\n    ", "timestamp": 1780379233.2610703}
+{"event": "reasoning.available", "event_id": 583, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - shard", "timestamp": 1780379233.2612855}
+{"event": "reasoning.available", "event_id": 584, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ": CPU", "timestamp": 1780379233.2615027}
+{"event": "reasoning.available", "event_id": 585, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 10", "timestamp": 1780379233.261709}
+{"event": "reasoning.available", "event_id": 586, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-30", "timestamp": 1780379233.2619114}
+{"event": "reasoning.available", "event_id": 587, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m, ", "timestamp": 1780379233.2620747}
+{"event": "reasoning.available", "event_id": 588, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "内存 591", "timestamp": 1780379233.2622938}
+{"event": "reasoning.available", "event_id": 589, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-854", "timestamp": 1780379233.2625186}
+{"event": "reasoning.available", "event_id": 590, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi\n  ", "timestamp": 1780379233.858261}
+{"event": "reasoning.available", "event_id": 591, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - 内存", "timestamp": 1780379234.5790884}
+{"event": "reasoning.available", "event_id": 592, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "使用", "timestamp": 1780379234.580537}
+{"event": "reasoning.available", "event_id": 593, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "接近或", "timestamp": 1780379234.8258932}
+{"event": "reasoning.available", "event_id": 594, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "超过", "timestamp": 1780379234.8262174}
+{"event": "reasoning.available", "event_id": 595, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "请求", "timestamp": 1780379235.4274995}
+{"event": "reasoning.available", "event_id": 596, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "值", "timestamp": 1780379235.428319}
+{"event": "reasoning.available", "event_id": 597, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（102Mi", "timestamp": 1780379235.4285111}
+{"event": "reasoning.available", "event_id": 598, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "），但在", "timestamp": 1780379235.4293249}
+{"event": "reasoning.available", "event_id": 599, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1", "timestamp": 1780379235.4302275}
+{"event": "reasoning.available", "event_id": 600, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Gi限制", "timestamp": 1780379235.4311504}
+{"event": "reasoning.available", "event_id": 601, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "内\n\n", "timestamp": 1780379235.434046}
+{"event": "reasoning.available", "event_id": 602, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "4. **", "timestamp": 1780379235.434227}
+{"event": "reasoning.available", "event_id": 603, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "PVC", "timestamp": 1780379235.4343848}
+{"event": "reasoning.available", "event_id": 604, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "存储", "timestamp": 1780379235.434548}
+{"event": "reasoning.available", "event_id": 605, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**：\n  ", "timestamp": 1780379235.435776}
+{"event": "reasoning.available", "event_id": 606, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - yam", "timestamp": 1780379235.4359522}
+{"event": "reasoning.available", "event_id": 607, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "23各", "timestamp": 1780379235.6393654}
+{"event": "reasoning.available", "event_id": 608, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "组件", "timestamp": 1780379235.6397026}
+{"event": "reasoning.available", "event_id": 609, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "data", "timestamp": 1780379235.6398668}
+{"event": "reasoning.available", "event_id": 610, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "盘", "timestamp": 1780379235.640042}
+{"event": "reasoning.available", "event_id": 611, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "各", "timestamp": 1780379235.6402993}
+{"event": "reasoning.available", "event_id": 612, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "20", "timestamp": 1780379235.6404521}
+{"event": "reasoning.available", "event_id": 613, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Gi，全部", "timestamp": 1780379235.6406727}
+{"event": "reasoning.available", "event_id": 614, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Bound", "timestamp": 1780379235.640824}
+{"event": "reasoning.available", "event_id": 615, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "，", "timestamp": 1780379235.6409729}
+{"event": "reasoning.available", "event_id": 616, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "使用", "timestamp": 1780379235.641145}
+{"event": "reasoning.available", "event_id": 617, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "apel", "timestamp": 1780379235.641377}
+{"event": "reasoning.available", "event_id": 618, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "ocal", "timestamp": 1780379235.6415398}
+{"event": "reasoning.available", "event_id": 619, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-raw", "timestamp": 1780379235.6416824}
+{"event": "reasoning.available", "event_id": 620, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "disk", "timestamp": 1780379235.6418927}
+{"event": "reasoning.available", "event_id": 621, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-x", "timestamp": 1780379235.6420553}
+{"event": "reasoning.available", "event_id": 622, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "fs", "timestamp": 1780379235.642202}
+{"event": "reasoning.available", "event_id": 623, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n\n", "timestamp": 1780379235.6424105}
+{"event": "reasoning.available", "event_id": 624, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "5. **", "timestamp": 1780379235.6426294}
+{"event": "reasoning.available", "event_id": 625, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "异常Pod", "timestamp": 1780379235.6428432}
+{"event": "reasoning.available", "event_id": 626, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**", "timestamp": 1780379235.642994}
+{"event": "reasoning.available", "event_id": 627, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "：\n", "timestamp": 1780379235.643165}
+{"event": "reasoning.available", "event_id": 628, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "   - haha", "timestamp": 1780379235.6433809}
+{"event": "reasoning.available", "event_id": 629, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1", "timestamp": 1780379235.643602}
+{"event": "reasoning.available", "event_id": 630, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-5", "timestamp": 1780379235.6552954}
+{"event": "reasoning.available", "event_id": 631, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "dc", "timestamp": 1780379235.6554778}
+{"event": "reasoning.available", "event_id": 632, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "95", "timestamp": 1780379235.6556292}
+{"event": "reasoning.available", "event_id": 633, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "dd", "timestamp": 1780379235.655773}
+{"event": "reasoning.available", "event_id": 634, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "fd", "timestamp": 1780379235.655913}
+{"event": "reasoning.available", "event_id": 635, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-", "timestamp": 1780379235.656072}
+{"event": "reasoning.available", "event_id": 636, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "0: cub", "timestamp": 1780379235.656304}
+{"event": "reasoning.available", "event_id": 637, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "et", "timestamp": 1780379235.656451}
+{"event": "reasoning.available", "event_id": 638, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "ran", "timestamp": 1780379235.6566117}
+{"event": "reasoning.available", "event_id": 639, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-core", "timestamp": 1780379235.6567528}
+{"event": "reasoning.available", "event_id": 640, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "容器", "timestamp": 1780379235.6569746}
+{"event": "reasoning.available", "event_id": 641, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Crash", "timestamp": 1780379235.6571457}
+{"event": "reasoning.available", "event_id": 642, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Loop", "timestamp": 1780379235.65729}
+{"event": "reasoning.available", "event_id": 643, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Back", "timestamp": 1780379235.657514}
+{"event": "reasoning.available", "event_id": 644, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Off", "timestamp": 1780379235.6577237}
+{"event": "reasoning.available", "event_id": 645, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "，重启", "timestamp": 1780379235.6579301}
+{"event": "reasoning.available", "event_id": 646, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "139", "timestamp": 1780379235.6581593}
+{"event": "reasoning.available", "event_id": 647, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "9次\n", "timestamp": 1780379235.6583166}
+{"event": "reasoning.available", "event_id": 648, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "   - he", "timestamp": 1780379235.6584752}
+{"event": "reasoning.available", "event_id": 649, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "he", "timestamp": 1780379235.6586206}
+{"event": "reasoning.available", "event_id": 650, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1-", "timestamp": 1780379235.6588345}
+{"event": "reasoning.available", "event_id": 651, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "695ff", "timestamp": 1780379235.6590533}
+{"event": "reasoning.available", "event_id": 652, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "cd", "timestamp": 1780379235.6592677}
+{"event": "reasoning.available", "event_id": 653, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "8", "timestamp": 1780379235.6594133}
+{"event": "reasoning.available", "event_id": 654, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "d-", "timestamp": 1780379235.6595695}
+{"event": "reasoning.available", "event_id": 655, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "0: cub", "timestamp": 1780379235.6597102}
+{"event": "reasoning.available", "event_id": 656, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "etran", "timestamp": 1780379235.659849}
+{"event": "reasoning.available", "event_id": 657, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-core容器", "timestamp": 1780379235.6600802}
+{"event": "reasoning.available", "event_id": 658, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CrashLoop", "timestamp": 1780379235.6602955}
+{"event": "reasoning.available", "event_id": 659, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "BackOff", "timestamp": 1780379235.66044}
+{"event": "reasoning.available", "event_id": 660, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "，重启140", "timestamp": 1780379235.6606026}
+{"event": "reasoning.available", "event_id": 661, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "0次\n", "timestamp": 1780379235.6608198}
+{"event": "reasoning.available", "event_id": 662, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "   - le", "timestamp": 1780379235.6610434}
+{"event": "reasoning.available", "event_id": 663, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "ek", "timestamp": 1780379235.6612582}
+{"event": "reasoning.available", "event_id": 664, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "5-b", "timestamp": 1780379235.661458}
+{"event": "reasoning.available", "event_id": 665, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "9", "timestamp": 1780379235.6616824}
+{"event": "reasoning.available", "event_id": 666, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "dd", "timestamp": 1780379235.6633728}
+{"event": "reasoning.available", "event_id": 667, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "6", "timestamp": 1780379235.6970458}
+{"event": "reasoning.available", "event_id": 668, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "f99", "timestamp": 1780379235.7263796}
+{"event": "reasoning.available", "event_id": 669, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "c", "timestamp": 1780379235.7573404}
+{"event": "reasoning.available", "event_id": 670, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-init-0", "timestamp": 1780379235.7881312}
+{"event": "reasoning.available", "event_id": 671, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ": Error", "timestamp": 1780379235.8331292}
+{"event": "reasoning.available", "event_id": 672, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "状态", "timestamp": 1780379235.8512015}
+{"event": "reasoning.available", "event_id": 673, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n", "timestamp": 1780379235.8913734}
+{"event": "reasoning.available", "event_id": 674, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "   - ", "timestamp": 1780379236.1711435}
+{"event": "reasoning.available", "event_id": 675, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "多个pre", "timestamp": 1780379236.1714413}
+{"event": "reasoning.available", "event_id": 676, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "delete", "timestamp": 1780379236.1716857}
+{"event": "reasoning.available", "event_id": 677, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/restore", "timestamp": 1780379236.1718962}
+{"event": "reasoning.available", "event_id": 678, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " Job", "timestamp": 1780379236.1721246}
+{"event": "reasoning.available", "event_id": 679, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "的", "timestamp": 1780379236.172346}
+{"event": "reasoning.available", "event_id": 680, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Error", "timestamp": 1780379237.4969456}
+{"event": "reasoning.available", "event_id": 681, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " Pod", "timestamp": 1780379238.2017093}
+{"event": "reasoning.available", "event_id": 682, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "残留", "timestamp": 1780379238.201915}
+{"event": "reasoning.available", "event_id": 683, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n   -", "timestamp": 1780379238.202432}
+{"event": "reasoning.available", "event_id": 684, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 这些", "timestamp": 1780379238.2026212}
+{"event": "reasoning.available", "event_id": 685, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "异常", "timestamp": 1780379238.203967}
+{"event": "reasoning.available", "event_id": 686, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Pod占", "timestamp": 1780379238.2048435}
+{"event": "reasoning.available", "event_id": 687, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "用了", "timestamp": 1780379238.205091}
+{"event": "reasoning.available", "event_id": 688, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "极", "timestamp": 1780379238.2081325}
+{"event": "reasoning.available", "event_id": 689, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "少的", "timestamp": 1780379238.2082963}
+{"event": "reasoning.available", "event_id": 690, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "实际", "timestamp": 1780379238.4136138}
+{"event": "reasoning.available", "event_id": 691, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源（CPU", "timestamp": 1780379238.4138155}
+{"event": "reasoning.available", "event_id": 692, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 1m", "timestamp": 1780379238.4139714}
+{"event": "reasoning.available", "event_id": 693, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ",", "timestamp": 1780379238.414154}
+{"event": "reasoning.available", "event_id": 694, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " ", "timestamp": 1780379238.4144244}
+{"event": "reasoning.available", "event_id": 695, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "内存1-", "timestamp": 1780379238.414599}
+{"event": "reasoning.available", "event_id": 696, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "2", "timestamp": 1780379238.41475}
+{"event": "reasoning.available", "event_id": 697, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi），但", "timestamp": 1780379238.4149008}
+{"event": "reasoning.available", "event_id": 698, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Job", "timestamp": 1780379238.4150674}
+{"event": "reasoning.available", "event_id": 699, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/P", "timestamp": 1780379238.4152145}
+{"event": "reasoning.available", "event_id": 700, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "od", "timestamp": 1780379238.4153543}
+{"event": "reasoning.available", "event_id": 701, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "对象的", "timestamp": 1780379238.4156458}
+{"event": "reasoning.available", "event_id": 702, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "留存", "timestamp": 1780379238.415913}
+{"event": "reasoning.available", "event_id": 703, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "可能影响", "timestamp": 1780379238.4160898}
+{"event": "reasoning.available", "event_id": 704, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "调度", "timestamp": 1780379238.4163587}
+{"event": "reasoning.available", "event_id": 705, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "器", "timestamp": 1780379238.4165387}
+{"event": "reasoning.available", "event_id": 706, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n\n", "timestamp": 1780379238.4167717}
+{"event": "reasoning.available", "event_id": 707, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "6. **", "timestamp": 1780379238.4169195}
+{"event": "reasoning.available", "event_id": 708, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "命名空间", "timestamp": 1780379238.4170907}
+{"event": "reasoning.available", "event_id": 709, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "无Resource", "timestamp": 1780379238.4173129}
+{"event": "reasoning.available", "event_id": 710, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Quota", "timestamp": 1780379238.4175367}
+{"event": "reasoning.available", "event_id": 711, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "约束", "timestamp": 1780379238.4177508}
+{"event": "reasoning.available", "event_id": 712, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**\n\n让我", "timestamp": 1780379238.4179611}
+{"event": "reasoning.available", "event_id": 713, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "查看", "timestamp": 1780379238.4181376}
+{"event": "reasoning.available", "event_id": 714, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "一下 haha", "timestamp": 1780379238.418357}
+{"event": "reasoning.available", "event_id": 715, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1 ", "timestamp": 1780379238.4185202}
+{"event": "reasoning.available", "event_id": 716, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "和", "timestamp": 1780379238.4186716}
+{"event": "reasoning.available", "event_id": 717, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " hehe1", "timestamp": 1780379238.4188838}
+{"event": "reasoning.available", "event_id": 718, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 最近一次", "timestamp": 1780379238.4191134}
+{"event": "reasoning.available", "event_id": 719, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "容", "timestamp": 1780379238.4192708}
+{"event": "reasoning.available", "event_id": 720, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "器的", "timestamp": 1780379238.419499}
+{"event": "reasoning.available", "event_id": 721, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "日志，了解", "timestamp": 1780379238.4197166}
+{"event": "reasoning.available", "event_id": 722, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "崩溃", "timestamp": 1780379238.4199247}
+{"event": "reasoning.available", "event_id": 723, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "原因，以及", "timestamp": 1780379238.6069517}
+{"event": "reasoning.available", "event_id": 724, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "检查一下", "timestamp": 1780379238.6071763}
+{"event": "reasoning.available", "event_id": 725, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " nodes", "timestamp": 1780379238.607335}
+{"event": "reasoning.available", "event_id": 726, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 的", "timestamp": 1780379238.6075037}
+{"event": "reasoning.available", "event_id": 727, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "完整", "timestamp": 1780379238.6076596}
+{"event": "reasoning.available", "event_id": 728, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " allocated", "timestamp": 1780379238.607807}
+{"event": "reasoning.available", "event_id": 729, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " ", "timestamp": 1780379238.607953}
+{"event": "reasoning.available", "event_id": 730, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "数据", "timestamp": 1780379238.60813}
+{"event": "reasoning.available", "event_id": 731, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "来", "timestamp": 1780379238.6082838}
+{"event": "reasoning.available", "event_id": 732, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "确认。", "timestamp": 1780379238.6084304}
+{"event": "tool.generating", "event_id": 733, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379243.5213482, "tool": "terminal"}
+{"command_preview": "echo === haha1 last container log (tail 30) === kubectl logs -n mjingz haha1-5dc95ddfd-0 -c cubetran-core --previous --tail=30 2>&1 | tail -15 echo echo === hehe1 last container log (tail 30) === kubectl logs -n mjingz hehe1-695ffcd8d-0 -c cubetran-core --previous --tail=30 2>&1 | tail -15 echo echo === Nodes full allocatable summary === kubectl get nodes -o custom-columns=NAME:.metadata.name,CPU_CAP:.status.capacity.cpu,MEM_CAP:.status.capacity.memory,CPU_ALLOC:.status.allocatable.cpu,MEM_ALLOC...", "event": "tool.started", "event_id": 734, "preview": "Inspect Kubernetes resources with kubectl logs", "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379243.9570339, "tool": "terminal", "tool_call_id": "functions.terminal:4"}
+{"command_preview": "echo === haha1 last container log (tail 30) === kubectl logs -n mjingz haha1-5dc95ddfd-0 -c cubetran-core --previous --tail=30 2>&1 | tail -15 echo echo === hehe1 last container log (tail 30) === kubectl logs -n mjingz hehe1-695ffcd8d-0 -c cubetran-core --previous --tail=30 2>&1 | tail -15 echo echo === Nodes full allocatable summary === kubectl get nodes -o custom-columns=NAME:.metadata.name,CPU_CAP:.status.capacity.cpu,MEM_CAP:.status.capacity.memory,CPU_ALLOC:.status.allocatable.cpu,MEM_ALLOC...", "duration": 0.392, "error": false, "event": "tool.completed", "event_id": 735, "exit_code": 0, "output_bytes": 2462, "result_preview": "Tool completed; output size 2567 bytes", "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "stdout_preview": "=== haha1 last container log (tail 30) ===\n   0: dt_task::task_runner::TaskRunner::start_task::{{closure}}::{{closure}}\n   1: std::panicking::rust_panic_with_hook\n   2: std::panicking::begin_panic_handler::{{closure}}\n   3: std::sys::backtrace::__rust_end_short_backtrace\n   4: rust_begin_unwind\n   5: core::panicking::panic_fmt\n   6: core::result::unwrap_failed\n   7: <core::pin::Pin<P> as core::future::future::Future>::poll\n   8: dt_main::main\n   9: std::sys::backtrace::__rust_begin_short_backtrace\n  10: main\n  11: <unknown>\n  12: __libc_start_main\n  13: _start\n\n\n=== hehe1 last container log (tail 30) ===\n   0: dt_task::task_runner::TaskRunner::start_task::{{closure}}::{{closure}}\n   1: std::panicking::rust_panic_with_hook\n   2: std::panicking::begin_panic_handler::{{closure}}\n   3: std::sys::backtrace::__rust_end_short_backtrace\n   4: rust_begin_unwind\n   5: core::panicking::panic_fmt\n   6: core::result::unwrap_failed\n   7: <core::pin::Pin<P> as core::future::future::Future>::poll\n   8: dt_main::main\n   9: std::sys::backtrace::__rust_begin_short_backtrace\n  10: main\n  11: <unknown>\n  12: __libc_start_main\n  13: _start\n\n\n=== Nodes full allocatable summary ===\nNAME                   ...", "timestamp": 1780379244.3492436, "tool": "terminal", "tool_call_id": "functions.terminal:4", "truncated": true}
+{"event": "agent.step", "event_id": 736, "iteration": 6, "previous_tool_count": 1, "previous_tools": [{"action_summary": "Inspect Kubernetes resources with kubectl logs", "arguments_bytes": 867, "name": "terminal", "result_bytes": 2567, "result_summary": "Tool completed; output size 2567 bytes"}], "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379244.3515027}
+{"event": "status.message", "event_id": 737, "kind": "thinking", "message": "◉_◉ mulling...", "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379244.3542378}
+{"event": "reasoning.available", "event_id": 738, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "好的", "timestamp": 1780379253.9802063}
+{"event": "reasoning.available", "event_id": 739, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "，", "timestamp": 1780379253.98055}
+{"event": "reasoning.available", "event_id": 740, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "现在我已经", "timestamp": 1780379253.980794}
+{"event": "reasoning.available", "event_id": 741, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "收集了", "timestamp": 1780379253.9810243}
+{"event": "reasoning.available", "event_id": 742, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "足够的信息", "timestamp": 1780379255.2335644}
+{"event": "reasoning.available", "event_id": 743, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "来", "timestamp": 1780379255.780882}
+{"event": "reasoning.available", "event_id": 744, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "给出", "timestamp": 1780379255.7812183}
+{"event": "reasoning.available", "event_id": 745, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "完整的", "timestamp": 1780379256.5035079}
+{"event": "reasoning.available", "event_id": 746, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源使用", "timestamp": 1780379256.503961}
+{"event": "reasoning.available", "event_id": 747, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "分析", "timestamp": 1780379256.5048382}
+{"event": "reasoning.available", "event_id": 748, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "。\n\n", "timestamp": 1780379256.5050664}
+{"event": "reasoning.available", "event_id": 749, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "让我", "timestamp": 1780379256.5062442}
+{"event": "reasoning.available", "event_id": 750, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "整理", "timestamp": 1780379256.506408}
+{"event": "reasoning.available", "event_id": 751, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "一下：\n\n", "timestamp": 1780379256.5079327}
+{"event": "reasoning.available", "event_id": 752, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**", "timestamp": 1780379256.5081778}
+{"event": "reasoning.available", "event_id": 753, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "集群", "timestamp": 1780379256.5083385}
+{"event": "reasoning.available", "event_id": 754, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "整体", "timestamp": 1780379256.508656}
+{"event": "reasoning.available", "event_id": 755, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源", "timestamp": 1780379256.5138054}
+{"event": "reasoning.available", "event_id": 756, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "状况", "timestamp": 1780379256.5139642}
+{"event": "reasoning.available", "event_id": 757, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（", "timestamp": 1780379256.514824}
+{"event": "reasoning.available", "event_id": 758, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "节点", "timestamp": 1780379256.515789}
+{"event": "reasoning.available", "event_id": 759, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "层", "timestamp": 1780379256.5162563}
+{"event": "reasoning.available", "event_id": 760, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "）**\n-", "timestamp": 1780379256.5167325}
+{"event": "reasoning.available", "event_id": 761, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 5", "timestamp": 1780379256.5177784}
+{"event": "reasoning.available", "event_id": 762, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "个", "timestamp": 1780379256.5205116}
+{"event": "reasoning.available", "event_id": 763, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "节点，16", "timestamp": 1780379256.5206838}
+{"event": "reasoning.available", "event_id": 764, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "核", "timestamp": 1780379256.520837}
+{"event": "reasoning.available", "event_id": 765, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CPU", "timestamp": 1780379256.5210595}
+{"event": "reasoning.available", "event_id": 766, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/", "timestamp": 1780379256.5212991}
+{"event": "reasoning.available", "event_id": 767, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "约", "timestamp": 1780379256.5239544}
+{"event": "reasoning.available", "event_id": 768, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "30", "timestamp": 1780379256.5241308}
+{"event": "reasoning.available", "event_id": 769, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Gi", "timestamp": 1780379256.52428}
+{"event": "reasoning.available", "event_id": 770, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "内存", "timestamp": 1780379256.5252302}
+{"event": "reasoning.available", "event_id": 771, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "每", "timestamp": 1780379256.5253882}
+{"event": "reasoning.available", "event_id": 772, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "节点", "timestamp": 1780379256.5269449}
+{"event": "reasoning.available", "event_id": 773, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n- ", "timestamp": 1780379256.5275528}
+{"event": "reasoning.available", "event_id": 774, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "实际CPU", "timestamp": 1780379256.5282652}
+{"event": "reasoning.available", "event_id": 775, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "使用率", "timestamp": 1780379256.5284228}
+{"event": "reasoning.available", "event_id": 776, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "极低", "timestamp": 1780379256.528584}
+{"event": "reasoning.available", "event_id": 777, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（", "timestamp": 1780379256.5287323}
+{"event": "reasoning.available", "event_id": 778, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "2", "timestamp": 1780379256.528956}
+{"event": "reasoning.available", "event_id": 779, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-3", "timestamp": 1780379256.735322}
+{"event": "reasoning.available", "event_id": 780, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%", "timestamp": 1780379256.7356348}
+{"event": "reasoning.available", "event_id": 781, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "），内存使用率", "timestamp": 1780379256.735869}
+{"event": "reasoning.available", "event_id": 782, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "29-49", "timestamp": 1780379256.736099}
+{"event": "reasoning.available", "event_id": 783, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%\n- ", "timestamp": 1780379256.7363207}
+{"event": "reasoning.available", "event_id": 784, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "但", "timestamp": 1780379256.7365491}
+{"event": "reasoning.available", "event_id": 785, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Allocated", "timestamp": 1780379256.736765}
+{"event": "reasoning.available", "event_id": 786, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " resources", "timestamp": 1780379256.7371264}
+{"event": "reasoning.available", "event_id": 787, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（", "timestamp": 1780379256.7373514}
+{"event": "reasoning.available", "event_id": 788, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "基于", "timestamp": 1780379256.7375247}
+{"event": "reasoning.available", "event_id": 789, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Pod", "timestamp": 1780379256.7377408}
+{"event": "reasoning.available", "event_id": 790, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源", "timestamp": 1780379256.737951}
+{"event": "reasoning.available", "event_id": 791, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "请求", "timestamp": 1780379256.7381833}
+{"event": "reasoning.available", "event_id": 792, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/", "timestamp": 1780379256.7383976}
+{"event": "reasoning.available", "event_id": 793, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "限制）", "timestamp": 1780379256.738567}
+{"event": "reasoning.available", "event_id": 794, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "严重", "timestamp": 1780379256.7387867}
+{"event": "reasoning.available", "event_id": 795, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "超", "timestamp": 1780379256.7389565}
+{"event": "reasoning.available", "event_id": 796, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "发", "timestamp": 1780379256.7391307}
+{"event": "reasoning.available", "event_id": 797, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "：\n  -", "timestamp": 1780379256.7393699}
+{"event": "reasoning.available", "event_id": 798, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " CPU请求", "timestamp": 1780379256.7396128}
+{"event": "reasoning.available", "event_id": 799, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "：23", "timestamp": 1780379256.7397695}
+{"event": "reasoning.available", "event_id": 800, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%-", "timestamp": 1780379256.7399821}
+{"event": "reasoning.available", "event_id": 801, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "47%，", "timestamp": 1780379256.7401614}
+{"event": "reasoning.available", "event_id": 802, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "但", "timestamp": 1780379256.7403817}
+{"event": "reasoning.available", "event_id": 803, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "limit", "timestamp": 1780379256.7406173}
+{"event": "reasoning.available", "event_id": 804, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "总和", "timestamp": 1780379256.740854}
+{"event": "reasoning.available", "event_id": 805, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "104", "timestamp": 1780379256.7449574}
+{"event": "reasoning.available", "event_id": 806, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%-170", "timestamp": 1780379256.7451923}
+{"event": "reasoning.available", "event_id": 807, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%\n  -", "timestamp": 1780379256.7454073}
+{"event": "reasoning.available", "event_id": 808, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " ", "timestamp": 1780379256.7455754}
+{"event": "reasoning.available", "event_id": 809, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "内存请求：", "timestamp": 1780379256.7457306}
+{"event": "reasoning.available", "event_id": 810, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "18%-39", "timestamp": 1780379256.745876}
+{"event": "reasoning.available", "event_id": 811, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%，但limit", "timestamp": 1780379256.7460208}
+{"event": "reasoning.available", "event_id": 812, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "总和110", "timestamp": 1780379256.7461865}
+{"event": "reasoning.available", "event_id": 813, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%-186", "timestamp": 1780379256.7464087}
+{"event": "reasoning.available", "event_id": 814, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "%\n\n", "timestamp": 1780379256.746632}
+{"event": "reasoning.available", "event_id": 815, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**", "timestamp": 1780379256.746844}
+{"event": "reasoning.available", "event_id": 816, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "yam", "timestamp": 1780379256.7469907}
+{"event": "reasoning.available", "event_id": 817, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "23", "timestamp": 1780379256.7471528}
+{"event": "reasoning.available", "event_id": 818, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " MongoDB", "timestamp": 1780379256.747298}
+{"event": "reasoning.available", "event_id": 819, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "集群", "timestamp": 1780379256.7474463}
+{"event": "reasoning.available", "event_id": 820, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源状况", "timestamp": 1780379256.747607}
+{"event": "reasoning.available", "event_id": 821, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**\n- ", "timestamp": 1780379256.7477515}
+{"event": "reasoning.available", "event_id": 822, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "集群", "timestamp": 1780379256.7478964}
+{"event": "reasoning.available", "event_id": 823, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "状态", "timestamp": 1780379256.7481368}
+{"event": "reasoning.available", "event_id": 824, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "：Running", "timestamp": 1780379256.748359}
+{"event": "reasoning.available", "event_id": 825, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "，", "timestamp": 1780379256.7485268}
+{"event": "reasoning.available", "event_id": 826, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "所有", "timestamp": 1780379256.7487445}
+{"event": "reasoning.available", "event_id": 827, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "组件", "timestamp": 1780379256.76138}
+{"event": "reasoning.available", "event_id": 828, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Running", "timestamp": 1780379256.7616384}
+{"event": "reasoning.available", "event_id": 829, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n- Config", "timestamp": 1780379256.7618515}
+{"event": "reasoning.available", "event_id": 830, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " Server", "timestamp": 1780379256.7620559}
+{"event": "reasoning.available", "event_id": 831, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " (", "timestamp": 1780379256.762294}
+{"event": "reasoning.available", "event_id": 832, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "3副本", "timestamp": 1780379256.7625186}
+{"event": "reasoning.available", "event_id": 833, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ")：", "timestamp": 1780379256.7627358}
+{"event": "reasoning.available", "event_id": 834, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CPU", "timestamp": 1780379256.76294}
+{"event": "reasoning.available", "event_id": 835, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 100", "timestamp": 1780379256.763167}
+{"event": "reasoning.available", "event_id": 836, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m", "timestamp": 1780379256.7633219}
+{"event": "reasoning.available", "event_id": 837, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " request", "timestamp": 1780379256.7634776}
+{"event": "reasoning.available", "event_id": 838, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/1", "timestamp": 1780379256.7636244}
+{"event": "reasoning.available", "event_id": 839, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " limit,", "timestamp": 1780379256.7637658}
+{"event": "reasoning.available", "event_id": 840, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " MEM", "timestamp": 1780379256.7639823}
+{"event": "reasoning.available", "event_id": 841, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 102", "timestamp": 1780379256.7641497}
+{"event": "reasoning.available", "event_id": 842, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi request", "timestamp": 1780379256.764299}
+{"event": "reasoning.available", "event_id": 843, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/1Gi", "timestamp": 1780379256.764533}
+{"event": "reasoning.available", "event_id": 844, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " limit\n ", "timestamp": 1780379256.7646844}
+{"event": "reasoning.available", "event_id": 845, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - 实际", "timestamp": 1780379256.764836}
+{"event": "reasoning.available", "event_id": 846, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CPU", "timestamp": 1780379256.7649822}
+{"event": "reasoning.available", "event_id": 847, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ":", "timestamp": 1780379256.7651427}
+{"event": "reasoning.available", "event_id": 848, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 15", "timestamp": 1780379256.7652895}
+{"event": "reasoning.available", "event_id": 849, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-26", "timestamp": 1780379256.7654305}
+{"event": "reasoning.available", "event_id": 850, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m, ", "timestamp": 1780379256.765583}
+{"event": "reasoning.available", "event_id": 851, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "实际", "timestamp": 1780379256.7657325}
+{"event": "reasoning.available", "event_id": 852, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "MEM", "timestamp": 1780379256.7658763}
+{"event": "reasoning.available", "event_id": 853, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ": 910", "timestamp": 1780379256.7661183}
+{"event": "reasoning.available", "event_id": 854, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-106", "timestamp": 1780379256.7662709}
+{"event": "reasoning.available", "event_id": 855, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "6Mi", "timestamp": 1780379256.766414}
+{"event": "reasoning.available", "event_id": 856, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n ", "timestamp": 1780379256.7665675}
+{"event": "reasoning.available", "event_id": 857, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - 内存", "timestamp": 1780379256.7667887}
+{"event": "reasoning.available", "event_id": 858, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "实际", "timestamp": 1780379256.7669425}
+{"event": "reasoning.available", "event_id": 859, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "使用远超", "timestamp": 1780379256.7671087}
+{"event": "reasoning.available", "event_id": 860, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "请求值", "timestamp": 1780379256.767332}
+{"event": "reasoning.available", "event_id": 861, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（", "timestamp": 1780379256.7675567}
+{"event": "reasoning.available", "event_id": 862, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "102", "timestamp": 1780379256.7677648}
+{"event": "reasoning.available", "event_id": 863, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi", "timestamp": 1780379256.7679644}
+{"event": "reasoning.available", "event_id": 864, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "），接近", "timestamp": 1780379256.7681916}
+{"event": "reasoning.available", "event_id": 865, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "limit", "timestamp": 1780379256.7684026}
+{"event": "reasoning.available", "event_id": 866, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（", "timestamp": 1780379256.768626}
+{"event": "reasoning.available", "event_id": 867, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1", "timestamp": 1780379256.7688372}
+{"event": "reasoning.available", "event_id": 868, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Gi）\n-", "timestamp": 1780379256.7690494}
+{"event": "reasoning.available", "event_id": 869, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " Mongos", "timestamp": 1780379257.4129293}
+{"event": "reasoning.available", "event_id": 870, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " (2副本", "timestamp": 1780379257.4133308}
+{"event": "reasoning.available", "event_id": 871, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ")：", "timestamp": 1780379258.0941846}
+{"event": "reasoning.available", "event_id": 872, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CPU 100", "timestamp": 1780379258.0974014}
+{"event": "reasoning.available", "event_id": 873, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m/", "timestamp": 1780379258.0976539}
+{"event": "reasoning.available", "event_id": 874, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1,", "timestamp": 1780379258.0989513}
+{"event": "reasoning.available", "event_id": 875, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " MEM 102", "timestamp": 1780379258.0991273}
+{"event": "reasoning.available", "event_id": 876, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi/1", "timestamp": 1780379259.0207431}
+{"event": "reasoning.available", "event_id": 877, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Gi\n ", "timestamp": 1780379259.0209336}
+{"event": "reasoning.available", "event_id": 878, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " - 实际", "timestamp": 1780379259.0212238}
+{"event": "reasoning.available", "event_id": 879, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CPU", "timestamp": 1780379259.0214536}
+{"event": "reasoning.available", "event_id": 880, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ": 30", "timestamp": 1780379259.0216837}
+{"event": "reasoning.available", "event_id": 881, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-58m", "timestamp": 1780379259.0218885}
+{"event": "reasoning.available", "event_id": 882, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ", 实际", "timestamp": 1780379259.0221167}
+{"event": "reasoning.available", "event_id": 883, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "MEM: ", "timestamp": 1780379259.0223594}
+{"event": "reasoning.available", "event_id": 884, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "239-316", "timestamp": 1780379259.022593}
+{"event": "reasoning.available", "event_id": 885, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi", "timestamp": 1780379259.022825}
+{"event": "reasoning.available", "event_id": 886, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n- Shard", "timestamp": 1780379259.0231352}
+{"event": "reasoning.available", "event_id": 887, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " (2 shard", "timestamp": 1780379259.0233889}
+{"event": "reasoning.available", "event_id": 888, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " × 3", "timestamp": 1780379259.0236478}
+{"event": "reasoning.available", "event_id": 889, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "副本", "timestamp": 1780379259.0369127}
+{"event": "reasoning.available", "event_id": 890, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ")：", "timestamp": 1780379259.0370827}
+{"event": "reasoning.available", "event_id": 891, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "CPU 100", "timestamp": 1780379259.0372536}
+{"event": "reasoning.available", "event_id": 892, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m/1", "timestamp": 1780379259.0373993}
+{"event": "reasoning.available", "event_id": 893, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ", MEM ", "timestamp": 1780379259.03756}
+{"event": "reasoning.available", "event_id": 894, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "102Mi/", "timestamp": 1780379259.037704}
+{"event": "reasoning.available", "event_id": 895, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1Gi", "timestamp": 1780379259.037844}
+{"event": "reasoning.available", "event_id": 896, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n  -", "timestamp": 1780379259.0379837}
+{"event": "reasoning.available", "event_id": 897, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 实际CPU", "timestamp": 1780379259.0382323}
+{"event": "reasoning.available", "event_id": 898, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ": 10", "timestamp": 1780379259.0383854}
+{"event": "reasoning.available", "event_id": 899, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-30", "timestamp": 1780379259.0386121}
+{"event": "reasoning.available", "event_id": 900, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "m, ", "timestamp": 1780379259.0387597}
+{"event": "reasoning.available", "event_id": 901, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "实际MEM", "timestamp": 1780379259.0389707}
+{"event": "reasoning.available", "event_id": 902, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ": 591", "timestamp": 1780379259.0391998}
+{"event": "reasoning.available", "event_id": 903, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-854", "timestamp": 1780379259.0393496}
+{"event": "reasoning.available", "event_id": 904, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Mi\n-", "timestamp": 1780379259.0479662}
+{"event": "reasoning.available", "event_id": 905, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 侧", "timestamp": 1780379259.0482147}
+{"event": "reasoning.available", "event_id": 906, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "车", "timestamp": 1780379259.0484385}
+{"event": "reasoning.available", "event_id": 907, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "容器", "timestamp": 1780379259.048615}
+{"event": "reasoning.available", "event_id": 908, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（ex", "timestamp": 1780379259.0488317}
+{"event": "reasoning.available", "event_id": 909, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "porter", "timestamp": 1780379259.049036}
+{"event": "reasoning.available", "event_id": 910, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ", backup-agent", "timestamp": 1780379259.0492635}
+{"event": "reasoning.available", "event_id": 911, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ", kb", "timestamp": 1780379259.049484}
+{"event": "reasoning.available", "event_id": 912, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "agent", "timestamp": 1780379259.0496342}
+{"event": "reasoning.available", "event_id": 913, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "）无", "timestamp": 1780379259.0498435}
+{"event": "reasoning.available", "event_id": 914, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源请求", "timestamp": 1780379259.0500517}
+{"event": "reasoning.available", "event_id": 915, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/限制\n", "timestamp": 1780379259.0502977}
+{"event": "reasoning.available", "event_id": 916, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "- 存储", "timestamp": 1780379259.050524}
+{"event": "reasoning.available", "event_id": 917, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "：每个", "timestamp": 1780379259.050737}
+{"event": "reasoning.available", "event_id": 918, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "data", "timestamp": 1780379259.0509408}
+{"event": "reasoning.available", "event_id": 919, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "盘", "timestamp": 1780379259.05117}
+{"event": "reasoning.available", "event_id": 920, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "20", "timestamp": 1780379259.0513835}
+{"event": "reasoning.available", "event_id": 921, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Gi PVC", "timestamp": 1780379259.0516038}
+{"event": "reasoning.available", "event_id": 922, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "，全部", "timestamp": 1780379259.051757}
+{"event": "reasoning.available", "event_id": 923, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Bound", "timestamp": 1780379259.051967}
+{"event": "reasoning.available", "event_id": 924, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n\n", "timestamp": 1780379259.0521297}
+{"event": "reasoning.available", "event_id": 925, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**异常", "timestamp": 1780379259.2757962}
+{"event": "reasoning.available", "event_id": 926, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源", "timestamp": 1780379259.276114}
+{"event": "reasoning.available", "event_id": 927, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "占用", "timestamp": 1780379259.2763543}
+{"event": "reasoning.available", "event_id": 928, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "**\n", "timestamp": 1780379259.276587}
+{"event": "reasoning.available", "event_id": 929, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "- haha", "timestamp": 1780379259.276803}
+{"event": "reasoning.available", "event_id": 930, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1", "timestamp": 1780379259.2770126}
+{"event": "reasoning.available", "event_id": 931, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "/he", "timestamp": 1780379259.2772455}
+{"event": "reasoning.available", "event_id": 932, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "he", "timestamp": 1780379259.277472}
+{"event": "reasoning.available", "event_id": 933, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1", "timestamp": 1780379259.2776525}
+{"event": "reasoning.available", "event_id": 934, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ":", "timestamp": 1780379259.2778585}
+{"event": "reasoning.available", "event_id": 935, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " cub", "timestamp": 1780379259.2782}
+{"event": "reasoning.available", "event_id": 936, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "et", "timestamp": 1780379259.2784185}
+{"event": "reasoning.available", "event_id": 937, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "ran", "timestamp": 1780379259.2786026}
+{"event": "reasoning.available", "event_id": 938, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "-core", "timestamp": 1780379259.2788377}
+{"event": "reasoning.available", "event_id": 939, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "容器", "timestamp": 1780379259.2789989}
+{"event": "reasoning.available", "event_id": 940, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Crash", "timestamp": 1780379259.279171}
+{"event": "reasoning.available", "event_id": 941, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Loop", "timestamp": 1780379259.2793963}
+{"event": "reasoning.available", "event_id": 942, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Back", "timestamp": 1780379259.2796235}
+{"event": "reasoning.available", "event_id": 943, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Off", "timestamp": 1780379259.279776}
+{"event": "reasoning.available", "event_id": 944, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（各", "timestamp": 1780379259.2799911}
+{"event": "reasoning.available", "event_id": 945, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "重启", "timestamp": 1780379259.2801697}
+{"event": "reasoning.available", "event_id": 946, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "约", "timestamp": 1780379259.2803922}
+{"event": "reasoning.available", "event_id": 947, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "1400次", "timestamp": 1780379259.2806242}
+{"event": "reasoning.available", "event_id": 948, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "），但实际", "timestamp": 1780379259.2808444}
+{"event": "reasoning.available", "event_id": 949, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源", "timestamp": 1780379259.2810009}
+{"event": "reasoning.available", "event_id": 950, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "占用极低", "timestamp": 1780379259.2811759}
+{"event": "reasoning.available", "event_id": 951, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（CPU", "timestamp": 1780379259.2814033}
+{"event": "reasoning.available", "event_id": 952, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 1m", "timestamp": 1780379259.281631}
+{"event": "reasoning.available", "event_id": 953, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ", MEM", "timestamp": 1780379259.2818384}
+{"event": "reasoning.available", "event_id": 954, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " 1-", "timestamp": 1780379259.2820404}
+{"event": "reasoning.available", "event_id": 955, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "2Mi", "timestamp": 1780379259.282268}
+{"event": "reasoning.available", "event_id": 956, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "）\n- ", "timestamp": 1780379259.2824998}
+{"event": "reasoning.available", "event_id": 957, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "多个", "timestamp": 1780379259.2827222}
+{"event": "reasoning.available", "event_id": 958, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "残留", "timestamp": 1780379259.2829332}
+{"event": "reasoning.available", "event_id": 959, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Error", "timestamp": 1780379259.2831597}
+{"event": "reasoning.available", "event_id": 960, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " Job", "timestamp": 1780379259.283375}
+{"event": "reasoning.available", "event_id": 961, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " Pod", "timestamp": 1780379259.2835927}
+{"event": "reasoning.available", "event_id": 962, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "（pre", "timestamp": 1780379259.283807}
+{"event": "reasoning.available", "event_id": 963, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "delete", "timestamp": 1780379259.2840147}
+{"event": "reasoning.available", "event_id": 964, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": ",", "timestamp": 1780379259.3147771}
+{"event": "reasoning.available", "event_id": 965, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " restore,", "timestamp": 1780379259.3579075}
+{"event": "reasoning.available", "event_id": 966, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": " init），", "timestamp": 1780379259.3874311}
+{"event": "reasoning.available", "event_id": 967, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "不占", "timestamp": 1780379259.4034452}
+{"event": "reasoning.available", "event_id": 968, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "活跃", "timestamp": 1780379259.44417}
+{"event": "reasoning.available", "event_id": 969, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "资源", "timestamp": 1780379259.4606652}
+{"event": "reasoning.available", "event_id": 970, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "但", "timestamp": 1780379259.4913754}
+{"event": "reasoning.available", "event_id": 971, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "污染", "timestamp": 1780379259.5222325}
+{"event": "reasoning.available", "event_id": 972, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Pod", "timestamp": 1780379259.5550127}
+{"event": "reasoning.available", "event_id": 973, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "列表", "timestamp": 1780379259.5864885}
+{"event": "reasoning.available", "event_id": 974, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n", "timestamp": 1780379259.6166713}
+{"event": "reasoning.available", "event_id": 975, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "- 无", "timestamp": 1780379259.668948}
+{"event": "reasoning.available", "event_id": 976, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Resource", "timestamp": 1780379259.6767201}
+{"event": "reasoning.available", "event_id": 977, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "Quota", "timestamp": 1780379259.7050197}
+{"event": "reasoning.available", "event_id": 978, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "\n\n", "timestamp": 1780379259.7378304}
+{"event": "reasoning.available", "event_id": 979, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "我需要", "timestamp": 1780379260.0167484}
+{"event": "reasoning.available", "event_id": 980, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "把这些", "timestamp": 1780379260.0170429}
+{"event": "reasoning.available", "event_id": 981, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "信息", "timestamp": 1780379260.0537653}
+{"event": "reasoning.available", "event_id": 982, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "组织", "timestamp": 1780379260.0540376}
+{"event": "reasoning.available", "event_id": 983, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "成清晰的", "timestamp": 1780379260.0542889}
+{"event": "reasoning.available", "event_id": 984, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "text": "结论。", "timestamp": 1780379260.0545316}
+{"delta": "\n\n根据", "event": "message.delta", "event_id": 985, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.0548632}
+{"delta": "对", "event": "message.delta", "event_id": 986, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.0551612}
+{"delta": " kb", "event": "message.delta", "event_id": 987, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3380036}
+{"delta": "10", "event": "message.delta", "event_id": 988, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3383787}
+{"delta": " ", "event": "message.delta", "event_id": 989, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3386688}
+{"delta": "环境中", "event": "message.delta", "event_id": 990, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.338941}
+{"delta": " `", "event": "message.delta", "event_id": 991, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3392224}
+{"delta": "mj", "event": "message.delta", "event_id": 992, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3394969}
+{"delta": "ing", "event": "message.delta", "event_id": 993, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3397548}
+{"delta": "z`", "event": "message.delta", "event_id": 994, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3400037}
+{"delta": " 命名", "event": "message.delta", "event_id": 995, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3402884}
+{"delta": "空间的", "event": "message.delta", "event_id": 996, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3405027}
+{"delta": "检查结果", "event": "message.delta", "event_id": 997, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.344816}
+{"delta": "，以下是", "event": "message.delta", "event_id": 998, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.345022}
+{"delta": "当前集群", "event": "message.delta", "event_id": 999, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3647969}
+{"delta": "资源使用", "event": "message.delta", "event_id": 1000, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.3894086}
+{"delta": "情况的", "event": "message.delta", "event_id": 1001, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.4287589}
+{"delta": "分析：\n\n一", "event": "message.delta", "event_id": 1002, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6958013}
+{"delta": "、", "event": "message.delta", "event_id": 1003, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6961656}
+{"delta": "节点层", "event": "message.delta", "event_id": 1004, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6964474}
+{"delta": "资源", "event": "message.delta", "event_id": 1005, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6967368}
+{"delta": "概况", "event": "message.delta", "event_id": 1006, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6969907}
+{"delta": "\n\n集群", "event": "message.delta", "event_id": 1007, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6972764}
+{"delta": "共", "event": "message.delta", "event_id": 1008, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6975536}
+{"delta": " 5", "event": "message.delta", "event_id": 1009, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.697811}
+{"delta": " 个工作", "event": "message.delta", "event_id": 1010, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6980681}
+{"delta": "节点，规格", "event": "message.delta", "event_id": 1011, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6983628}
+{"delta": "均为", "event": "message.delta", "event_id": 1012, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.6986392}
+{"delta": " 16 ", "event": "message.delta", "event_id": 1013, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.7356834}
+{"delta": "核 CPU /", "event": "message.delta", "event_id": 1014, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.7586057}
+{"delta": " 约", "event": "message.delta", "event_id": 1015, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.758838}
+{"delta": " 30 Gi", "event": "message.delta", "event_id": 1016, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.7990541}
+{"delta": " ", "event": "message.delta", "event_id": 1017, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.7993705}
+{"delta": "内存。\n", "event": "message.delta", "event_id": 1018, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379260.824211}
+{"delta": "-", "event": "message.delta", "event_id": 1019, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.3240042}
+{"delta": " 实际", "event": "message.delta", "event_id": 1020, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.3261807}
+{"delta": " CPU ", "event": "message.delta", "event_id": 1021, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.3265085}
+{"delta": "使用率：2", "event": "message.delta", "event_id": 1022, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.326908}
+{"delta": "%", "event": "message.delta", "event_id": 1023, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.3271878}
+{"delta": " -", "event": "message.delta", "event_id": 1024, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5470612}
+{"delta": " 3", "event": "message.delta", "event_id": 1025, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5474036}
+{"delta": "%（非常低", "event": "message.delta", "event_id": 1026, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5477118}
+{"delta": "）\n- ", "event": "message.delta", "event_id": 1027, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5479946}
+{"delta": "实际", "event": "message.delta", "event_id": 1028, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5482135}
+{"delta": " ", "event": "message.delta", "event_id": 1029, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5484028}
+{"delta": "内存使用率：", "event": "message.delta", "event_id": 1030, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.548614}
+{"delta": "29", "event": "message.delta", "event_id": 1031, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.54882}
+{"delta": "% - ", "event": "message.delta", "event_id": 1032, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5490062}
+{"delta": "49", "event": "message.delta", "event_id": 1033, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5492039}
+{"delta": "%\n", "event": "message.delta", "event_id": 1034, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5493858}
+{"delta": "- 节点", "event": "message.delta", "event_id": 1035, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5495968}
+{"delta": "整体", "event": "message.delta", "event_id": 1036, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.549788}
+{"delta": "负载", "event": "message.delta", "event_id": 1037, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5499718}
+{"delta": "很轻", "event": "message.delta", "event_id": 1038, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5501807}
+{"delta": "，无", "event": "message.delta", "event_id": 1039, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5504804}
+{"delta": "内存", "event": "message.delta", "event_id": 1040, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5506768}
+{"delta": "压力或", "event": "message.delta", "event_id": 1041, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5508623}
+{"delta": " CPU", "event": "message.delta", "event_id": 1042, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5510628}
+{"delta": " ", "event": "message.delta", "event_id": 1043, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5512662}
+{"delta": "压力\n\n但", "event": "message.delta", "event_id": 1044, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5514731}
+{"delta": "资源", "event": "message.delta", "event_id": 1045, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5516665}
+{"delta": "分配", "event": "message.delta", "event_id": 1046, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.551849}
+{"delta": "（Allocated", "event": "message.delta", "event_id": 1047, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5521584}
+{"delta": " resources", "event": "message.delta", "event_id": 1048, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5523684}
+{"delta": "）存在", "event": "message.delta", "event_id": 1049, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5525765}
+{"delta": "明显", "event": "message.delta", "event_id": 1050, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5527654}
+{"delta": "超", "event": "message.delta", "event_id": 1051, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5529463}
+{"delta": "发：\n-", "event": "message.delta", "event_id": 1052, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5531514}
+{"delta": " CPU limit", "event": "message.delta", "event_id": 1053, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.55335}
+{"delta": " 总和", "event": "message.delta", "event_id": 1054, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5535526}
+{"delta": "超", "event": "message.delta", "event_id": 1055, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5538218}
+{"delta": "发 ", "event": "message.delta", "event_id": 1056, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5540743}
+{"delta": "104%", "event": "message.delta", "event_id": 1057, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5542874}
+{"delta": " -", "event": "message.delta", "event_id": 1058, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5544813}
+{"delta": " 170", "event": "message.delta", "event_id": 1059, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5547454}
+{"delta": "%\n", "event": "message.delta", "event_id": 1060, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5549877}
+{"delta": "- 内存", "event": "message.delta", "event_id": 1061, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5552654}
+{"delta": " limit", "event": "message.delta", "event_id": 1062, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.555861}
+{"delta": " 总和", "event": "message.delta", "event_id": 1063, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5560575}
+{"delta": "超发 ", "event": "message.delta", "event_id": 1064, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.55627}
+{"delta": "110% -", "event": "message.delta", "event_id": 1065, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.556475}
+{"delta": " 186%\n\n", "event": "message.delta", "event_id": 1066, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5567508}
+{"delta": "这意味着如果", "event": "message.delta", "event_id": 1067, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.556949}
+{"delta": "大量", "event": "message.delta", "event_id": 1068, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.557227}
+{"delta": " Pod", "event": "message.delta", "event_id": 1069, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5574188}
+{"delta": " ", "event": "message.delta", "event_id": 1070, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.557728}
+{"delta": "同时打", "event": "message.delta", "event_id": 1071, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5580194}
+{"delta": "满", "event": "message.delta", "event_id": 1072, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.5583143}
+{"delta": " limit", "event": "message.delta", "event_id": 1073, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.6559527}
+{"delta": "，节点", "event": "message.delta", "event_id": 1074, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.6562083}
+{"delta": "会出现", "event": "message.delta", "event_id": 1075, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.6564102}
+{"delta": "资源", "event": "message.delta", "event_id": 1076, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.6567445}
+{"delta": "竞争", "event": "message.delta", "event_id": 1077, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.657011}
+{"delta": "。目前", "event": "message.delta", "event_id": 1078, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.74318}
+{"delta": "实际", "event": "message.delta", "event_id": 1079, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.7435384}
+{"delta": "使用率", "event": "message.delta", "event_id": 1080, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.7438216}
+{"delta": "很低", "event": "message.delta", "event_id": 1081, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.744084}
+{"delta": "，所以", "event": "message.delta", "event_id": 1082, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.7443783}
+{"delta": "未", "event": "message.delta", "event_id": 1083, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.7446532}
+{"delta": "触发", "event": "message.delta", "event_id": 1084, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.7449148}
+{"delta": "问题", "event": "message.delta", "event_id": 1085, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.7451897}
+{"delta": "。\n\n二、", "event": "message.delta", "event_id": 1086, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.7492297}
+{"delta": "目标", "event": "message.delta", "event_id": 1087, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.7957628}
+{"delta": "集群", "event": "message.delta", "event_id": 1088, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.8176315}
+{"delta": " yam", "event": "message.delta", "event_id": 1089, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.8490765}
+{"delta": "23（", "event": "message.delta", "event_id": 1090, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.880626}
+{"delta": "Mongo", "event": "message.delta", "event_id": 1091, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.9186356}
+{"delta": "DB", "event": "message.delta", "event_id": 1092, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.9430764}
+{"delta": " Sharding", "event": "message.delta", "event_id": 1093, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379262.9761415}
+{"delta": "）资源", "event": "message.delta", "event_id": 1094, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.0108347}
+{"delta": "使用", "event": "message.delta", "event_id": 1095, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.0429578}
+{"delta": "\n\n集群", "event": "message.delta", "event_id": 1096, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.0766737}
+{"delta": "状态 Running，", "event": "message.delta", "event_id": 1097, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.1058438}
+{"delta": "所有组件", "event": "message.delta", "event_id": 1098, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9128635}
+{"delta": "正常", "event": "message.delta", "event_id": 1099, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9131336}
+{"delta": "。\n\n组件", "event": "message.delta", "event_id": 1100, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9135022}
+{"delta": "配置", "event": "message.delta", "event_id": 1101, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9137092}
+{"delta": "与实际", "event": "message.delta", "event_id": 1102, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.913901}
+{"delta": "使用", "event": "message.delta", "event_id": 1103, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9142}
+{"delta": "对比", "event": "message.delta", "event_id": 1104, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9144924}
+{"delta": "：\n\n| ", "event": "message.delta", "event_id": 1105, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9147754}
+{"delta": "组件", "event": "message.delta", "event_id": 1106, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9153223}
+{"delta": " | 副本", "event": "message.delta", "event_id": 1107, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9156246}
+{"delta": "数", "event": "message.delta", "event_id": 1108, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.924364}
+{"delta": " | CPU", "event": "message.delta", "event_id": 1109, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9245968}
+{"delta": " req", "event": "message.delta", "event_id": 1110, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9248767}
+{"delta": "/l", "event": "message.delta", "event_id": 1111, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9251492}
+{"delta": "imit", "event": "message.delta", "event_id": 1112, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.925444}
+{"delta": " | 内存", "event": "message.delta", "event_id": 1113, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9257479}
+{"delta": " req", "event": "message.delta", "event_id": 1114, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379263.9260845}
+{"delta": "/limit |", "event": "message.delta", "event_id": 1115, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.2970073}
+{"delta": " 实际 CPU", "event": "message.delta", "event_id": 1116, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.297907}
+{"delta": " |", "event": "message.delta", "event_id": 1117, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.298136}
+{"delta": " 实际", "event": "message.delta", "event_id": 1118, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.2983432}
+{"delta": "内存 |\n|", "event": "message.delta", "event_id": 1119, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.5550096}
+{"delta": "------|", "event": "message.delta", "event_id": 1120, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.5552695}
+{"delta": "--------|--------------", "event": "message.delta", "event_id": 1121, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.555506}
+{"delta": "|----------------|", "event": "message.delta", "event_id": 1122, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.55572}
+{"delta": "----------|", "event": "message.delta", "event_id": 1123, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.5560267}
+{"delta": "----------|\n|", "event": "message.delta", "event_id": 1124, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.5563233}
+{"delta": " config-server", "event": "message.delta", "event_id": 1125, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.5566158}
+{"delta": " | 3", "event": "message.delta", "event_id": 1126, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.5568733}
+{"delta": " | 100", "event": "message.delta", "event_id": 1127, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.5571418}
+{"delta": "m /", "event": "message.delta", "event_id": 1128, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.5788498}
+{"delta": " 1", "event": "message.delta", "event_id": 1129, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.6347094}
+{"delta": " | 102", "event": "message.delta", "event_id": 1130, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.6826024}
+{"delta": "Mi / ", "event": "message.delta", "event_id": 1131, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.7093194}
+{"delta": "1", "event": "message.delta", "event_id": 1132, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.7497733}
+{"delta": "Gi | ", "event": "message.delta", "event_id": 1133, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.7920487}
+{"delta": "15-26", "event": "message.delta", "event_id": 1134, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.831719}
+{"delta": "m | ", "event": "message.delta", "event_id": 1135, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.8723855}
+{"delta": "910-106", "event": "message.delta", "event_id": 1136, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.915691}
+{"delta": "9", "event": "message.delta", "event_id": 1137, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379264.9644074}
+{"delta": "Mi |\n|", "event": "message.delta", "event_id": 1138, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.0165355}
+{"delta": " mongos", "event": "message.delta", "event_id": 1139, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.0904427}
+{"delta": " | ", "event": "message.delta", "event_id": 1140, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.1058254}
+{"delta": "2 | ", "event": "message.delta", "event_id": 1141, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.4060082}
+{"delta": "100m /", "event": "message.delta", "event_id": 1142, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.4063962}
+{"delta": " 1 |", "event": "message.delta", "event_id": 1143, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.4851615}
+{"delta": " 102Mi", "event": "message.delta", "event_id": 1144, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.4855142}
+{"delta": " / 1", "event": "message.delta", "event_id": 1145, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.485787}
+{"delta": "Gi | ", "event": "message.delta", "event_id": 1146, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.486039}
+{"delta": "30-58", "event": "message.delta", "event_id": 1147, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.486255}
+{"delta": "m | ", "event": "message.delta", "event_id": 1148, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.6731389}
+{"delta": "239-316", "event": "message.delta", "event_id": 1149, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.6758504}
+{"delta": "Mi |\n|", "event": "message.delta", "event_id": 1150, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.6760569}
+{"delta": " shard (", "event": "message.delta", "event_id": 1151, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.676352}
+{"delta": "×", "event": "message.delta", "event_id": 1152, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.9902513}
+{"delta": "2)", "event": "message.delta", "event_id": 1153, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.990629}
+{"delta": " | 各", "event": "message.delta", "event_id": 1154, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.99091}
+{"delta": "3", "event": "message.delta", "event_id": 1155, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379265.9911869}
+{"delta": " | 100", "event": "message.delta", "event_id": 1156, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379266.0858824}
+{"delta": "m / ", "event": "message.delta", "event_id": 1157, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379266.0862367}
+{"delta": "1", "event": "message.delta", "event_id": 1158, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379267.3818693}
+{"delta": " | 102", "event": "message.delta", "event_id": 1159, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379267.3830597}
+{"delta": "Mi / ", "event": "message.delta", "event_id": 1160, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.2324831}
+{"delta": "1", "event": "message.delta", "event_id": 1161, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.289431}
+{"delta": "Gi | ", "event": "message.delta", "event_id": 1162, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.2896953}
+{"delta": "10-30", "event": "message.delta", "event_id": 1163, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.289887}
+{"delta": "m | ", "event": "message.delta", "event_id": 1164, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.2900846}
+{"delta": "591-854", "event": "message.delta", "event_id": 1165, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.2938445}
+{"delta": "Mi |\n\n关键", "event": "message.delta", "event_id": 1166, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.2940724}
+{"delta": "发现", "event": "message.delta", "event_id": 1167, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.2951}
+{"delta": "：\n- ", "event": "message.delta", "event_id": 1168, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.2953315}
+{"delta": "内存实际", "event": "message.delta", "event_id": 1169, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379268.295631}
+{"delta": "使用显著", "event": "message.delta", "event_id": 1170, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0558999}
+{"delta": "高于", "event": "message.delta", "event_id": 1171, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.056276}
+{"delta": "请求值", "event": "message.delta", "event_id": 1172, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0565844}
+{"delta": "（102Mi", "event": "message.delta", "event_id": 1173, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0567951}
+{"delta": "）。", "event": "message.delta", "event_id": 1174, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.056986}
+{"delta": "config", "event": "message.delta", "event_id": 1175, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.057275}
+{"delta": "-server 内存", "event": "message.delta", "event_id": 1176, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0575726}
+{"delta": "使用", "event": "message.delta", "event_id": 1177, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0577707}
+{"delta": " 900", "event": "message.delta", "event_id": 1178, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0579584}
+{"delta": "Mi", "event": "message.delta", "event_id": 1179, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0582416}
+{"delta": "+，", "event": "message.delta", "event_id": 1180, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0584373}
+{"delta": "接近 1", "event": "message.delta", "event_id": 1181, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0586464}
+{"delta": "Gi limit", "event": "message.delta", "event_id": 1182, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.058839}
+{"delta": "；", "event": "message.delta", "event_id": 1183, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0590215}
+{"delta": "shard 内存", "event": "message.delta", "event_id": 1184, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.059236}
+{"delta": "使用 600", "event": "message.delta", "event_id": 1185, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0594337}
+{"delta": "-850", "event": "message.delta", "event_id": 1186, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0597408}
+{"delta": "Mi，", "event": "message.delta", "event_id": 1187, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.059937}
+{"delta": "也远超", "event": "message.delta", "event_id": 1188, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0601437}
+{"delta": "请求值", "event": "message.delta", "event_id": 1189, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0603418}
+{"delta": "。\n- ", "event": "message.delta", "event_id": 1190, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0605524}
+{"delta": "旁", "event": "message.delta", "event_id": 1191, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.060741}
+{"delta": "路", "event": "message.delta", "event_id": 1192, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0609236}
+{"delta": "容器（ex", "event": "message.delta", "event_id": 1193, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0611155}
+{"delta": "porter、", "event": "message.delta", "event_id": 1194, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0613334}
+{"delta": "backup", "event": "message.delta", "event_id": 1195, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0615375}
+{"delta": "-agent、", "event": "message.delta", "event_id": 1196, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0617356}
+{"delta": "kbagent", "event": "message.delta", "event_id": 1197, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0619264}
+{"delta": "）未", "event": "message.delta", "event_id": 1198, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0621102}
+{"delta": "设置资源", "event": "message.delta", "event_id": 1199, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0623248}
+{"delta": "请求/限制", "event": "message.delta", "event_id": 1200, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0625284}
+{"delta": "，存在", "event": "message.delta", "event_id": 1201, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.062717}
+{"delta": "潜在", "event": "message.delta", "event_id": 1202, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0628986}
+{"delta": "的资源", "event": "message.delta", "event_id": 1203, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0630832}
+{"delta": "争抢风险。\n", "event": "message.delta", "event_id": 1204, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.063295}
+{"delta": "- 每个", "event": "message.delta", "event_id": 1205, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0634975}
+{"delta": "数据盘", "event": "message.delta", "event_id": 1206, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0636883}
+{"delta": " PVC", "event": "message.delta", "event_id": 1207, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0638726}
+{"delta": " 20Gi", "event": "message.delta", "event_id": 1208, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.064051}
+{"delta": "，状态", "event": "message.delta", "event_id": 1209, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0642648}
+{"delta": "全部 Bound", "event": "message.delta", "event_id": 1210, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0645785}
+{"delta": "，无", "event": "message.delta", "event_id": 1211, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.0648448}
+{"delta": "存储异常", "event": "message.delta", "event_id": 1212, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.065102}
+{"delta": "。\n\n三", "event": "message.delta", "event_id": 1213, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.2589881}
+{"delta": "、异常", "event": "message.delta", "event_id": 1214, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8031697}
+{"delta": "/", "event": "message.delta", "event_id": 1215, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8034155}
+{"delta": "残留", "event": "message.delta", "event_id": 1216, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8042352}
+{"delta": " Pod", "event": "message.delta", "event_id": 1217, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.804542}
+{"delta": " 情况", "event": "message.delta", "event_id": 1218, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8048189}
+{"delta": "\n\n命名", "event": "message.delta", "event_id": 1219, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8054442}
+{"delta": "空间", "event": "message.delta", "event_id": 1220, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8057775}
+{"delta": "内", "event": "message.delta", "event_id": 1221, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.807516}
+{"delta": "存在", "event": "message.delta", "event_id": 1222, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8077214}
+{"delta": "以下", "event": "message.delta", "event_id": 1223, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8079877}
+{"delta": "异常 Pod", "event": "message.delta", "event_id": 1224, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379269.8135521}
+{"delta": "，虽然不", "event": "message.delta", "event_id": 1225, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0191367}
+{"delta": "占用大量", "event": "message.delta", "event_id": 1226, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0195308}
+{"delta": "实时", "event": "message.delta", "event_id": 1227, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0197423}
+{"delta": "资源", "event": "message.delta", "event_id": 1228, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.019934}
+{"delta": "，但会影响", "event": "message.delta", "event_id": 1229, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.020143}
+{"delta": "调度", "event": "message.delta", "event_id": 1230, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0204318}
+{"delta": "器", "event": "message.delta", "event_id": 1231, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0206423}
+{"delta": "状态", "event": "message.delta", "event_id": 1232, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.020907}
+{"delta": "并", "event": "message.delta", "event_id": 1233, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0211778}
+{"delta": "造成", "event": "message.delta", "event_id": 1234, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.021448}
+{"delta": "视觉", "event": "message.delta", "event_id": 1235, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0217276}
+{"delta": "噪音：\n\n-", "event": "message.delta", "event_id": 1236, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0219927}
+{"delta": " haha", "event": "message.delta", "event_id": 1237, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0222077}
+{"delta": "1-", "event": "message.delta", "event_id": 1238, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.02249}
+{"delta": "5dc", "event": "message.delta", "event_id": 1239, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0227494}
+{"delta": "95", "event": "message.delta", "event_id": 1240, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0229964}
+{"delta": "ddfd", "event": "message.delta", "event_id": 1241, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0252385}
+{"delta": "-0 /", "event": "message.delta", "event_id": 1242, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0255344}
+{"delta": " he", "event": "message.delta", "event_id": 1243, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.025797}
+{"delta": "he", "event": "message.delta", "event_id": 1244, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0260422}
+{"delta": "1-", "event": "message.delta", "event_id": 1245, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.026315}
+{"delta": "695ff", "event": "message.delta", "event_id": 1246, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0303667}
+{"delta": "cd8", "event": "message.delta", "event_id": 1247, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.0769188}
+{"delta": "d-", "event": "message.delta", "event_id": 1248, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.1147687}
+{"delta": "0：", "event": "message.delta", "event_id": 1249, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.1589446}
+{"delta": "c", "event": "message.delta", "event_id": 1250, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.2154572}
+{"delta": "ub", "event": "message.delta", "event_id": 1251, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.259448}
+{"delta": "etran", "event": "message.delta", "event_id": 1252, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8127286}
+{"delta": "-core 容器", "event": "message.delta", "event_id": 1253, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.81312}
+{"delta": " Crash", "event": "message.delta", "event_id": 1254, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.813605}
+{"delta": "LoopBack", "event": "message.delta", "event_id": 1255, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8139677}
+{"delta": "Off（", "event": "message.delta", "event_id": 1256, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8143802}
+{"delta": "分别", "event": "message.delta", "event_id": 1257, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8147516}
+{"delta": "重启约", "event": "message.delta", "event_id": 1258, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8151195}
+{"delta": " 139", "event": "message.delta", "event_id": 1259, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8155217}
+{"delta": "9", "event": "message.delta", "event_id": 1260, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.815876}
+{"delta": "/", "event": "message.delta", "event_id": 1261, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8162477}
+{"delta": "140", "event": "message.delta", "event_id": 1262, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8166218}
+{"delta": "0 次", "event": "message.delta", "event_id": 1263, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.81699}
+{"delta": "），日志", "event": "message.delta", "event_id": 1264, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379270.8564572}
+{"delta": "显示", "event": "message.delta", "event_id": 1265, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.1483157}
+{"delta": " Rust", "event": "message.delta", "event_id": 1266, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.1487515}
+{"delta": " panic", "event": "message.delta", "event_id": 1267, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.1491919}
+{"delta": "（", "event": "message.delta", "event_id": 1268, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.1494532}
+{"delta": "unwrap", "event": "message.delta", "event_id": 1269, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.1498492}
+{"delta": "_failed", "event": "message.delta", "event_id": 1270, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.227479}
+{"delta": "）。\n", "event": "message.delta", "event_id": 1271, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.227735}
+{"delta": "- le", "event": "message.delta", "event_id": 1272, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.2281988}
+{"delta": "ek", "event": "message.delta", "event_id": 1273, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.2688558}
+{"delta": "5", "event": "message.delta", "event_id": 1274, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.3433108}
+{"delta": "-b", "event": "message.delta", "event_id": 1275, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.3436892}
+{"delta": "9", "event": "message.delta", "event_id": 1276, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.3778975}
+{"delta": "dd", "event": "message.delta", "event_id": 1277, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.4388437}
+{"delta": "6", "event": "message.delta", "event_id": 1278, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.468721}
+{"delta": "f99", "event": "message.delta", "event_id": 1279, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.5169623}
+{"delta": "c", "event": "message.delta", "event_id": 1280, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.558579}
+{"delta": "-init-", "event": "message.delta", "event_id": 1281, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.6020124}
+{"delta": "0：Error", "event": "message.delta", "event_id": 1282, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.6827643}
+{"delta": " ", "event": "message.delta", "event_id": 1283, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.7365582}
+{"delta": "状态。\n", "event": "message.delta", "event_id": 1284, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379271.7368145}
+{"delta": "- 多个", "event": "message.delta", "event_id": 1285, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.0290337}
+{"delta": "历史", "event": "message.delta", "event_id": 1286, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.0294452}
+{"delta": "残留", "event": "message.delta", "event_id": 1287, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.0299003}
+{"delta": " Job Pod", "event": "message.delta", "event_id": 1288, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.0302944}
+{"delta": "（", "event": "message.delta", "event_id": 1289, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.0306618}
+{"delta": "pre", "event": "message.delta", "event_id": 1290, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.030994}
+{"delta": "delete、", "event": "message.delta", "event_id": 1291, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.3858373}
+{"delta": "restore", "event": "message.delta", "event_id": 1292, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.3860865}
+{"delta": "、sys", "event": "message.delta", "event_id": 1293, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.3865945}
+{"delta": "bench", "event": "message.delta", "event_id": 1294, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.3869944}
+{"delta": " precheck", "event": "message.delta", "event_id": 1295, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.4742227}
+{"delta": "）处于", "event": "message.delta", "event_id": 1296, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.4746556}
+{"delta": " Error", "event": "message.delta", "event_id": 1297, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.4750562}
+{"delta": " ", "event": "message.delta", "event_id": 1298, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.4754388}
+{"delta": "状态，未", "event": "message.delta", "event_id": 1299, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.475812}
+{"delta": "清理", "event": "message.delta", "event_id": 1300, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.5163052}
+{"delta": "。\n", "event": "message.delta", "event_id": 1301, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.5166762}
+{"delta": "- 这些", "event": "message.delta", "event_id": 1302, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.5540416}
+{"delta": "异常", "event": "message.delta", "event_id": 1303, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379272.5863056}
+{"delta": " Pod ", "event": "message.delta", "event_id": 1304, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379273.3133216}
+{"delta": "实际 CPU", "event": "message.delta", "event_id": 1305, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379274.2620943}
+{"delta": " 占用", "event": "message.delta", "event_id": 1306, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379274.2628055}
+{"delta": "约", "event": "message.delta", "event_id": 1307, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379274.2630548}
+{"delta": " 1m", "event": "message.delta", "event_id": 1308, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.060912}
+{"delta": "、", "event": "message.delta", "event_id": 1309, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.27286}
+{"delta": "内存约", "event": "message.delta", "event_id": 1310, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2731094}
+{"delta": " 1-", "event": "message.delta", "event_id": 1311, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2757363}
+{"delta": "2Mi，", "event": "message.delta", "event_id": 1312, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.275955}
+{"delta": "资源", "event": "message.delta", "event_id": 1313, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2762015}
+{"delta": "影响", "event": "message.delta", "event_id": 1314, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2765706}
+{"delta": "极小", "event": "message.delta", "event_id": 1315, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.27678}
+{"delta": "。\n\n", "event": "message.delta", "event_id": 1316, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2771003}
+{"delta": "四、风险", "event": "message.delta", "event_id": 1317, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2774107}
+{"delta": "与", "event": "message.delta", "event_id": 1318, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2776647}
+{"delta": "建议\n\n", "event": "message.delta", "event_id": 1319, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2778945}
+{"delta": "高风险", "event": "message.delta", "event_id": 1320, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2782545}
+{"delta": "：\n", "event": "message.delta", "event_id": 1321, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.278589}
+{"delta": "- 节点", "event": "message.delta", "event_id": 1322, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2788749}
+{"delta": "资源", "event": "message.delta", "event_id": 1323, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.279218}
+{"delta": " limit", "event": "message.delta", "event_id": 1324, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2795172}
+{"delta": " ", "event": "message.delta", "event_id": 1325, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2798164}
+{"delta": "严重超", "event": "message.delta", "event_id": 1326, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.280118}
+{"delta": "发（", "event": "message.delta", "event_id": 1327, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2803407}
+{"delta": "CPU", "event": "message.delta", "event_id": 1328, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2805796}
+{"delta": " 170", "event": "message.delta", "event_id": 1329, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2808008}
+{"delta": "%、", "event": "message.delta", "event_id": 1330, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2811224}
+{"delta": "内存 186", "event": "message.delta", "event_id": 1331, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2813652}
+{"delta": "%），一旦", "event": "message.delta", "event_id": 1332, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.281704}
+{"delta": "负载", "event": "message.delta", "event_id": 1333, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2819395}
+{"delta": "突", "event": "message.delta", "event_id": 1334, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2822816}
+{"delta": "增", "event": "message.delta", "event_id": 1335, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2825825}
+{"delta": "极易", "event": "message.delta", "event_id": 1336, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2828128}
+{"delta": "触发 O", "event": "message.delta", "event_id": 1337, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2830298}
+{"delta": "OMKill", "event": "message.delta", "event_id": 1338, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2833812}
+{"delta": " ", "event": "message.delta", "event_id": 1339, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2835965}
+{"delta": "或 CPU ", "event": "message.delta", "event_id": 1340, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2838237}
+{"delta": "节流", "event": "message.delta", "event_id": 1341, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2840178}
+{"delta": "。\n- y", "event": "message.delta", "event_id": 1342, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2866993}
+{"delta": "am23", "event": "message.delta", "event_id": 1343, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2869737}
+{"delta": " MongoDB", "event": "message.delta", "event_id": 1344, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2872217}
+{"delta": " 的", "event": "message.delta", "event_id": 1345, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2874508}
+{"delta": "内存请求", "event": "message.delta", "event_id": 1346, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2878106}
+{"delta": "（", "event": "message.delta", "event_id": 1347, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2880147}
+{"delta": "102", "event": "message.delta", "event_id": 1348, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2883587}
+{"delta": "Mi）设置", "event": "message.delta", "event_id": 1349, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2886643}
+{"delta": "过低", "event": "message.delta", "event_id": 1350, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.28897}
+{"delta": "，", "event": "message.delta", "event_id": 1351, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2893112}
+{"delta": "与实际", "event": "message.delta", "event_id": 1352, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2895613}
+{"delta": "运行", "event": "message.delta", "event_id": 1353, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2899482}
+{"delta": "内存", "event": "message.delta", "event_id": 1354, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2902584}
+{"delta": "（600", "event": "message.delta", "event_id": 1355, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.2905712}
+{"delta": "Mi", "event": "message.delta", "event_id": 1356, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.290936}
+{"delta": "-1", "event": "message.delta", "event_id": 1357, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4100106}
+{"delta": "Gi）", "event": "message.delta", "event_id": 1358, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.410276}
+{"delta": "差距过大", "event": "message.delta", "event_id": 1359, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4105976}
+{"delta": "，调度", "event": "message.delta", "event_id": 1360, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4109309}
+{"delta": "时", "event": "message.delta", "event_id": 1361, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4112463}
+{"delta": "可能被", "event": "message.delta", "event_id": 1362, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4116786}
+{"delta": "过度", "event": "message.delta", "event_id": 1363, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4120395}
+{"delta": "堆", "event": "message.delta", "event_id": 1364, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.41244}
+{"delta": "叠", "event": "message.delta", "event_id": 1365, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4128473}
+{"delta": "到同一", "event": "message.delta", "event_id": 1366, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4132469}
+{"delta": "节点。\n\n", "event": "message.delta", "event_id": 1367, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.4135396}
+{"delta": "中", "event": "message.delta", "event_id": 1368, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.8185785}
+{"delta": "风险", "event": "message.delta", "event_id": 1369, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.8189528}
+{"delta": "：\n- ", "event": "message.delta", "event_id": 1370, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.8191886}
+{"delta": "旁路", "event": "message.delta", "event_id": 1371, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.8195996}
+{"delta": "容器无", "event": "message.delta", "event_id": 1372, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.8199205}
+{"delta": "资源请求", "event": "message.delta", "event_id": 1373, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.9147427}
+{"delta": "/限制，", "event": "message.delta", "event_id": 1374, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379275.9150963}
+{"delta": "在资源", "event": "message.delta", "event_id": 1375, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5291994}
+{"delta": "紧张", "event": "message.delta", "event_id": 1376, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5294538}
+{"delta": "时", "event": "message.delta", "event_id": 1377, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5303638}
+{"delta": "缺乏", "event": "message.delta", "event_id": 1378, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5306017}
+{"delta": " Qo", "event": "message.delta", "event_id": 1379, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5308294}
+{"delta": "S", "event": "message.delta", "event_id": 1380, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5310392}
+{"delta": " ", "event": "message.delta", "event_id": 1381, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5316203}
+{"delta": "保障。\n", "event": "message.delta", "event_id": 1382, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5318322}
+{"delta": "-", "event": "message.delta", "event_id": 1383, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5320184}
+{"delta": " 大量", "event": "message.delta", "event_id": 1384, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5330212}
+{"delta": " Crash", "event": "message.delta", "event_id": 1385, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5405397}
+{"delta": "LoopBack", "event": "message.delta", "event_id": 1386, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5422306}
+{"delta": "Off ", "event": "message.delta", "event_id": 1387, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5424333}
+{"delta": "和 Error", "event": "message.delta", "event_id": 1388, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5426886}
+{"delta": " Pod", "event": "message.delta", "event_id": 1389, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5429087}
+{"delta": " 残留未", "event": "message.delta", "event_id": 1390, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5432625}
+{"delta": "清理。\n\n", "event": "message.delta", "event_id": 1391, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5435786}
+{"delta": "建议处理", "event": "message.delta", "event_id": 1392, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.5438945}
+{"delta": "：\n1.", "event": "message.delta", "event_id": 1393, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.6321018}
+{"delta": " 调整", "event": "message.delta", "event_id": 1394, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.6860611}
+{"delta": " yam23", "event": "message.delta", "event_id": 1395, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.9737885}
+{"delta": " 各", "event": "message.delta", "event_id": 1396, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379276.9741645}
+{"delta": "组件", "event": "message.delta", "event_id": 1397, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379277.7787504}
+{"delta": "内存 request", "event": "message.delta", "event_id": 1398, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379277.779013}
+{"delta": " ", "event": "message.delta", "event_id": 1399, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379277.779233}
+{"delta": "至 512", "event": "message.delta", "event_id": 1400, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.6350236}
+{"delta": "Mi 或", "event": "message.delta", "event_id": 1401, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.6354132}
+{"delta": "更高", "event": "message.delta", "event_id": 1402, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.6356795}
+{"delta": "，使其", "event": "message.delta", "event_id": 1403, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8397737}
+{"delta": "更接近", "event": "message.delta", "event_id": 1404, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.840018}
+{"delta": "实际", "event": "message.delta", "event_id": 1405, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8403597}
+{"delta": "使用", "event": "message.delta", "event_id": 1406, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8407593}
+{"delta": "，", "event": "message.delta", "event_id": 1407, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8410497}
+{"delta": "避免", "event": "message.delta", "event_id": 1408, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.841382}
+{"delta": "调度压缩", "event": "message.delta", "event_id": 1409, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8417296}
+{"delta": "。\n2.", "event": "message.delta", "event_id": 1410, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8420472}
+{"delta": " ", "event": "message.delta", "event_id": 1411, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8422968}
+{"delta": "为", "event": "message.delta", "event_id": 1412, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8425484}
+{"delta": " exporter", "event": "message.delta", "event_id": 1413, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8500514}
+{"delta": "、backup-agent", "event": "message.delta", "event_id": 1414, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8503158}
+{"delta": " 等", "event": "message.delta", "event_id": 1415, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8506572}
+{"delta": "旁路", "event": "message.delta", "event_id": 1416, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.850897}
+{"delta": "容器", "event": "message.delta", "event_id": 1417, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.851228}
+{"delta": "配置", "event": "message.delta", "event_id": 1418, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.851475}
+{"delta": "合理的", "event": "message.delta", "event_id": 1419, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.851793}
+{"delta": "资源请求/", "event": "message.delta", "event_id": 1420, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8520215}
+{"delta": "限制。\n", "event": "message.delta", "event_id": 1421, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8523629}
+{"delta": "3. ", "event": "message.delta", "event_id": 1422, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.852613}
+{"delta": "清理命名", "event": "message.delta", "event_id": 1423, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8528154}
+{"delta": "空间", "event": "message.delta", "event_id": 1424, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8530438}
+{"delta": "内", "event": "message.delta", "event_id": 1425, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8532922}
+{"delta": "已", "event": "message.delta", "event_id": 1426, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8535304}
+{"delta": "结束", "event": "message.delta", "event_id": 1427, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8538494}
+{"delta": "/", "event": "message.delta", "event_id": 1428, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8540652}
+{"delta": "失败的 Job", "event": "message.delta", "event_id": 1429, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8544016}
+{"delta": " Pod ", "event": "message.delta", "event_id": 1430, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8547318}
+{"delta": "和", "event": "message.delta", "event_id": 1431, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.855031}
+{"delta": " CrashLoop", "event": "message.delta", "event_id": 1432, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8553615}
+{"delta": "BackOff ", "event": "message.delta", "event_id": 1433, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.856222}
+{"delta": "的无效", "event": "message.delta", "event_id": 1434, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8564317}
+{"delta": " Pod，", "event": "message.delta", "event_id": 1435, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8567617}
+{"delta": "减少", "event": "message.delta", "event_id": 1436, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8569891}
+{"delta": "调度", "event": "message.delta", "event_id": 1437, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.857315}
+{"delta": "器负担", "event": "message.delta", "event_id": 1438, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8575644}
+{"delta": "。\n4", "event": "message.delta", "event_id": 1439, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8578775}
+{"delta": ". 关注", "event": "message.delta", "event_id": 1440, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8581994}
+{"delta": " haha", "event": "message.delta", "event_id": 1441, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8585258}
+{"delta": "1/he", "event": "message.delta", "event_id": 1442, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8588278}
+{"delta": "he1", "event": "message.delta", "event_id": 1443, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8591099}
+{"delta": " 的 Rust", "event": "message.delta", "event_id": 1444, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.8594398}
+{"delta": " panic 根", "event": "message.delta", "event_id": 1445, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.859773}
+{"delta": "因", "event": "message.delta", "event_id": 1446, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379278.860068}
+{"delta": "，若", "event": "message.delta", "event_id": 1447, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.0533795}
+{"delta": "业务", "event": "message.delta", "event_id": 1448, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.0537643}
+{"delta": "不需要", "event": "message.delta", "event_id": 1449, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.0540392}
+{"delta": "可考虑", "event": "message.delta", "event_id": 1450, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.054422}
+{"delta": "删除", "event": "message.delta", "event_id": 1451, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.0547643}
+{"delta": "相关", "event": "message.delta", "event_id": 1452, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.055067}
+{"delta": " workload", "event": "message.delta", "event_id": 1453, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.0554032}
+{"delta": "。\n", "event": "message.delta", "event_id": 1454, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.0602489}
+{"delta": "5.", "event": "message.delta", "event_id": 1455, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.361053}
+{"delta": " 若", "event": "message.delta", "event_id": 1456, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.361424}
+{"delta": "后续", "event": "message.delta", "event_id": 1457, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.3617876}
+{"delta": "扩容", "event": "message.delta", "event_id": 1458, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.362095}
+{"delta": "其他", "event": "message.delta", "event_id": 1459, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.3624227}
+{"delta": "集群", "event": "message.delta", "event_id": 1460, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.3627524}
+{"delta": "，建议先", "event": "message.delta", "event_id": 1461, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.3630562}
+{"delta": "评估", "event": "message.delta", "event_id": 1462, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.363383}
+{"delta": "节点 limit", "event": "message.delta", "event_id": 1463, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.3637247}
+{"delta": " ", "event": "message.delta", "event_id": 1464, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.867643}
+{"delta": "超发", "event": "message.delta", "event_id": 1465, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.867995}
+{"delta": "情况", "event": "message.delta", "event_id": 1466, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.868287}
+{"delta": "，避免", "event": "message.delta", "event_id": 1467, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.8686502}
+{"delta": "进一步", "event": "message.delta", "event_id": 1468, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.86897}
+{"delta": "加剧", "event": "message.delta", "event_id": 1469, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.8692987}
+{"delta": "。", "event": "message.delta", "event_id": 1470, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "timestamp": 1780379279.8696344}
+{"completed": true, "event": "run.completed", "event_id": 1471, "output": "根据对 kb10 环境中 `mjingz` 命名空间的检查结果，以下是当前集群资源使用情况的分析：\n\n一、节点层资源概况\n\n集群共 5 个工作节点，规格均为 16 核 CPU / 约 30 Gi 内存。\n- 实际 CPU 使用率：2% - 3%（非常低）\n- 实际 内存使用率：29% - 49%\n- 节点整体负载很轻，无内存压力或 CPU 压力\n\n但资源分配（Allocated resources）存在明显超发：\n- CPU limit 总和超发 104% - 170%\n- 内存 limit 总和超发 110% - 186%\n\n这意味着如果大量 Pod 同时打满 limit，节点会出现资源竞争。目前实际使用率很低，所以未触发问题。\n\n二、目标集群 yam23（MongoDB Sharding）资源使用\n\n集群状态 Running，所有组件正常。\n\n组件配置与实际使用对比：\n\n| 组件 | 副本数 | CPU req/limit | 内存 req/limit | 实际 CPU | 实际内存 |\n|------|--------|--------------|----------------|----------|----------|\n| config-server | 3 | 100m / 1 | 102Mi / 1Gi | 15-26m | 910-1069Mi |\n| mongos | 2 | 100m / 1 | 102Mi / 1Gi | 30-58m | 239-316Mi |\n| shard (×2) | 各3 | 100m / 1 | 102Mi / 1Gi | 10-30m | 591-854Mi |\n\n关键发现：\n- 内存实际使用显著高于请求值（102Mi）。config-server 内存使用 900Mi+，接近 1Gi limit；shard 内存使用 600-850Mi，也远超请求值。\n- 旁路容器（exporter、backup-agent、kbagent）未设置资源请求/限制，存在潜在的资源争抢风险。\n- 每个数据盘 PVC 20Gi，状态全部 Bound，无存储异常。\n\n三、异常/残留 Pod 情况\n\n命名空间内存在以下异常 Pod，虽然不占用大量实时资源，但会影响调度器状态并造成视觉噪音：\n\n- haha1-5dc95ddfd-0 / hehe1-695ffcd8d-0：cubetran-core 容器 CrashLoopBackOff（分别重启约 1399/1400 次），日志显示 Rust panic（unwrap_failed）。\n- leek5-b9dd6f99c-init-0：Error 状态。\n- 多个历史残留 Job Pod（predelete、restore、sysbench precheck）处于 Error 状态，未清理。\n- 这些异常 Pod 实际 CPU 占用约 1m、内存约 1-2Mi，资源影响极小。\n\n四、风险与建议\n\n高风险：\n- 节点资源 limit 严重超发（CPU 170%、内存 186%），一旦负载突增极易触发 OOMKill 或 CPU 节流。\n- yam23 MongoDB 的内存请求（102Mi）设置过低，与实际运行内存（600Mi-1Gi）差距过大，调度时可能被过度堆叠到同一节点。\n\n中风险：\n- 旁路容器无资源请求/限制，在资源紧张时缺乏 QoS 保障。\n- 大量 CrashLoopBackOff 和 Error Pod 残留未清理。\n\n建议处理：\n1. 调整 yam23 各组件内存 request 至 512Mi 或更高，使其更接近实际使用，避免调度压缩。\n2. 为 exporter、backup-agent 等旁路容器配置合理的资源请求/限制。\n3. 清理命名空间内已结束/失败的 Job Pod 和 CrashLoopBackOff 的无效 Pod，减少调度器负担。\n4. 关注 haha1/hehe1 的 Rust panic 根因，若业务不需要可考虑删除相关 workload。\n5. 若后续扩容其他集群，建议先评估节点 limit 超发情况，避免进一步加剧。", "partial": false, "run_id": "run_5e89c65a08a8415eb2490ec2e4497d75", "session_id": "conv_a4ac5039-fe9a-4dac-b6d0-97365df91422", "timestamp": 1780379279.8989987, "usage": {"input_tokens": 139588, "output_tokens": 1006, "total_tokens": 140594}}

@@ -1,0 +1,17 @@
+{
+  "finalRunStatus": "completed",
+  "mustContainEventTypes": [
+    "reasoning.available",
+    "tool.generating",
+    "tool.started",
+    "tool.completed",
+    "agent.step",
+    "message.delta",
+    "run.completed"
+  ],
+  "mustNotContainEventTypesForUserVisibleAPI": [
+    "message.interim"
+  ],
+  "reasoningIsDelta": true,
+  "redactionRequired": true
+}
