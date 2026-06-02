@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from fastapi import FastAPI, Header, HTTPException
+    from fastapi import FastAPI, Header, HTTPException, Query
     from fastapi.responses import JSONResponse, StreamingResponse
     from pydantic import BaseModel, ConfigDict, Field
 except ImportError as exc:  # pragma: no cover - runtime dependency
@@ -194,6 +194,21 @@ def create_app(
         except RuntimeError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         return {"run_id": run_id, "status": handle.status}
+
+    @app.delete("/agent/sessions/{session_id}")
+    async def delete_session(
+        session_id: str,
+        user_id: str = Query(...),
+        authorization: str | None = Header(default=None),
+    ):
+        state = app.state.runtime_manager
+        await _authorize(state, authorization)
+        try:
+            return await state.manager.delete_session(user_id=user_id, session_id=session_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     return app
 
