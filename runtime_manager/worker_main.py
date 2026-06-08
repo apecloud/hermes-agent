@@ -83,6 +83,8 @@ def main() -> int:
     from runtime_manager.bootstrap import load_profile_environment
 
     load_profile_environment(hermes_home)
+    os.environ["HERMES_RUNTIME_RUN_ID"] = run_id
+    os.environ["HERMES_SESSION_KEY"] = approval_session_key
 
     from agent.skill_commands import build_preloaded_skills_prompt
     from gateway.session_context import clear_session_vars, set_session_vars
@@ -843,29 +845,40 @@ def _safe_tool_result_fields(
         fields["exitCode"] = exit_code
 
     stdout = _first_text(parsed, "output", "stdout")
+    reported_output_bytes = _coerce_positive_int(_first_value(parsed, "output_bytes", "outputBytes"))
+    reported_artifact = _artifact_metadata_from_mapping(parsed.get("artifact"))
+    reported_artifacts = _artifact_list_from_value(parsed.get("artifacts"))
+    if reported_artifact and reported_artifact not in reported_artifacts:
+        reported_artifacts.insert(0, reported_artifact)
     output_bytes = 0
     if stdout:
         fields["stdout_preview"] = _safe_output_preview(stdout, limit=_TOOL_OUTPUT_PREVIEW_LIMIT)
         fields["stdoutPreview"] = fields["stdout_preview"]
-        output_bytes = len(stdout.encode("utf-8", errors="replace"))
+        output_bytes = reported_output_bytes or len(stdout.encode("utf-8", errors="replace"))
         fields["output_bytes"] = output_bytes
         fields["outputBytes"] = output_bytes
-        if output_bytes > _TOOL_OUTPUT_PREVIEW_LIMIT:
+        if _truthy_result_value(parsed.get("truncated")) or output_bytes > _TOOL_OUTPUT_PREVIEW_LIMIT:
             fields["truncated"] = True
             if not has_error:
                 fields["partial"] = True
                 fields["warningReason"] = "output_truncated"
                 fields["warning_reason"] = "output_truncated"
-                artifact = _persist_output_artifact(
-                    stdout,
-                    run_id=run_id,
-                    session_id=session_id,
-                    tool_call_id=tool_call_id,
-                    tool_name=tool_name,
-                )
-                if artifact:
-                    fields["artifact"] = artifact
-                    fields["artifacts"] = [artifact]
+                if reported_artifacts:
+                    fields["artifact"] = reported_artifacts[0]
+                    fields["artifacts"] = reported_artifacts
+                else:
+                    artifact = _persist_output_artifact(
+                        stdout,
+                        run_id=run_id,
+                        session_id=session_id,
+                        tool_call_id=tool_call_id,
+                        tool_name=tool_name,
+                    )
+                    if artifact:
+                        fields["artifact"] = artifact
+                        fields["artifacts"] = [artifact]
+                if "artifact" not in fields and isinstance(parsed.get("artifactUnavailableReason"), str):
+                    fields["artifactUnavailableReason"] = parsed["artifactUnavailableReason"]
                 elif _artifact_context_available():
                     fields["artifactUnavailableReason"] = "output_artifact_unavailable"
 
@@ -1007,6 +1020,54 @@ def _first_text(mapping: dict[str, Any], *keys: str) -> str:
     if isinstance(value, str):
         return value
     return ""
+
+
+def _coerce_positive_int(value: Any) -> int:
+    if isinstance(value, bool) or value is None:
+        return 0
+    if isinstance(value, (int, float)):
+        return int(value) if value > 0 else 0
+    if isinstance(value, str):
+        try:
+            parsed = int(value.strip())
+        except ValueError:
+            return 0
+        return parsed if parsed > 0 else 0
+    return 0
+
+
+def _artifact_metadata_from_mapping(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    artifact_id = value.get("artifactId")
+    file_name = value.get("fileName")
+    size_bytes = _coerce_positive_int(value.get("sizeBytes"))
+    mime_type = value.get("mimeType")
+    sha256 = value.get("sha256")
+    if not all(isinstance(item, str) and item.strip() for item in (artifact_id, file_name, mime_type, sha256)):
+        return None
+    if not size_bytes:
+        return None
+    if "/" in artifact_id or "\\" in artifact_id:
+        return None
+    return {
+        "artifactId": artifact_id.strip(),
+        "fileName": file_name.strip(),
+        "sizeBytes": size_bytes,
+        "mimeType": mime_type.strip(),
+        "sha256": sha256.strip(),
+    }
+
+
+def _artifact_list_from_value(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    artifacts = []
+    for item in value:
+        artifact = _artifact_metadata_from_mapping(item)
+        if artifact:
+            artifacts.append(artifact)
+    return artifacts
 
 
 def _serialized_size(value: Any) -> int:

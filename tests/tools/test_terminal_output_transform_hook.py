@@ -114,6 +114,31 @@ def test_terminal_output_transform_still_truncates_long_replacement(monkeypatch,
     assert transformed_output != result["output"]
 
 
+def test_terminal_archives_full_output_before_default_truncation(monkeypatch, tmp_path):
+    hermes_home = tmp_path / "hermes-home"
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("HERMES_SESSION_KEY", "conv-1")
+    monkeypatch.setenv("HERMES_RUNTIME_RUN_ID", "run-1")
+    middle = "MIDDLE-OF-AWR-REPORT"
+    full_output = ("A" * 25000) + middle + ("B" * 35000)
+
+    result, _mock_env = _run_terminal(monkeypatch, tmp_path, output=full_output)
+
+    assert "[OUTPUT TRUNCATED" in result["output"]
+    assert middle not in result["output"]
+    assert result["truncated"] is True
+    assert result["output_bytes"] == len(full_output.encode("utf-8"))
+    artifact = result["artifact"]
+    assert set(artifact) == {"artifactId", "fileName", "sizeBytes", "mimeType", "sha256"}
+    assert artifact["sizeBytes"] == len(full_output.encode("utf-8"))
+    assert "/" not in artifact["artifactId"]
+    assert artifact["fileName"].endswith(".txt")
+
+    artifact_files = [path for path in (hermes_home / "sessions").rglob("*") if path.is_file()]
+    assert len(artifact_files) == 1
+    assert artifact_files[0].read_text(encoding="utf-8") == full_output
+
+
 def test_terminal_output_transform_still_runs_strip_and_redact(monkeypatch, tmp_path):
     # Ensure redaction is active regardless of host HERMES_REDACT_SECRETS state
     # or collection-time import order (the module snapshots env at import).

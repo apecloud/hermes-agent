@@ -263,6 +263,44 @@ def test_runtime_worker_long_success_stdout_becomes_warning_artifact(tmp_path, m
     assert artifact_files[0].read_text(encoding="utf-8") == stdout
 
 
+def test_runtime_worker_prefers_terminal_artifact_metadata_over_rearchiving(tmp_path, monkeypatch):
+    from runtime_manager.worker_main import _safe_tool_result_fields
+
+    hermes_home = tmp_path / "user-1"
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    preview = "head\n... [OUTPUT TRUNCATED - 100 chars omitted out of 200 total] ...\ntail"
+    terminal_artifact = {
+        "artifactId": "terminal-call-abc123",
+        "fileName": "terminal-call-abc123.txt",
+        "sizeBytes": 200,
+        "mimeType": "text/plain; charset=utf-8",
+        "sha256": "f" * 64,
+    }
+
+    result_fields = _safe_tool_result_fields(
+        {
+            "output": preview,
+            "exit_code": 0,
+            "error": None,
+            "truncated": True,
+            "output_bytes": 200,
+            "artifact": terminal_artifact,
+        },
+        run_id="run-1",
+        session_id="session-1",
+        tool_call_id="tool-1",
+        tool_name="terminal",
+    )
+
+    assert result_fields["error"] is False
+    assert result_fields["truncated"] is True
+    assert result_fields["warningReason"] == "output_truncated"
+    assert result_fields["output_bytes"] == 200
+    assert result_fields["artifact"] == terminal_artifact
+    assert result_fields["artifacts"] == [terminal_artifact]
+    assert not (hermes_home / "sessions").exists()
+
+
 def test_runtime_manager_session_cleanup_removes_output_artifacts(tmp_path):
     from runtime_manager.manager import _remove_session_files
 
