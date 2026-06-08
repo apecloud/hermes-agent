@@ -4,6 +4,8 @@ import asyncio
 import json
 import logging
 import os
+import re
+import shutil
 import sys
 import time
 import uuid
@@ -17,6 +19,7 @@ from .profile_resolver import RuntimeProfileResolver
 from .registry import RunHandle, RunRegistry
 
 logger = logging.getLogger(__name__)
+_SESSION_ARTIFACT_SEGMENT_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
 
 class RuntimeManager:
     def __init__(
@@ -401,4 +404,20 @@ def _remove_session_files(sessions_dir: Path, session_id: str) -> bool:
             removed = True
         except OSError:
             pass
+    artifacts_dir = sessions_dir / f"{_safe_session_artifact_segment(session_id)}.artifacts"
+    if artifacts_dir.exists() or artifacts_dir.is_symlink():
+        try:
+            if artifacts_dir.is_symlink() or artifacts_dir.is_file():
+                artifacts_dir.unlink()
+            else:
+                shutil.rmtree(artifacts_dir)
+            removed = True
+        except OSError:
+            pass
     return removed
+
+
+def _safe_session_artifact_segment(session_id: str) -> str:
+    value = _SESSION_ARTIFACT_SEGMENT_PATTERN.sub("_", str(session_id or "").strip())
+    value = value.strip("._-")[:80]
+    return value or "session"

@@ -222,6 +222,106 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     assert "/secret/path" not in json.dumps(approval_fields, ensure_ascii=False)
 
 
+def test_runtime_worker_long_success_stdout_becomes_warning_artifact(tmp_path, monkeypatch):
+    from runtime_manager.worker_main import _safe_tool_result_fields
+
+    hermes_home = tmp_path / "user-1"
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    stdout = "<html><body>\n" + ("AWR report row\n" * 160) + "</body></html>\n"
+
+    result_fields = _safe_tool_result_fields(
+        {
+            "output": stdout,
+            "exit_code": 0,
+            "error": "output too long: original output hidden",
+        },
+        run_id="run/1",
+        session_id="../session 1",
+        tool_call_id="tool/1",
+        tool_name="terminal",
+    )
+
+    assert result_fields["error"] is False
+    assert result_fields["exit_code"] == 0
+    assert result_fields["truncated"] is True
+    assert result_fields["warningReason"] == "output_truncated"
+    assert result_fields["output_bytes"] == len(stdout.encode("utf-8"))
+    assert result_fields["stdout_preview"].startswith("<html><body>")
+    assert "stderr_preview" not in result_fields
+    assert "AWR report row\n" * 120 not in json.dumps(result_fields, ensure_ascii=False)
+
+    artifact = result_fields["artifact"]
+    assert set(artifact) == {"artifactId", "fileName", "sizeBytes", "mimeType", "sha256"}
+    assert "/" not in artifact["artifactId"]
+    assert artifact["fileName"].endswith(".html")
+    assert artifact["sizeBytes"] == len(stdout.encode("utf-8"))
+    assert artifact["mimeType"] == "text/html; charset=utf-8"
+    assert "path" not in json.dumps(artifact, ensure_ascii=False).lower()
+
+    artifact_files = [path for path in (hermes_home / "sessions").rglob("*") if path.is_file()]
+    assert len(artifact_files) == 1
+    assert artifact_files[0].read_text(encoding="utf-8") == stdout
+
+
+def test_runtime_manager_session_cleanup_removes_output_artifacts(tmp_path):
+    from runtime_manager.manager import _remove_session_files
+
+    sessions_dir = tmp_path / "sessions"
+    artifacts_dir = sessions_dir / "conv-1.artifacts" / "run-1"
+    artifacts_dir.mkdir(parents=True)
+    (sessions_dir / "conv-1.json").write_text("{}", encoding="utf-8")
+    (artifacts_dir / "terminal-tool-output.txt").write_text("full output", encoding="utf-8")
+
+    assert _remove_session_files(sessions_dir, "conv-1")
+    assert not (sessions_dir / "conv-1.json").exists()
+    assert not (sessions_dir / "conv-1.artifacts").exists()
+
+
+def test_runtime_worker_long_nonzero_exit_remains_error(tmp_path, monkeypatch):
+    from runtime_manager.worker_main import _safe_tool_result_fields
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "user-1"))
+    result_fields = _safe_tool_result_fields(
+        {
+            "stdout": "still useful\n" * 200,
+            "exitCode": 1,
+            "error": "command failed",
+        },
+        run_id="run-1",
+        session_id="session-1",
+        tool_call_id="tool-1",
+        tool_name="terminal",
+    )
+
+    assert result_fields["error"] is True
+    assert result_fields["exit_code"] == 1
+    assert result_fields["stderr_preview"] == "command failed"
+    assert "warningReason" not in result_fields
+    assert "artifact" not in result_fields
+
+
+def test_runtime_worker_output_truncation_without_stdout_remains_error(tmp_path, monkeypatch):
+    from runtime_manager.worker_main import _safe_tool_result_fields
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "user-1"))
+    result_fields = _safe_tool_result_fields(
+        {
+            "output": "",
+            "exit_code": 0,
+            "error": "output too long: preview unavailable",
+        },
+        run_id="run-1",
+        session_id="session-1",
+        tool_call_id="tool-1",
+        tool_name="terminal",
+    )
+
+    assert result_fields["error"] is True
+    assert result_fields["stderr_preview"] == "output too long: preview unavailable"
+    assert "warningReason" not in result_fields
+    assert "artifact" not in result_fields
+
+
 def test_runtime_worker_summarizes_stringified_terminal_arguments():
     from runtime_manager.worker_main import _summarize_previous_tools
 

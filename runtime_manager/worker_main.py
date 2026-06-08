@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
 import re
@@ -34,6 +35,19 @@ _SENSITIVE_FLAG_VALUE_PATTERN = re.compile(
 )
 _INTERNAL_USER_PATH_PATTERN = re.compile(r"/opt/data/users/[^\s'\"]+")
 _WHITESPACE_PATTERN = re.compile(r"\s+")
+_ARTIFACT_SEGMENT_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
+_TOOL_OUTPUT_PREVIEW_LIMIT = 1200
+_DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES = 20 * 1024 * 1024
+_OUTPUT_TRUNCATION_MARKERS = (
+    "output too long",
+    "output truncated",
+    "tool response was",
+    "too large",
+    "capture limit",
+    "原始输出隐藏",
+    "输出过长",
+    "输出已截断",
+)
 
 
 def emit(event: dict[str, Any]) -> None:
@@ -246,7 +260,15 @@ def main() -> int:
         }
         if command_preview := _safe_tool_command_preview(tool_name, args):
             event["command_preview"] = command_preview
-        event.update(_safe_tool_result_fields(result))
+        event.update(
+            _safe_tool_result_fields(
+                result,
+                run_id=run_id,
+                session_id=session_id,
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+            )
+        )
         if started_at is not None:
             event["duration"] = round(completed_at - started_at, 3)
         emit(event)
@@ -798,11 +820,19 @@ def _safe_tool_result_summary(result: Any) -> str:
     return f"Tool completed; output size {size} bytes"
 
 
-def _safe_tool_result_fields(result: Any) -> dict[str, Any]:
+def _safe_tool_result_fields(
+    result: Any,
+    *,
+    run_id: Any = None,
+    session_id: Any = None,
+    tool_call_id: Any = None,
+    tool_name: Any = None,
+) -> dict[str, Any]:
     parsed = _parse_tool_result(result)
+    has_error = _tool_result_has_error(parsed)
     fields: dict[str, Any] = {
         "result_preview": _safe_tool_result_summary(result),
-        "error": _tool_result_has_error(result),
+        "error": has_error,
     }
     if not isinstance(parsed, dict):
         return fields
@@ -810,22 +840,139 @@ def _safe_tool_result_fields(result: Any) -> dict[str, Any]:
     exit_code = _first_value(parsed, "exit_code", "exitCode", "returncode", "return_code")
     if exit_code is not None:
         fields["exit_code"] = exit_code
+        fields["exitCode"] = exit_code
 
-    stdout = _first_string(parsed, "output", "stdout")
+    stdout = _first_text(parsed, "output", "stdout")
+    output_bytes = 0
     if stdout:
-        fields["stdout_preview"] = _safe_output_preview(stdout, limit=1200)
-        fields["output_bytes"] = len(stdout.encode("utf-8", errors="replace"))
-        if fields["output_bytes"] > 1200:
+        fields["stdout_preview"] = _safe_output_preview(stdout, limit=_TOOL_OUTPUT_PREVIEW_LIMIT)
+        fields["stdoutPreview"] = fields["stdout_preview"]
+        output_bytes = len(stdout.encode("utf-8", errors="replace"))
+        fields["output_bytes"] = output_bytes
+        fields["outputBytes"] = output_bytes
+        if output_bytes > _TOOL_OUTPUT_PREVIEW_LIMIT:
             fields["truncated"] = True
+            if not has_error:
+                fields["partial"] = True
+                fields["warningReason"] = "output_truncated"
+                fields["warning_reason"] = "output_truncated"
+                artifact = _persist_output_artifact(
+                    stdout,
+                    run_id=run_id,
+                    session_id=session_id,
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                )
+                if artifact:
+                    fields["artifact"] = artifact
+                    fields["artifacts"] = [artifact]
+                elif _artifact_context_available():
+                    fields["artifactUnavailableReason"] = "output_artifact_unavailable"
 
     stderr = _first_string(parsed, "stderr")
     error = parsed.get("error")
-    if not stderr and _truthy_result_value(error):
+    if not stderr and _truthy_result_value(error) and not _output_truncation_warning(parsed, stdout=stdout):
         stderr = str(error)
     if stderr:
-        fields["stderr_preview"] = _safe_output_preview(stderr, limit=1200)
+        fields["stderr_preview"] = _safe_output_preview(stderr, limit=_TOOL_OUTPUT_PREVIEW_LIMIT)
+        fields["stderrPreview"] = fields["stderr_preview"]
 
     return fields
+
+
+def _persist_output_artifact(
+    stdout: str,
+    *,
+    run_id: Any = None,
+    session_id: Any = None,
+    tool_call_id: Any = None,
+    tool_name: Any = None,
+) -> dict[str, Any] | None:
+    if not stdout:
+        return None
+    hermes_home = os.environ.get("HERMES_HOME")
+    if not hermes_home:
+        return None
+
+    content = stdout.encode("utf-8", errors="replace")
+    if len(content) > _max_output_artifact_bytes():
+        return None
+
+    try:
+        home = Path(hermes_home).expanduser().resolve()
+    except Exception:
+        return None
+
+    session_segment = _safe_artifact_segment(session_id, fallback="session")
+    run_segment = _safe_artifact_segment(run_id, fallback="run")
+    tool_segment = _safe_artifact_segment(tool_name, fallback="tool")
+    call_segment = _safe_artifact_segment(tool_call_id, fallback="call")
+    digest = hashlib.sha256(content).hexdigest()
+    extension, mime_type = _output_artifact_type(stdout)
+    artifact_id = f"{tool_segment}-{call_segment}-{digest[:16]}"
+    file_name = f"{artifact_id}.{extension}"
+
+    try:
+        artifact_dir = (home / "sessions" / f"{session_segment}.artifacts" / run_segment).resolve()
+        if not _path_within(artifact_dir, home):
+            return None
+        artifact_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+        file_path = (artifact_dir / file_name).resolve()
+        if not _path_within(file_path, artifact_dir):
+            return None
+        file_path.write_bytes(content)
+        try:
+            file_path.chmod(0o600)
+        except Exception:
+            pass
+    except Exception:
+        return None
+
+    return {
+        "artifactId": artifact_id,
+        "fileName": file_name,
+        "sizeBytes": len(content),
+        "mimeType": mime_type,
+        "sha256": digest,
+    }
+
+
+def _artifact_context_available() -> bool:
+    return bool(os.environ.get("HERMES_HOME"))
+
+
+def _max_output_artifact_bytes() -> int:
+    raw = os.environ.get("RUNTIME_MANAGER_MAX_OUTPUT_ARTIFACT_BYTES")
+    if raw:
+        try:
+            value = int(raw)
+        except ValueError:
+            value = _DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES
+        if value > 0:
+            return value
+    return _DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES
+
+
+def _safe_artifact_segment(value: Any, *, fallback: str) -> str:
+    text = str(value or "").strip()
+    text = _ARTIFACT_SEGMENT_PATTERN.sub("_", text)
+    text = text.strip("._-")[:80]
+    return text or fallback
+
+
+def _output_artifact_type(stdout: str) -> tuple[str, str]:
+    sample = stdout.lstrip()[:256].lower()
+    if sample.startswith("<!doctype html") or sample.startswith("<html") or "<html" in sample:
+        return "html", "text/html; charset=utf-8"
+    return "txt", "text/plain; charset=utf-8"
+
+
+def _path_within(child: Path, parent: Path) -> bool:
+    try:
+        child.relative_to(parent)
+        return True
+    except ValueError:
+        return False
 
 
 def _parse_tool_result(result: Any) -> Any:
@@ -852,6 +999,13 @@ def _first_string(mapping: dict[str, Any], *keys: str) -> str:
     value = _first_value(mapping, *keys)
     if isinstance(value, str):
         return value.strip()
+    return ""
+
+
+def _first_text(mapping: dict[str, Any], *keys: str) -> str:
+    value = _first_value(mapping, *keys)
+    if isinstance(value, str):
+        return value
     return ""
 
 
@@ -918,8 +1072,6 @@ def _tool_result_has_error(value: Any) -> bool:
     if isinstance(value, dict):
         if _truthy_result_value(value.get("is_error")):
             return True
-        if _truthy_result_value(value.get("error")):
-            return True
         for key in ("exit_code", "exitCode", "returncode", "return_code"):
             if _exit_code_failed(value.get(key)):
                 return True
@@ -933,6 +1085,9 @@ def _tool_result_has_error(value: Any) -> bool:
             "timeout",
         }:
             return True
+        stdout = _first_text(value, "output", "stdout")
+        if _truthy_result_value(value.get("error")):
+            return not _output_truncation_warning(value, stdout=stdout)
         return False
     if isinstance(value, str):
         stripped = value.strip()
@@ -944,6 +1099,35 @@ def _tool_result_has_error(value: Any) -> bool:
             return False
         return _tool_result_has_error(parsed)
     return False
+
+
+def _output_truncation_warning(mapping: dict[str, Any], *, stdout: str) -> bool:
+    if not stdout:
+        return False
+    if not _exit_code_success(mapping):
+        return False
+    error = mapping.get("error")
+    if not _truthy_result_value(error):
+        return False
+    return _is_output_truncation_notice(str(error))
+
+
+def _exit_code_success(mapping: dict[str, Any]) -> bool:
+    exit_code_seen = False
+    for key in ("exit_code", "exitCode", "returncode", "return_code"):
+        if key not in mapping:
+            continue
+        exit_code_seen = True
+        if _exit_code_failed(mapping.get(key)):
+            return False
+    return exit_code_seen
+
+
+def _is_output_truncation_notice(value: str) -> bool:
+    normalized = value.strip().lower()
+    if not normalized:
+        return False
+    return any(marker in normalized for marker in _OUTPUT_TRUNCATION_MARKERS)
 
 
 def _truthy_result_value(value: Any) -> bool:
