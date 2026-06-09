@@ -85,6 +85,8 @@ def main() -> int:
     load_profile_environment(hermes_home)
     os.environ["HERMES_RUNTIME_RUN_ID"] = run_id
     os.environ["HERMES_SESSION_KEY"] = approval_session_key
+    if request.get("artifact_dir") and not os.environ.get("HERMES_ARTIFACT_DIR"):
+        os.environ["HERMES_ARTIFACT_DIR"] = str(request["artifact_dir"])
 
     from agent.skill_commands import build_preloaded_skills_prompt
     from gateway.session_context import clear_session_vars, set_session_vars
@@ -231,6 +233,7 @@ def main() -> int:
     listener.start()
 
     tool_started_at: dict[str, float] = {}
+    seen_artifact_ids: set[str] = set()
     tool_lock = threading.Lock()
 
     def on_tool_start(tool_call_id: str, tool_name: str, args: Any) -> None:
@@ -269,6 +272,7 @@ def main() -> int:
                 session_id=session_id,
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
+                seen_artifact_ids=seen_artifact_ids,
             )
         )
         if started_at is not None:
@@ -829,6 +833,7 @@ def _safe_tool_result_fields(
     session_id: Any = None,
     tool_call_id: Any = None,
     tool_name: Any = None,
+    seen_artifact_ids: set[str] | None = None,
 ) -> dict[str, Any]:
     parsed = _parse_tool_result(result)
     has_error = _tool_result_has_error(parsed)
@@ -850,6 +855,22 @@ def _safe_tool_result_fields(
     reported_artifacts = _artifact_list_from_value(parsed.get("artifacts"))
     if reported_artifact and reported_artifact not in reported_artifacts:
         reported_artifacts.insert(0, reported_artifact)
+    reported_artifact_ids = {
+        artifact["artifactId"]
+        for artifact in reported_artifacts
+        if isinstance(artifact.get("artifactId"), str)
+    }
+    discovered_artifacts = _discover_report_artifacts_from_dir(
+        _artifact_dir_from_env(),
+        seen_artifact_ids=reported_artifact_ids | (seen_artifact_ids or set()),
+    )
+    if seen_artifact_ids is not None:
+        seen_artifact_ids.update(artifact["artifactId"] for artifact in discovered_artifacts)
+    artifacts = reported_artifacts + discovered_artifacts
+    if artifacts:
+        fields["artifact"] = artifacts[0]
+        fields["artifacts"] = artifacts
+
     output_bytes = 0
     if stdout:
         fields["stdout_preview"] = _safe_output_preview(stdout, limit=_TOOL_OUTPUT_PREVIEW_LIMIT)
@@ -863,10 +884,7 @@ def _safe_tool_result_fields(
                 fields["partial"] = True
                 fields["warningReason"] = "output_truncated"
                 fields["warning_reason"] = "output_truncated"
-                if reported_artifacts:
-                    fields["artifact"] = reported_artifacts[0]
-                    fields["artifacts"] = reported_artifacts
-                else:
+                if "artifact" not in fields:
                     artifact = _persist_output_artifact(
                         stdout,
                         run_id=run_id,
@@ -877,10 +895,11 @@ def _safe_tool_result_fields(
                     if artifact:
                         fields["artifact"] = artifact
                         fields["artifacts"] = [artifact]
-                if "artifact" not in fields and isinstance(parsed.get("artifactUnavailableReason"), str):
-                    fields["artifactUnavailableReason"] = parsed["artifactUnavailableReason"]
-                elif _artifact_context_available():
-                    fields["artifactUnavailableReason"] = "output_artifact_unavailable"
+                if "artifact" not in fields:
+                    if isinstance(parsed.get("artifactUnavailableReason"), str):
+                        fields["artifactUnavailableReason"] = parsed["artifactUnavailableReason"]
+                    elif _artifact_context_available():
+                        fields["artifactUnavailableReason"] = "output_artifact_unavailable"
 
     stderr = _first_string(parsed, "stderr")
     error = parsed.get("error")
@@ -903,32 +922,22 @@ def _persist_output_artifact(
 ) -> dict[str, Any] | None:
     if not stdout:
         return None
-    hermes_home = os.environ.get("HERMES_HOME")
-    if not hermes_home:
+    artifact_dir = _artifact_dir_from_env()
+    if artifact_dir is None:
         return None
 
     content = stdout.encode("utf-8", errors="replace")
     if len(content) > _max_output_artifact_bytes():
         return None
 
-    try:
-        home = Path(hermes_home).expanduser().resolve()
-    except Exception:
-        return None
-
-    session_segment = _safe_artifact_segment(session_id, fallback="session")
-    run_segment = _safe_artifact_segment(run_id, fallback="run")
     tool_segment = _safe_artifact_segment(tool_name, fallback="tool")
     call_segment = _safe_artifact_segment(tool_call_id, fallback="call")
     digest = hashlib.sha256(content).hexdigest()
-    extension, mime_type = _output_artifact_type(stdout)
+    extension, _mime_type = _output_artifact_type(stdout)
     artifact_id = f"{tool_segment}-{call_segment}-{digest[:16]}"
     file_name = f"{artifact_id}.{extension}"
 
     try:
-        artifact_dir = (home / "sessions" / f"{session_segment}.artifacts" / run_segment).resolve()
-        if not _path_within(artifact_dir, home):
-            return None
         artifact_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
         file_path = (artifact_dir / file_name).resolve()
         if not _path_within(file_path, artifact_dir):
@@ -941,17 +950,48 @@ def _persist_output_artifact(
     except Exception:
         return None
 
-    return {
-        "artifactId": artifact_id,
-        "fileName": file_name,
-        "sizeBytes": len(content),
-        "mimeType": mime_type,
-        "sha256": digest,
-    }
+    try:
+        from runtime_manager.artifacts import metadata_for_artifact_file
+
+        return metadata_for_artifact_file(
+            file_path,
+            artifact_dir,
+            artifact_id=artifact_id,
+            kind="stdout_fallback",
+            source="runtime",
+            summary="Truncated tool stdout fallback",
+        )
+    except Exception:
+        return None
 
 
 def _artifact_context_available() -> bool:
-    return bool(os.environ.get("HERMES_HOME"))
+    return _artifact_dir_from_env() is not None
+
+
+def _artifact_dir_from_env() -> Path | None:
+    raw = os.environ.get("HERMES_ARTIFACT_DIR", "").strip()
+    if not raw:
+        return None
+    try:
+        return Path(raw).expanduser().resolve()
+    except Exception:
+        return None
+
+
+def _discover_report_artifacts_from_dir(
+    artifact_dir: Path | None,
+    *,
+    seen_artifact_ids: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    if artifact_dir is None:
+        return []
+    try:
+        from runtime_manager.artifacts import discover_artifacts
+
+        return discover_artifacts(artifact_dir, seen_artifact_ids=seen_artifact_ids)
+    except Exception:
+        return []
 
 
 def _max_output_artifact_bytes() -> int:
@@ -1050,13 +1090,22 @@ def _artifact_metadata_from_mapping(value: Any) -> dict[str, Any] | None:
         return None
     if "/" in artifact_id or "\\" in artifact_id:
         return None
-    return {
+    artifact = {
         "artifactId": artifact_id.strip(),
         "fileName": file_name.strip(),
         "sizeBytes": size_bytes,
         "mimeType": mime_type.strip(),
         "sha256": sha256.strip(),
     }
+    for key in ("kind", "source", "summary"):
+        item = value.get(key)
+        if isinstance(item, str) and item.strip():
+            artifact[key] = item.strip()
+    for key in ("canBrowse", "canDownload"):
+        item = value.get(key)
+        if isinstance(item, bool):
+            artifact[key] = item
+    return artifact
 
 
 def _artifact_list_from_value(value: Any) -> list[dict[str, Any]]:

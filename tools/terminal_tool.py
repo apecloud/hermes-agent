@@ -243,8 +243,8 @@ def _current_terminal_session_key() -> str:
 def _archive_terminal_output_artifact(output: str, *, command: str) -> dict[str, Any] | None:
     if not output:
         return None
-    hermes_home = os.getenv("HERMES_HOME", "").strip()
-    if not hermes_home:
+    artifact_dir_raw = os.getenv("HERMES_ARTIFACT_DIR", "").strip()
+    if not artifact_dir_raw:
         return None
 
     content = output.encode("utf-8", errors="replace")
@@ -252,22 +252,17 @@ def _archive_terminal_output_artifact(output: str, *, command: str) -> dict[str,
         return None
 
     try:
-        home = Path(hermes_home).expanduser().resolve()
+        artifact_dir = Path(artifact_dir_raw).expanduser().resolve()
     except Exception:
         return None
 
-    session_segment = _safe_artifact_segment(_current_terminal_session_key(), fallback="session")
-    run_segment = _safe_artifact_segment(os.getenv("HERMES_RUNTIME_RUN_ID", ""), fallback="run")
     digest = hashlib.sha256(content).hexdigest()
     command_digest = hashlib.sha256(str(command or "").encode("utf-8", errors="replace")).hexdigest()[:8]
-    extension, mime_type = _terminal_output_artifact_type(output)
+    extension, _mime_type = _terminal_output_artifact_type(output)
     artifact_id = f"terminal-{command_digest}-{digest[:16]}"
     file_name = f"{artifact_id}.{extension}"
 
     try:
-        artifact_dir = (home / "sessions" / f"{session_segment}.artifacts" / run_segment).resolve()
-        if not _path_within(artifact_dir, home):
-            return None
         artifact_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
         file_path = (artifact_dir / file_name).resolve()
         if not _path_within(file_path, artifact_dir):
@@ -280,13 +275,19 @@ def _archive_terminal_output_artifact(output: str, *, command: str) -> dict[str,
     except Exception:
         return None
 
-    return {
-        "artifactId": artifact_id,
-        "fileName": file_name,
-        "sizeBytes": len(content),
-        "mimeType": mime_type,
-        "sha256": digest,
-    }
+    try:
+        from runtime_manager.artifacts import metadata_for_artifact_file
+
+        return metadata_for_artifact_file(
+            file_path,
+            artifact_dir,
+            artifact_id=artifact_id,
+            kind="stdout_fallback",
+            source="terminal",
+            summary="Truncated terminal stdout fallback",
+        )
+    except Exception:
+        return None
 
 
 def _max_terminal_output_artifact_bytes() -> int:
@@ -2448,7 +2449,7 @@ def terminal_tool(
             if len(output) > MAX_OUTPUT_CHARS:
                 truncated = True
                 artifact = _archive_terminal_output_artifact(output, command=command)
-                if artifact is None and os.getenv("HERMES_HOME", "").strip():
+                if artifact is None and os.getenv("HERMES_ARTIFACT_DIR", "").strip():
                     artifact_unavailable_reason = "output_artifact_unavailable"
                 head_chars = int(MAX_OUTPUT_CHARS * 0.4)  # 40% head (error messages often appear early)
                 tail_chars = MAX_OUTPUT_CHARS - head_chars  # 60% tail (most recent/relevant output)

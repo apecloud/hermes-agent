@@ -8,7 +8,7 @@ from typing import Any
 
 try:
     from fastapi import FastAPI, Header, HTTPException, Query
-    from fastapi.responses import JSONResponse, StreamingResponse
+    from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
     from pydantic import BaseModel, ConfigDict, Field
 except ImportError as exc:  # pragma: no cover - runtime dependency
     raise SystemExit(
@@ -209,6 +209,40 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except RuntimeError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.get("/agent/sessions/{session_id}/artifacts/{artifact_id}")
+    async def get_artifact(
+        session_id: str,
+        artifact_id: str,
+        user_id: str = Query(...),
+        run_id: str = Query(...),
+        authorization: str | None = Header(default=None),
+    ):
+        state = app.state.runtime_manager
+        await _authorize(state, authorization)
+        try:
+            path, metadata = state.manager.get_artifact(
+                user_id=user_id,
+                session_id=session_id,
+                run_id=run_id,
+                artifact_id=artifact_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return FileResponse(
+            path,
+            media_type=metadata.get("mimeType") or "application/octet-stream",
+            filename=metadata.get("fileName") or "artifact",
+            content_disposition_type="attachment",
+            headers={
+                "X-Hermes-Artifact-Id": str(metadata.get("artifactId") or ""),
+                "X-Hermes-Artifact-Sha256": str(metadata.get("sha256") or ""),
+                "X-Hermes-Artifact-Kind": str(metadata.get("kind") or ""),
+                "X-Hermes-Artifact-Source": str(metadata.get("source") or ""),
+            },
+        )
 
     return app
 

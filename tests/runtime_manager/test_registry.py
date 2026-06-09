@@ -226,7 +226,9 @@ def test_runtime_worker_long_success_stdout_becomes_warning_artifact(tmp_path, m
     from runtime_manager.worker_main import _safe_tool_result_fields
 
     hermes_home = tmp_path / "user-1"
+    artifact_dir = hermes_home / "sessions" / "session_1.artifacts" / "run_1"
     monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("HERMES_ARTIFACT_DIR", str(artifact_dir))
     stdout = "<html><body>\n" + ("AWR report row\n" * 160) + "</body></html>\n"
 
     result_fields = _safe_tool_result_fields(
@@ -251,14 +253,16 @@ def test_runtime_worker_long_success_stdout_becomes_warning_artifact(tmp_path, m
     assert "AWR report row\n" * 120 not in json.dumps(result_fields, ensure_ascii=False)
 
     artifact = result_fields["artifact"]
-    assert set(artifact) == {"artifactId", "fileName", "sizeBytes", "mimeType", "sha256"}
+    assert {"artifactId", "fileName", "sizeBytes", "mimeType", "sha256", "kind", "source"} <= set(artifact)
     assert "/" not in artifact["artifactId"]
     assert artifact["fileName"].endswith(".html")
     assert artifact["sizeBytes"] == len(stdout.encode("utf-8"))
     assert artifact["mimeType"] == "text/html; charset=utf-8"
+    assert artifact["kind"] == "stdout_fallback"
+    assert artifact["source"] == "runtime"
     assert "path" not in json.dumps(artifact, ensure_ascii=False).lower()
 
-    artifact_files = [path for path in (hermes_home / "sessions").rglob("*") if path.is_file()]
+    artifact_files = [path for path in artifact_dir.rglob("*") if path.is_file()]
     assert len(artifact_files) == 1
     assert artifact_files[0].read_text(encoding="utf-8") == stdout
 
@@ -285,6 +289,7 @@ def test_runtime_worker_prefers_terminal_artifact_metadata_over_rearchiving(tmp_
             "truncated": True,
             "output_bytes": 200,
             "artifact": terminal_artifact,
+            "artifactUnavailableReason": "output_artifact_unavailable",
         },
         run_id="run-1",
         session_id="session-1",
@@ -298,6 +303,7 @@ def test_runtime_worker_prefers_terminal_artifact_metadata_over_rearchiving(tmp_
     assert result_fields["output_bytes"] == 200
     assert result_fields["artifact"] == terminal_artifact
     assert result_fields["artifacts"] == [terminal_artifact]
+    assert "artifactUnavailableReason" not in result_fields
     assert not (hermes_home / "sessions").exists()
 
 
@@ -312,6 +318,21 @@ def test_runtime_manager_session_cleanup_removes_output_artifacts(tmp_path):
 
     assert _remove_session_files(sessions_dir, "conv-1")
     assert not (sessions_dir / "conv-1.json").exists()
+    assert not (sessions_dir / "conv-1.artifacts").exists()
+
+
+def test_session_db_cleanup_removes_output_artifacts(tmp_path):
+    from hermes_state import SessionDB
+
+    db = SessionDB(tmp_path / "state.db")
+    sessions_dir = tmp_path / "sessions"
+    artifacts_dir = sessions_dir / "conv-1.artifacts" / "run-1"
+    artifacts_dir.mkdir(parents=True)
+    (artifacts_dir / "report.html").write_text("<html></html>", encoding="utf-8")
+
+    session_id = db.create_session("conv-1", "test")
+    assert session_id == "conv-1"
+    assert db.delete_session("conv-1", sessions_dir=sessions_dir)
     assert not (sessions_dir / "conv-1.artifacts").exists()
 
 

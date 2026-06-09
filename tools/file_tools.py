@@ -153,7 +153,7 @@ def _resolve_path_for_task(filepath: str, task_id: str = "default") -> Path:
     See :func:`_resolve_base_dir` for how the base is chosen. Absolute input
     paths are returned resolved-but-unanchored.
     """
-    p = Path(filepath).expanduser()
+    p = Path(os.path.expandvars(filepath)).expanduser()
     if p.is_absolute():
         return p.resolve()
     return (_resolve_base_dir(task_id) / p).resolve()
@@ -170,7 +170,7 @@ def _path_resolution_warning(filepath: str, resolved: Path, task_id: str = "defa
     or the resolved path is correctly under the workspace root.
     """
     try:
-        if Path(filepath).expanduser().is_absolute():
+        if Path(os.path.expandvars(filepath)).expanduser().is_absolute():
             return None
         live = _get_live_tracking_cwd(task_id)
         if not live:

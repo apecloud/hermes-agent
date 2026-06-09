@@ -116,7 +116,9 @@ def test_terminal_output_transform_still_truncates_long_replacement(monkeypatch,
 
 def test_terminal_archives_full_output_before_default_truncation(monkeypatch, tmp_path):
     hermes_home = tmp_path / "hermes-home"
+    artifact_dir = hermes_home / "sessions" / "conv-1.artifacts" / "run-1"
     monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("HERMES_ARTIFACT_DIR", str(artifact_dir))
     monkeypatch.setenv("HERMES_SESSION_KEY", "conv-1")
     monkeypatch.setenv("HERMES_RUNTIME_RUN_ID", "run-1")
     middle = "MIDDLE-OF-AWR-REPORT"
@@ -129,12 +131,14 @@ def test_terminal_archives_full_output_before_default_truncation(monkeypatch, tm
     assert result["truncated"] is True
     assert result["output_bytes"] == len(full_output.encode("utf-8"))
     artifact = result["artifact"]
-    assert set(artifact) == {"artifactId", "fileName", "sizeBytes", "mimeType", "sha256"}
+    assert {"artifactId", "fileName", "sizeBytes", "mimeType", "sha256", "kind", "source"} <= set(artifact)
     assert artifact["sizeBytes"] == len(full_output.encode("utf-8"))
+    assert artifact["kind"] == "stdout_fallback"
+    assert artifact["source"] == "terminal"
     assert "/" not in artifact["artifactId"]
     assert artifact["fileName"].endswith(".txt")
 
-    artifact_files = [path for path in (hermes_home / "sessions").rglob("*") if path.is_file()]
+    artifact_files = [path for path in artifact_dir.rglob("*") if path.is_file()]
     assert len(artifact_files) == 1
     assert artifact_files[0].read_text(encoding="utf-8") == full_output
 
