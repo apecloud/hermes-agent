@@ -222,6 +222,154 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     assert "/secret/path" not in json.dumps(approval_fields, ensure_ascii=False)
 
 
+def test_runtime_worker_long_success_stdout_becomes_warning_without_auto_artifact(tmp_path, monkeypatch):
+    from runtime_manager.worker_main import _safe_tool_result_fields
+
+    hermes_home = tmp_path / "user-1"
+    artifact_dir = hermes_home / "sessions" / "session_1.artifacts" / "run_1"
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("HERMES_ARTIFACT_DIR", str(artifact_dir))
+    stdout = "<html><body>\n" + ("AWR report row\n" * 160) + "</body></html>\n"
+
+    result_fields = _safe_tool_result_fields(
+        {
+            "output": stdout,
+            "exit_code": 0,
+            "error": "output too long: original output hidden",
+        },
+        run_id="run/1",
+        session_id="../session 1",
+        tool_call_id="tool/1",
+        tool_name="terminal",
+    )
+
+    assert result_fields["error"] is False
+    assert result_fields["exit_code"] == 0
+    assert result_fields["truncated"] is True
+    assert result_fields["warningReason"] == "output_truncated"
+    assert result_fields["output_bytes"] == len(stdout.encode("utf-8"))
+    assert result_fields["stdout_preview"].startswith("<html><body>")
+    assert "stderr_preview" not in result_fields
+    assert "AWR report row\n" * 120 not in json.dumps(result_fields, ensure_ascii=False)
+    assert "artifact" not in result_fields
+    assert "artifactUnavailableReason" not in result_fields
+    assert not any(artifact_dir.rglob("*"))
+
+
+def test_runtime_worker_prefers_terminal_artifact_metadata_over_rearchiving(tmp_path, monkeypatch):
+    from runtime_manager.worker_main import _safe_tool_result_fields
+
+    hermes_home = tmp_path / "user-1"
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    preview = "head\n... [OUTPUT TRUNCATED - 100 chars omitted out of 200 total] ...\ntail"
+    terminal_artifact = {
+        "artifactId": "terminal-call-abc123",
+        "fileName": "terminal-call-abc123.txt",
+        "sizeBytes": 200,
+        "mimeType": "text/plain; charset=utf-8",
+        "sha256": "f" * 64,
+    }
+
+    result_fields = _safe_tool_result_fields(
+        {
+            "output": preview,
+            "exit_code": 0,
+            "error": None,
+            "truncated": True,
+            "output_bytes": 200,
+            "artifact": terminal_artifact,
+            "artifactUnavailableReason": "output_artifact_unavailable",
+        },
+        run_id="run-1",
+        session_id="session-1",
+        tool_call_id="tool-1",
+        tool_name="terminal",
+    )
+
+    assert result_fields["error"] is False
+    assert result_fields["truncated"] is True
+    assert result_fields["warningReason"] == "output_truncated"
+    assert result_fields["output_bytes"] == 200
+    assert result_fields["artifact"] == terminal_artifact
+    assert result_fields["artifacts"] == [terminal_artifact]
+    assert "artifactUnavailableReason" not in result_fields
+    assert not (hermes_home / "sessions").exists()
+
+
+def test_runtime_manager_session_cleanup_removes_output_artifacts(tmp_path):
+    from runtime_manager.manager import _remove_session_files
+
+    sessions_dir = tmp_path / "sessions"
+    artifacts_dir = sessions_dir / "conv-1.artifacts" / "run-1"
+    artifacts_dir.mkdir(parents=True)
+    (sessions_dir / "conv-1.json").write_text("{}", encoding="utf-8")
+    (artifacts_dir / "terminal-tool-output.txt").write_text("full output", encoding="utf-8")
+
+    assert _remove_session_files(sessions_dir, "conv-1")
+    assert not (sessions_dir / "conv-1.json").exists()
+    assert not (sessions_dir / "conv-1.artifacts").exists()
+
+
+def test_session_db_cleanup_removes_output_artifacts(tmp_path):
+    from hermes_state import SessionDB
+
+    db = SessionDB(tmp_path / "state.db")
+    sessions_dir = tmp_path / "sessions"
+    artifacts_dir = sessions_dir / "conv-1.artifacts" / "run-1"
+    artifacts_dir.mkdir(parents=True)
+    (artifacts_dir / "report.html").write_text("<html></html>", encoding="utf-8")
+
+    session_id = db.create_session("conv-1", "test")
+    assert session_id == "conv-1"
+    assert db.delete_session("conv-1", sessions_dir=sessions_dir)
+    assert not (sessions_dir / "conv-1.artifacts").exists()
+
+
+def test_runtime_worker_long_nonzero_exit_remains_error(tmp_path, monkeypatch):
+    from runtime_manager.worker_main import _safe_tool_result_fields
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "user-1"))
+    result_fields = _safe_tool_result_fields(
+        {
+            "stdout": "still useful\n" * 200,
+            "exitCode": 1,
+            "error": "command failed",
+        },
+        run_id="run-1",
+        session_id="session-1",
+        tool_call_id="tool-1",
+        tool_name="terminal",
+    )
+
+    assert result_fields["error"] is True
+    assert result_fields["exit_code"] == 1
+    assert result_fields["stderr_preview"] == "command failed"
+    assert "warningReason" not in result_fields
+    assert "artifact" not in result_fields
+
+
+def test_runtime_worker_output_truncation_without_stdout_remains_error(tmp_path, monkeypatch):
+    from runtime_manager.worker_main import _safe_tool_result_fields
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "user-1"))
+    result_fields = _safe_tool_result_fields(
+        {
+            "output": "",
+            "exit_code": 0,
+            "error": "output too long: preview unavailable",
+        },
+        run_id="run-1",
+        session_id="session-1",
+        tool_call_id="tool-1",
+        tool_name="terminal",
+    )
+
+    assert result_fields["error"] is True
+    assert result_fields["stderr_preview"] == "output too long: preview unavailable"
+    assert "warningReason" not in result_fields
+    assert "artifact" not in result_fields
+
+
 def test_runtime_worker_summarizes_stringified_terminal_arguments():
     from runtime_manager.worker_main import _summarize_previous_tools
 

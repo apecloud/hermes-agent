@@ -4,6 +4,8 @@ import asyncio
 import json
 import logging
 import os
+import re
+import shutil
 import sys
 import time
 import uuid
@@ -12,11 +14,13 @@ from typing import Any
 
 from hermes_state import SessionDB
 
+from .artifacts import artifact_dir_for, find_artifact_file
 from .cloud_kubeconfig import CloudKubeconfigResolver
 from .profile_resolver import RuntimeProfileResolver
 from .registry import RunHandle, RunRegistry
 
 logger = logging.getLogger(__name__)
+_SESSION_ARTIFACT_SEGMENT_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
 
 class RuntimeManager:
     def __init__(
@@ -109,6 +113,9 @@ class RuntimeManager:
 
         try:
             proc_env = resolved.worker_env.copy()
+            artifact_dir = artifact_dir_for(resolved.user_home, resolved.session_id, run_id)
+            artifact_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+            proc_env["HERMES_ARTIFACT_DIR"] = str(artifact_dir)
             proc = await asyncio.create_subprocess_exec(
                 self.python_executable,
                 str(self.worker_script),
@@ -146,6 +153,7 @@ class RuntimeManager:
             "skip_context_files": bool(payload.get("skip_context_files", True)),
             "max_iterations": resolved.max_iterations,
             "metadata": payload.get("metadata") or {},
+            "artifact_dir": str(artifact_dir),
         }
         assert proc.stdin is not None
         proc.stdin.write((json.dumps(worker_request, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -267,6 +275,30 @@ class RuntimeManager:
             "session_id": session_id,
             "deleted": bool(deleted_from_db or deleted_files or removed_runs),
         }
+
+    def get_artifact(
+        self,
+        *,
+        user_id: str,
+        session_id: str,
+        run_id: str,
+        artifact_id: str,
+    ) -> tuple[Path, dict[str, Any]]:
+        user_id = self.resolver.validate_user_id(user_id)
+        session_id = str(session_id or "").strip()
+        run_id = str(run_id or "").strip()
+        if not session_id:
+            raise ValueError("session_id is required")
+        if not run_id:
+            raise ValueError("run_id is required")
+        if not artifact_id:
+            raise ValueError("artifact_id is required")
+
+        user_home = self.resolver.resolve(user_id, create=False)
+        found = find_artifact_file(artifact_dir_for(user_home, session_id, run_id), artifact_id)
+        if found is None:
+            raise FileNotFoundError("artifact not found")
+        return found
 
     async def _pump_stdout(self, handle: RunHandle) -> None:
         proc = handle.process
@@ -401,4 +433,20 @@ def _remove_session_files(sessions_dir: Path, session_id: str) -> bool:
             removed = True
         except OSError:
             pass
+    artifacts_dir = sessions_dir / f"{_safe_session_artifact_segment(session_id)}.artifacts"
+    if artifacts_dir.exists() or artifacts_dir.is_symlink():
+        try:
+            if artifacts_dir.is_symlink() or artifacts_dir.is_file():
+                artifacts_dir.unlink()
+            else:
+                shutil.rmtree(artifacts_dir)
+            removed = True
+        except OSError:
+            pass
     return removed
+
+
+def _safe_session_artifact_segment(session_id: str) -> str:
+    value = _SESSION_ARTIFACT_SEGMENT_PATTERN.sub("_", str(session_id or "").strip())
+    value = value.strip("._-")[:80]
+    return value or "session"

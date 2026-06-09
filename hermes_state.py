@@ -18,6 +18,7 @@ import json
 import logging
 import random
 import re
+import shutil
 import sqlite3
 import threading
 import time
@@ -71,6 +72,7 @@ _last_init_error_lock = threading.Lock()
 # filesystem-incompat warning on every connection, filling errors.log.
 _wal_fallback_warned_paths: set[str] = set()
 _wal_fallback_warned_lock = threading.Lock()
+_SESSION_ARTIFACT_SEGMENT_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
 
 _FTS_TRIGGERS = (
     "messages_fts_insert",
@@ -97,6 +99,12 @@ def _set_last_init_error(msg: Optional[str]) -> None:
     global _last_init_error
     with _last_init_error_lock:
         _last_init_error = msg
+
+
+def _safe_session_artifact_segment(session_id: str) -> str:
+    value = _SESSION_ARTIFACT_SEGMENT_PATTERN.sub("_", str(session_id or "").strip())
+    value = value.strip("._-")[:80]
+    return value or "session"
 
 
 def get_last_init_error() -> Optional[str]:
@@ -3368,7 +3376,9 @@ class SessionDB:
         """Remove on-disk transcript files for a session.
 
         Cleans up ``{session_id}.json``, ``{session_id}.jsonl``, and any
-        ``request_dump_{session_id}_*.json`` files left by the gateway.
+        ``request_dump_{session_id}_*.json`` files left by the gateway, plus
+        the controlled ``{session_id}.artifacts`` directory used for report
+        artifacts.
         Silently skips files that don't exist and swallows OSError so a
         filesystem hiccup never blocks a DB operation.
         """
@@ -3387,6 +3397,14 @@ class SessionDB:
                     p.unlink(missing_ok=True)
                 except OSError:
                     pass
+        except OSError:
+            pass
+        artifacts_dir = sessions_dir / f"{_safe_session_artifact_segment(session_id)}.artifacts"
+        try:
+            if artifacts_dir.is_symlink() or artifacts_dir.is_file():
+                artifacts_dir.unlink(missing_ok=True)
+            elif artifacts_dir.exists():
+                shutil.rmtree(artifacts_dir)
         except OSError:
             pass
 

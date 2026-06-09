@@ -34,6 +34,17 @@ _SENSITIVE_FLAG_VALUE_PATTERN = re.compile(
 )
 _INTERNAL_USER_PATH_PATTERN = re.compile(r"/opt/data/users/[^\s'\"]+")
 _WHITESPACE_PATTERN = re.compile(r"\s+")
+_TOOL_OUTPUT_PREVIEW_LIMIT = 1200
+_OUTPUT_TRUNCATION_MARKERS = (
+    "output too long",
+    "output truncated",
+    "tool response was",
+    "too large",
+    "capture limit",
+    "原始输出隐藏",
+    "输出过长",
+    "输出已截断",
+)
 
 
 def emit(event: dict[str, Any]) -> None:
@@ -69,6 +80,10 @@ def main() -> int:
     from runtime_manager.bootstrap import load_profile_environment
 
     load_profile_environment(hermes_home)
+    os.environ["HERMES_RUNTIME_RUN_ID"] = run_id
+    os.environ["HERMES_SESSION_KEY"] = approval_session_key
+    if request.get("artifact_dir") and not os.environ.get("HERMES_ARTIFACT_DIR"):
+        os.environ["HERMES_ARTIFACT_DIR"] = str(request["artifact_dir"])
 
     from agent.skill_commands import build_preloaded_skills_prompt
     from gateway.session_context import clear_session_vars, set_session_vars
@@ -215,6 +230,7 @@ def main() -> int:
     listener.start()
 
     tool_started_at: dict[str, float] = {}
+    seen_artifact_ids: set[str] = set()
     tool_lock = threading.Lock()
 
     def on_tool_start(tool_call_id: str, tool_name: str, args: Any) -> None:
@@ -246,7 +262,16 @@ def main() -> int:
         }
         if command_preview := _safe_tool_command_preview(tool_name, args):
             event["command_preview"] = command_preview
-        event.update(_safe_tool_result_fields(result))
+        event.update(
+            _safe_tool_result_fields(
+                result,
+                run_id=run_id,
+                session_id=session_id,
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                seen_artifact_ids=seen_artifact_ids,
+            )
+        )
         if started_at is not None:
             event["duration"] = round(completed_at - started_at, 3)
         emit(event)
@@ -798,11 +823,20 @@ def _safe_tool_result_summary(result: Any) -> str:
     return f"Tool completed; output size {size} bytes"
 
 
-def _safe_tool_result_fields(result: Any) -> dict[str, Any]:
+def _safe_tool_result_fields(
+    result: Any,
+    *,
+    run_id: Any = None,
+    session_id: Any = None,
+    tool_call_id: Any = None,
+    tool_name: Any = None,
+    seen_artifact_ids: set[str] | None = None,
+) -> dict[str, Any]:
     parsed = _parse_tool_result(result)
+    has_error = _tool_result_has_error(parsed)
     fields: dict[str, Any] = {
         "result_preview": _safe_tool_result_summary(result),
-        "error": _tool_result_has_error(result),
+        "error": has_error,
     }
     if not isinstance(parsed, dict):
         return fields
@@ -810,22 +844,80 @@ def _safe_tool_result_fields(result: Any) -> dict[str, Any]:
     exit_code = _first_value(parsed, "exit_code", "exitCode", "returncode", "return_code")
     if exit_code is not None:
         fields["exit_code"] = exit_code
+        fields["exitCode"] = exit_code
 
-    stdout = _first_string(parsed, "output", "stdout")
+    stdout = _first_text(parsed, "output", "stdout")
+    reported_output_bytes = _coerce_positive_int(_first_value(parsed, "output_bytes", "outputBytes"))
+    reported_artifact = _artifact_metadata_from_mapping(parsed.get("artifact"))
+    reported_artifacts = _artifact_list_from_value(parsed.get("artifacts"))
+    if reported_artifact and reported_artifact not in reported_artifacts:
+        reported_artifacts.insert(0, reported_artifact)
+    reported_artifact_ids = {
+        artifact["artifactId"]
+        for artifact in reported_artifacts
+        if isinstance(artifact.get("artifactId"), str)
+    }
+    discovered_artifacts = _discover_report_artifacts_from_dir(
+        _artifact_dir_from_env(),
+        seen_artifact_ids=reported_artifact_ids | (seen_artifact_ids or set()),
+    )
+    if seen_artifact_ids is not None:
+        seen_artifact_ids.update(artifact["artifactId"] for artifact in discovered_artifacts)
+    artifacts = reported_artifacts + discovered_artifacts
+    if artifacts:
+        fields["artifact"] = artifacts[0]
+        fields["artifacts"] = artifacts
+
+    output_bytes = 0
     if stdout:
-        fields["stdout_preview"] = _safe_output_preview(stdout, limit=1200)
-        fields["output_bytes"] = len(stdout.encode("utf-8", errors="replace"))
-        if fields["output_bytes"] > 1200:
+        fields["stdout_preview"] = _safe_output_preview(stdout, limit=_TOOL_OUTPUT_PREVIEW_LIMIT)
+        fields["stdoutPreview"] = fields["stdout_preview"]
+        output_bytes = reported_output_bytes or len(stdout.encode("utf-8", errors="replace"))
+        fields["output_bytes"] = output_bytes
+        fields["outputBytes"] = output_bytes
+        if _truthy_result_value(parsed.get("truncated")) or output_bytes > _TOOL_OUTPUT_PREVIEW_LIMIT:
             fields["truncated"] = True
+            if not has_error:
+                fields["partial"] = True
+                fields["warningReason"] = "output_truncated"
+                fields["warning_reason"] = "output_truncated"
+                if "artifact" not in fields and isinstance(parsed.get("artifactUnavailableReason"), str):
+                    fields["artifactUnavailableReason"] = parsed["artifactUnavailableReason"]
 
     stderr = _first_string(parsed, "stderr")
     error = parsed.get("error")
-    if not stderr and _truthy_result_value(error):
+    if not stderr and _truthy_result_value(error) and not _output_truncation_warning(parsed, stdout=stdout):
         stderr = str(error)
     if stderr:
-        fields["stderr_preview"] = _safe_output_preview(stderr, limit=1200)
+        fields["stderr_preview"] = _safe_output_preview(stderr, limit=_TOOL_OUTPUT_PREVIEW_LIMIT)
+        fields["stderrPreview"] = fields["stderr_preview"]
 
     return fields
+
+
+def _artifact_dir_from_env() -> Path | None:
+    raw = os.environ.get("HERMES_ARTIFACT_DIR", "").strip()
+    if not raw:
+        return None
+    try:
+        return Path(raw).expanduser().resolve()
+    except Exception:
+        return None
+
+
+def _discover_report_artifacts_from_dir(
+    artifact_dir: Path | None,
+    *,
+    seen_artifact_ids: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    if artifact_dir is None:
+        return []
+    try:
+        from runtime_manager.artifacts import discover_artifacts
+
+        return discover_artifacts(artifact_dir, seen_artifact_ids=seen_artifact_ids)
+    except Exception:
+        return []
 
 
 def _parse_tool_result(result: Any) -> Any:
@@ -853,6 +945,70 @@ def _first_string(mapping: dict[str, Any], *keys: str) -> str:
     if isinstance(value, str):
         return value.strip()
     return ""
+
+
+def _first_text(mapping: dict[str, Any], *keys: str) -> str:
+    value = _first_value(mapping, *keys)
+    if isinstance(value, str):
+        return value
+    return ""
+
+
+def _coerce_positive_int(value: Any) -> int:
+    if isinstance(value, bool) or value is None:
+        return 0
+    if isinstance(value, (int, float)):
+        return int(value) if value > 0 else 0
+    if isinstance(value, str):
+        try:
+            parsed = int(value.strip())
+        except ValueError:
+            return 0
+        return parsed if parsed > 0 else 0
+    return 0
+
+
+def _artifact_metadata_from_mapping(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    artifact_id = value.get("artifactId")
+    file_name = value.get("fileName")
+    size_bytes = _coerce_positive_int(value.get("sizeBytes"))
+    mime_type = value.get("mimeType")
+    sha256 = value.get("sha256")
+    if not all(isinstance(item, str) and item.strip() for item in (artifact_id, file_name, mime_type, sha256)):
+        return None
+    if not size_bytes:
+        return None
+    if "/" in artifact_id or "\\" in artifact_id:
+        return None
+    artifact = {
+        "artifactId": artifact_id.strip(),
+        "fileName": file_name.strip(),
+        "sizeBytes": size_bytes,
+        "mimeType": mime_type.strip(),
+        "sha256": sha256.strip(),
+    }
+    for key in ("kind", "source", "summary"):
+        item = value.get(key)
+        if isinstance(item, str) and item.strip():
+            artifact[key] = item.strip()
+    for key in ("canBrowse", "canDownload"):
+        item = value.get(key)
+        if isinstance(item, bool):
+            artifact[key] = item
+    return artifact
+
+
+def _artifact_list_from_value(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    artifacts = []
+    for item in value:
+        artifact = _artifact_metadata_from_mapping(item)
+        if artifact:
+            artifacts.append(artifact)
+    return artifacts
 
 
 def _serialized_size(value: Any) -> int:
@@ -918,8 +1074,6 @@ def _tool_result_has_error(value: Any) -> bool:
     if isinstance(value, dict):
         if _truthy_result_value(value.get("is_error")):
             return True
-        if _truthy_result_value(value.get("error")):
-            return True
         for key in ("exit_code", "exitCode", "returncode", "return_code"):
             if _exit_code_failed(value.get(key)):
                 return True
@@ -933,6 +1087,9 @@ def _tool_result_has_error(value: Any) -> bool:
             "timeout",
         }:
             return True
+        stdout = _first_text(value, "output", "stdout")
+        if _truthy_result_value(value.get("error")):
+            return not _output_truncation_warning(value, stdout=stdout)
         return False
     if isinstance(value, str):
         stripped = value.strip()
@@ -944,6 +1101,35 @@ def _tool_result_has_error(value: Any) -> bool:
             return False
         return _tool_result_has_error(parsed)
     return False
+
+
+def _output_truncation_warning(mapping: dict[str, Any], *, stdout: str) -> bool:
+    if not stdout:
+        return False
+    if not _exit_code_success(mapping):
+        return False
+    error = mapping.get("error")
+    if not _truthy_result_value(error):
+        return False
+    return _is_output_truncation_notice(str(error))
+
+
+def _exit_code_success(mapping: dict[str, Any]) -> bool:
+    exit_code_seen = False
+    for key in ("exit_code", "exitCode", "returncode", "return_code"):
+        if key not in mapping:
+            continue
+        exit_code_seen = True
+        if _exit_code_failed(mapping.get(key)):
+            return False
+    return exit_code_seen
+
+
+def _is_output_truncation_notice(value: str) -> bool:
+    normalized = value.strip().lower()
+    if not normalized:
+        return False
+    return any(marker in normalized for marker in _OUTPUT_TRUNCATION_MARKERS)
 
 
 def _truthy_result_value(value: Any) -> bool:
