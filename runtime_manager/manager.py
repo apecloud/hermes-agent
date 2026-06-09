@@ -96,6 +96,7 @@ class RuntimeManager:
             llm_config.get("base_url"),
             llm_config.get("baseURL"),
         )
+        tool_choice_policy = _tool_choice_policy_for_payload(payload, llm_config)
         run_id = f"run_{uuid.uuid4().hex}"
         await self._reserve_run(run_id=run_id, user_id=user_id, conversation_id=conversation_id)
         handle = self.registry.create(
@@ -154,6 +155,8 @@ class RuntimeManager:
             "max_iterations": resolved.max_iterations,
             "metadata": payload.get("metadata") or {},
             "artifact_dir": str(artifact_dir),
+            "requires_tool_evidence": _truthy_payload_flag(payload.get("requires_tool_evidence")),
+            "tool_choice_policy": tool_choice_policy,
         }
         assert proc.stdin is not None
         proc.stdin.write((json.dumps(worker_request, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -409,6 +412,32 @@ def _first_present(*values: Any) -> Any:
             continue
         return value
     return None
+
+
+def _truthy_payload_flag(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    if isinstance(value, (int, float)):
+        return value != 0
+    return bool(value)
+
+
+def _tool_choice_policy_for_payload(payload: dict[str, Any], llm_config: dict[str, Any]) -> str:
+    policy = _first_present(
+        payload.get("tool_choice_policy"),
+        payload.get("toolChoicePolicy"),
+        llm_config.get("tool_choice_policy"),
+        llm_config.get("toolChoicePolicy"),
+    )
+    if isinstance(policy, str) and policy.strip():
+        return policy.strip()
+    if _truthy_payload_flag(payload.get("requires_tool_evidence")):
+        return "require_until_first_tool"
+    return ""
 
 
 def _remove_session_files(sessions_dir: Path, session_id: str) -> bool:

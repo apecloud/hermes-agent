@@ -71,6 +71,18 @@ def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
     assert _normalize_agent_provider("qwen-oauth") == "qwen-oauth"
 
 
+def test_runtime_worker_maps_evidence_requirement_to_tool_choice_policy():
+    from runtime_manager.worker_main import _tool_choice_policy_from_request
+
+    assert _tool_choice_policy_from_request({"requires_tool_evidence": True}, {}) == "require_until_first_tool"
+    assert _tool_choice_policy_from_request({"requires_tool_evidence": "true"}, {}) == "require_until_first_tool"
+    assert _tool_choice_policy_from_request(
+        {"requires_tool_evidence": True, "tool_choice_policy": "custom-policy"},
+        {},
+    ) == "custom-policy"
+    assert _tool_choice_policy_from_request({}, {}) == ""
+
+
 def test_runtime_worker_tool_event_helpers_are_json_safe():
     from runtime_manager.worker_main import (
         _approval_display_fields,
@@ -520,7 +532,7 @@ async def test_runtime_manager_forwards_per_run_llm_config_to_worker(tmp_path):
                 "import json, sys, time",
                 "req = json.loads(sys.stdin.readline())",
                 "run_id = req['run_id']",
-                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'model': req.get('model'), 'provider': req.get('provider'), 'base_url': req.get('base_url'), 'api_key': req.get('api_key')})}), flush=True)",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'model': req.get('model'), 'provider': req.get('provider'), 'base_url': req.get('base_url'), 'api_key': req.get('api_key'), 'requires_tool_evidence': req.get('requires_tool_evidence'), 'tool_choice_policy': req.get('tool_choice_policy')})}), flush=True)",
             ]
         ),
         encoding="utf-8",
@@ -540,6 +552,7 @@ async def test_runtime_manager_forwards_per_run_llm_config_to_worker(tmp_path):
             "user_id": "user-1",
             "conversation_id": "conv-1",
             "message": "hello",
+            "requires_tool_evidence": True,
             "llm_config": {
                 "provider": "openai",
                 "model": "gpt-4.1",
@@ -562,6 +575,8 @@ async def test_runtime_manager_forwards_per_run_llm_config_to_worker(tmp_path):
         "provider": "openai",
         "base_url": "https://models.example/v1",
         "api_key": "sk-test",
+        "requires_tool_evidence": True,
+        "tool_choice_policy": "require_until_first_tool",
     }
 
 

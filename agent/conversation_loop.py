@@ -70,6 +70,44 @@ logger = logging.getLogger(__name__)
 # to treat it as cancellation metadata rather than assistant prose.
 INTERRUPT_WAITING_FOR_MODEL_PREFIX = "Operation interrupted: waiting for model response ("
 
+_REQUIRE_UNTIL_FIRST_TOOL_POLICIES = {
+    "require_until_first_tool",
+    "required_until_first_tool",
+}
+
+
+def _current_turn_has_tool_result(messages: List[Dict[str, Any]], current_turn_user_idx: int) -> bool:
+    if not isinstance(messages, list):
+        return False
+    start_idx = current_turn_user_idx + 1 if isinstance(current_turn_user_idx, int) else 0
+    if start_idx < 0:
+        start_idx = 0
+    for message in messages[start_idx:]:
+        if isinstance(message, dict) and message.get("role") == "tool":
+            return True
+    return False
+
+
+def _maybe_apply_required_tool_choice(
+    agent: Any,
+    api_kwargs: Dict[str, Any],
+    messages: List[Dict[str, Any]],
+    current_turn_user_idx: int,
+) -> None:
+    """Force a first tool call only until the current turn has tool evidence."""
+    policy = str(getattr(agent, "tool_choice_policy", "") or "").strip().lower()
+    if policy not in _REQUIRE_UNTIL_FIRST_TOOL_POLICIES:
+        return
+    if not isinstance(api_kwargs, dict):
+        return
+    if api_kwargs.get("tool_choice") is not None:
+        return
+    if not api_kwargs.get("tools"):
+        return
+    if _current_turn_has_tool_result(messages, current_turn_user_idx):
+        return
+    api_kwargs["tool_choice"] = "required"
+
 
 def _ollama_context_limit_error(agent: Any, request_tokens: int) -> Optional[str]:
     """Return a user-facing error when Ollama is loaded with too little context."""
@@ -868,6 +906,7 @@ def run_conversation(
                 # isn't sent with stale, primary-shaped reasoning fields.
                 agent._reapply_reasoning_echo_for_provider(api_messages)
                 api_kwargs = agent._build_api_kwargs(api_messages)
+                _maybe_apply_required_tool_choice(agent, api_kwargs, messages, current_turn_user_idx)
                 if agent._force_ascii_payload:
                     _sanitize_structure_non_ascii(api_kwargs)
                 if agent.api_mode == "codex_responses":

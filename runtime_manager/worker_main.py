@@ -369,6 +369,7 @@ def main() -> int:
             _first_present(request.get("provider"), llm_config.get("provider")),
             base_url=base_url,
         )
+        tool_choice_policy = _tool_choice_policy_from_request(request, llm_config)
 
         system_prompt = _compose_effective_system_prompt(
             request,
@@ -403,6 +404,7 @@ def main() -> int:
             skip_context_files=bool(request.get("skip_context_files", True)),
             ephemeral_system_prompt=system_prompt,
             max_iterations=int(request.get("max_iterations") or 90),
+            tool_choice_policy=tool_choice_policy,
         )
         _AGENT_HOLDER["agent"] = agent
 
@@ -481,6 +483,32 @@ def _first_present(*values: Any) -> Any:
             continue
         return value
     return None
+
+
+def _truthy_request_flag(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    if isinstance(value, (int, float)):
+        return value != 0
+    return bool(value)
+
+
+def _tool_choice_policy_from_request(request: dict[str, Any], llm_config: dict[str, Any]) -> str:
+    policy = _first_present(
+        request.get("tool_choice_policy"),
+        request.get("toolChoicePolicy"),
+        llm_config.get("tool_choice_policy"),
+        llm_config.get("toolChoicePolicy"),
+    )
+    if isinstance(policy, str) and policy.strip():
+        return policy.strip()
+    if _truthy_request_flag(request.get("requires_tool_evidence")):
+        return "require_until_first_tool"
+    return ""
 
 
 def _normalize_agent_provider(provider: Any, *, base_url: Any = None) -> str | None:
