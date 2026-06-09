@@ -32,7 +32,6 @@ Usage:
 """
 
 import importlib.util
-import hashlib
 import json
 import logging
 import os
@@ -158,8 +157,6 @@ def _check_disk_usage_warning():
 # session's cached sudo password inside the same long-lived process.
 _sudo_password_cache: dict[str, str] = {}
 _sudo_password_cache_lock = threading.Lock()
-_ARTIFACT_SEGMENT_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
-_DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES = 20 * 1024 * 1024
 
 # Optional UI callbacks for interactive prompts. When set, these are called
 # instead of the default /dev/tty or input() readers. The CLI registers these
@@ -223,105 +220,6 @@ def _get_sudo_password_cache_scope() -> str:
         return f"callback:{id(callback)}"
 
     return f"thread:{threading.get_ident()}"
-
-
-def _current_terminal_session_key() -> str:
-    try:
-        from tools.approval import get_current_session_key
-
-        return get_current_session_key(default="").strip()
-    except Exception:
-        pass
-    try:
-        from gateway.session_context import get_session_env
-
-        return get_session_env("HERMES_SESSION_KEY", "").strip()
-    except Exception:
-        return os.getenv("HERMES_SESSION_KEY", "").strip()
-
-
-def _archive_terminal_output_artifact(output: str, *, command: str) -> dict[str, Any] | None:
-    if not output:
-        return None
-    artifact_dir_raw = os.getenv("HERMES_ARTIFACT_DIR", "").strip()
-    if not artifact_dir_raw:
-        return None
-
-    content = output.encode("utf-8", errors="replace")
-    if len(content) > _max_terminal_output_artifact_bytes():
-        return None
-
-    try:
-        artifact_dir = Path(artifact_dir_raw).expanduser().resolve()
-    except Exception:
-        return None
-
-    digest = hashlib.sha256(content).hexdigest()
-    command_digest = hashlib.sha256(str(command or "").encode("utf-8", errors="replace")).hexdigest()[:8]
-    extension, _mime_type = _terminal_output_artifact_type(output)
-    artifact_id = f"terminal-{command_digest}-{digest[:16]}"
-    file_name = f"{artifact_id}.{extension}"
-
-    try:
-        artifact_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
-        file_path = (artifact_dir / file_name).resolve()
-        if not _path_within(file_path, artifact_dir):
-            return None
-        file_path.write_bytes(content)
-        try:
-            file_path.chmod(0o600)
-        except Exception:
-            pass
-    except Exception:
-        return None
-
-    try:
-        from runtime_manager.artifacts import metadata_for_artifact_file
-
-        return metadata_for_artifact_file(
-            file_path,
-            artifact_dir,
-            artifact_id=artifact_id,
-            kind="stdout_fallback",
-            source="terminal",
-            summary="Truncated terminal stdout fallback",
-        )
-    except Exception:
-        return None
-
-
-def _max_terminal_output_artifact_bytes() -> int:
-    raw = os.getenv("RUNTIME_MANAGER_MAX_OUTPUT_ARTIFACT_BYTES", "")
-    if raw:
-        try:
-            value = int(raw)
-        except ValueError:
-            value = _DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES
-        if value > 0:
-            return value
-    return _DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES
-
-
-def _safe_artifact_segment(value: Any, *, fallback: str) -> str:
-    text = str(value or "").strip()
-    text = _ARTIFACT_SEGMENT_PATTERN.sub("_", text)
-    text = text.strip("._-")[:80]
-    return text or fallback
-
-
-def _terminal_output_artifact_type(output: str) -> tuple[str, str]:
-    sample = output.lstrip()[:256].lower()
-    if sample.startswith("<!doctype html") or sample.startswith("<html") or "<html" in sample:
-        return "html", "text/html; charset=utf-8"
-    return "txt", "text/plain; charset=utf-8"
-
-
-def _path_within(child: Path, parent: Path) -> bool:
-    try:
-        child.relative_to(parent)
-        return True
-    except ValueError:
-        return False
 
 
 def _get_cached_sudo_password() -> str:
@@ -2430,27 +2328,11 @@ def terminal_tool(
                         break
             except Exception:
                 pass
-
-            # Strip and redact before archiving/truncating.  The artifact is
-            # the full safe terminal output, not raw secrets or ANSI escapes.
-            from tools.ansi_strip import strip_ansi
-            output = strip_ansi(output)
-
-            from agent.redact import redact_sensitive_text
-            output = redact_sensitive_text(output.strip()) if output else ""
             
             # Truncate output if too long, keeping both head and tail
             from tools.tool_output_limits import get_max_bytes
             MAX_OUTPUT_CHARS = get_max_bytes()
-            output_bytes = len(output.encode("utf-8", errors="replace"))
-            truncated = False
-            artifact = None
-            artifact_unavailable_reason = ""
             if len(output) > MAX_OUTPUT_CHARS:
-                truncated = True
-                artifact = _archive_terminal_output_artifact(output, command=command)
-                if artifact is None and os.getenv("HERMES_ARTIFACT_DIR", "").strip():
-                    artifact_unavailable_reason = "output_artifact_unavailable"
                 head_chars = int(MAX_OUTPUT_CHARS * 0.4)  # 40% head (error messages often appear early)
                 tail_chars = MAX_OUTPUT_CHARS - head_chars  # 60% tail (most recent/relevant output)
                 omitted = len(output) - head_chars - tail_chars
@@ -2459,6 +2341,15 @@ def terminal_tool(
                     f"out of {len(output)} total] ...\n\n"
                 )
                 output = output[:head_chars] + truncated_notice + output[-tail_chars:]
+
+            # Strip ANSI escape sequences so the model never sees terminal
+            # formatting — prevents it from copying escapes into file writes.
+            from tools.ansi_strip import strip_ansi
+            output = strip_ansi(output)
+
+            # Redact secrets from command output (catches env/printenv leaking keys)
+            from agent.redact import redact_sensitive_text
+            output = redact_sensitive_text(output.strip()) if output else ""
 
             # Interpret non-zero exit codes that aren't real errors
             # (e.g. grep=1 means "no matches", diff=1 means "files differ")
@@ -2473,15 +2364,6 @@ def terminal_tool(
                 result_dict["approval"] = approval_note
             if exit_note:
                 result_dict["exit_code_meaning"] = exit_note
-            if truncated:
-                result_dict["truncated"] = True
-                result_dict["output_bytes"] = output_bytes
-                result_dict["outputBytes"] = output_bytes
-                if artifact:
-                    result_dict["artifact"] = artifact
-                    result_dict["artifacts"] = [artifact]
-                elif artifact_unavailable_reason:
-                    result_dict["artifactUnavailableReason"] = artifact_unavailable_reason
 
             return json.dumps(result_dict, ensure_ascii=False)
 

@@ -222,7 +222,7 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     assert "/secret/path" not in json.dumps(approval_fields, ensure_ascii=False)
 
 
-def test_runtime_worker_long_success_stdout_becomes_warning_artifact(tmp_path, monkeypatch):
+def test_runtime_worker_long_success_stdout_becomes_warning_without_auto_artifact(tmp_path, monkeypatch):
     from runtime_manager.worker_main import _safe_tool_result_fields
 
     hermes_home = tmp_path / "user-1"
@@ -251,20 +251,9 @@ def test_runtime_worker_long_success_stdout_becomes_warning_artifact(tmp_path, m
     assert result_fields["stdout_preview"].startswith("<html><body>")
     assert "stderr_preview" not in result_fields
     assert "AWR report row\n" * 120 not in json.dumps(result_fields, ensure_ascii=False)
-
-    artifact = result_fields["artifact"]
-    assert {"artifactId", "fileName", "sizeBytes", "mimeType", "sha256", "kind", "source"} <= set(artifact)
-    assert "/" not in artifact["artifactId"]
-    assert artifact["fileName"].endswith(".html")
-    assert artifact["sizeBytes"] == len(stdout.encode("utf-8"))
-    assert artifact["mimeType"] == "text/html; charset=utf-8"
-    assert artifact["kind"] == "stdout_fallback"
-    assert artifact["source"] == "runtime"
-    assert "path" not in json.dumps(artifact, ensure_ascii=False).lower()
-
-    artifact_files = [path for path in artifact_dir.rglob("*") if path.is_file()]
-    assert len(artifact_files) == 1
-    assert artifact_files[0].read_text(encoding="utf-8") == stdout
+    assert "artifact" not in result_fields
+    assert "artifactUnavailableReason" not in result_fields
+    assert not any(artifact_dir.rglob("*"))
 
 
 def test_runtime_worker_prefers_terminal_artifact_metadata_over_rearchiving(tmp_path, monkeypatch):

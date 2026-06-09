@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import hashlib
 import json
 import os
 import re
@@ -35,9 +34,7 @@ _SENSITIVE_FLAG_VALUE_PATTERN = re.compile(
 )
 _INTERNAL_USER_PATH_PATTERN = re.compile(r"/opt/data/users/[^\s'\"]+")
 _WHITESPACE_PATTERN = re.compile(r"\s+")
-_ARTIFACT_SEGMENT_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
 _TOOL_OUTPUT_PREVIEW_LIMIT = 1200
-_DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES = 20 * 1024 * 1024
 _OUTPUT_TRUNCATION_MARKERS = (
     "output too long",
     "output truncated",
@@ -884,22 +881,8 @@ def _safe_tool_result_fields(
                 fields["partial"] = True
                 fields["warningReason"] = "output_truncated"
                 fields["warning_reason"] = "output_truncated"
-                if "artifact" not in fields:
-                    artifact = _persist_output_artifact(
-                        stdout,
-                        run_id=run_id,
-                        session_id=session_id,
-                        tool_call_id=tool_call_id,
-                        tool_name=tool_name,
-                    )
-                    if artifact:
-                        fields["artifact"] = artifact
-                        fields["artifacts"] = [artifact]
-                if "artifact" not in fields:
-                    if isinstance(parsed.get("artifactUnavailableReason"), str):
-                        fields["artifactUnavailableReason"] = parsed["artifactUnavailableReason"]
-                    elif _artifact_context_available():
-                        fields["artifactUnavailableReason"] = "output_artifact_unavailable"
+                if "artifact" not in fields and isinstance(parsed.get("artifactUnavailableReason"), str):
+                    fields["artifactUnavailableReason"] = parsed["artifactUnavailableReason"]
 
     stderr = _first_string(parsed, "stderr")
     error = parsed.get("error")
@@ -910,63 +893,6 @@ def _safe_tool_result_fields(
         fields["stderrPreview"] = fields["stderr_preview"]
 
     return fields
-
-
-def _persist_output_artifact(
-    stdout: str,
-    *,
-    run_id: Any = None,
-    session_id: Any = None,
-    tool_call_id: Any = None,
-    tool_name: Any = None,
-) -> dict[str, Any] | None:
-    if not stdout:
-        return None
-    artifact_dir = _artifact_dir_from_env()
-    if artifact_dir is None:
-        return None
-
-    content = stdout.encode("utf-8", errors="replace")
-    if len(content) > _max_output_artifact_bytes():
-        return None
-
-    tool_segment = _safe_artifact_segment(tool_name, fallback="tool")
-    call_segment = _safe_artifact_segment(tool_call_id, fallback="call")
-    digest = hashlib.sha256(content).hexdigest()
-    extension, _mime_type = _output_artifact_type(stdout)
-    artifact_id = f"{tool_segment}-{call_segment}-{digest[:16]}"
-    file_name = f"{artifact_id}.{extension}"
-
-    try:
-        artifact_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
-        file_path = (artifact_dir / file_name).resolve()
-        if not _path_within(file_path, artifact_dir):
-            return None
-        file_path.write_bytes(content)
-        try:
-            file_path.chmod(0o600)
-        except Exception:
-            pass
-    except Exception:
-        return None
-
-    try:
-        from runtime_manager.artifacts import metadata_for_artifact_file
-
-        return metadata_for_artifact_file(
-            file_path,
-            artifact_dir,
-            artifact_id=artifact_id,
-            kind="stdout_fallback",
-            source="runtime",
-            summary="Truncated tool stdout fallback",
-        )
-    except Exception:
-        return None
-
-
-def _artifact_context_available() -> bool:
-    return _artifact_dir_from_env() is not None
 
 
 def _artifact_dir_from_env() -> Path | None:
@@ -992,40 +918,6 @@ def _discover_report_artifacts_from_dir(
         return discover_artifacts(artifact_dir, seen_artifact_ids=seen_artifact_ids)
     except Exception:
         return []
-
-
-def _max_output_artifact_bytes() -> int:
-    raw = os.environ.get("RUNTIME_MANAGER_MAX_OUTPUT_ARTIFACT_BYTES")
-    if raw:
-        try:
-            value = int(raw)
-        except ValueError:
-            value = _DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES
-        if value > 0:
-            return value
-    return _DEFAULT_MAX_OUTPUT_ARTIFACT_BYTES
-
-
-def _safe_artifact_segment(value: Any, *, fallback: str) -> str:
-    text = str(value or "").strip()
-    text = _ARTIFACT_SEGMENT_PATTERN.sub("_", text)
-    text = text.strip("._-")[:80]
-    return text or fallback
-
-
-def _output_artifact_type(stdout: str) -> tuple[str, str]:
-    sample = stdout.lstrip()[:256].lower()
-    if sample.startswith("<!doctype html") or sample.startswith("<html") or "<html" in sample:
-        return "html", "text/html; charset=utf-8"
-    return "txt", "text/plain; charset=utf-8"
-
-
-def _path_within(child: Path, parent: Path) -> bool:
-    try:
-        child.relative_to(parent)
-        return True
-    except ValueError:
-        return False
 
 
 def _parse_tool_result(result: Any) -> Any:
