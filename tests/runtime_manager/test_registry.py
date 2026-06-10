@@ -71,6 +71,29 @@ def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
     assert _normalize_agent_provider("qwen-oauth") == "qwen-oauth"
 
 
+def test_runtime_worker_projects_compression_status_as_structured_event():
+    from runtime_manager.worker_main import _compression_event_from_status
+
+    event = _compression_event_from_status(
+        "warn",
+        "⚠ Compression summary failed: no auxiliary LLM provider configured "
+        "api_key=secret-token. Inserted a fallback context marker.",
+        provider="custom",
+        model="qwen3.6-35b-a3b",
+        base_url="https://models.example/v1",
+    )
+
+    assert event is not None
+    assert event["event"] == "context.compression.warning"
+    assert event["reason"] == "summary_failed"
+    assert event["fallback"] is True
+    assert event["abort"] is False
+    assert event["provider"] == "custom"
+    assert event["model"] == "qwen3.6-35b-a3b"
+    assert event["baseURLHost"] == "models.example"
+    assert "secret-token" not in json.dumps(event, ensure_ascii=False)
+
+
 def test_runtime_worker_tool_event_helpers_are_json_safe():
     from runtime_manager.worker_main import (
         _approval_display_fields,

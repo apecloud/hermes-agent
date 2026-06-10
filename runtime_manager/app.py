@@ -244,6 +244,32 @@ def create_app(
             },
         )
 
+    @app.get("/agent/sessions/{session_id}/artifacts/{artifact_id}/extract")
+    async def extract_artifact(
+        session_id: str,
+        artifact_id: str,
+        user_id: str = Query(...),
+        run_id: str = Query(...),
+        offset: int = Query(default=0),
+        limit: int | None = Query(default=None),
+        authorization: str | None = Header(default=None),
+    ):
+        state = app.state.runtime_manager
+        await _authorize(state, authorization)
+        try:
+            return state.manager.extract_artifact(
+                user_id=user_id,
+                session_id=session_id,
+                run_id=run_id,
+                artifact_id=artifact_id,
+                offset=offset,
+                limit=limit,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     return app
 
 

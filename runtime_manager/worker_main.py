@@ -11,6 +11,7 @@ import time
 import traceback
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 _OUTPUT_LOCK = threading.Lock()
 _AGENT_HOLDER: dict[str, Any] = {"agent": None}
@@ -32,8 +33,18 @@ _SENSITIVE_FLAG_EQUAL_PATTERN = re.compile(
 _SENSITIVE_FLAG_VALUE_PATTERN = re.compile(
     r"(?i)(--(?:token|password|secret|key))\s+(?:\"[^\"]*\"|'[^']*'|\S+)"
 )
+_SENSITIVE_STATUS_VALUE_PATTERN = re.compile(
+    r"(?i)\b(api[_-]?key|authorization|token|password|secret)(\s*[:=]\s*)([^\s,;.]+)"
+)
+_BEARER_STATUS_VALUE_PATTERN = re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]+")
 _INTERNAL_USER_PATH_PATTERN = re.compile(r"/opt/data/users/[^\s'\"]+")
 _WHITESPACE_PATTERN = re.compile(r"\s+")
+_COMPRESSION_SUMMARY_ERROR_PATTERN = re.compile(
+    r"(?is)compression summary failed:\s*(?P<error>.*?)(?:\.\s*inserted\b|$)"
+)
+_COMPRESSION_ABORT_ERROR_PATTERN = re.compile(
+    r"(?is)compression aborted:\s*(?P<error>.*?)(?:\.\s*no messages\b|$)"
+)
 _TOOL_OUTPUT_PREVIEW_LIMIT = 1200
 _OUTPUT_TRUNCATION_MARKERS = (
     "output too long",
@@ -137,15 +148,27 @@ def main() -> int:
             )
 
     def on_status(kind: str, message: str) -> None:
+        timestamp = time.time()
         emit(
             {
                 "event": "status.message",
                 "run_id": run_id,
-                "timestamp": time.time(),
+                "timestamp": timestamp,
                 "kind": kind,
                 "message": message,
             }
         )
+        compression_event = _compression_event_from_status(
+            kind,
+            message,
+            provider=provider,
+            model=model,
+            base_url=base_url,
+        )
+        if compression_event:
+            compression_event["run_id"] = run_id
+            compression_event["timestamp"] = timestamp
+            emit(compression_event)
 
     def approval_notify(data: dict[str, Any]) -> None:
         event = dict(data or {})
@@ -510,6 +533,80 @@ def _normalize_agent_provider(provider: Any, *, base_url: Any = None) -> str | N
         return "openai-api"
 
     return value
+
+
+def _base_url_host(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    try:
+        parsed = urlparse(text)
+    except Exception:
+        return ""
+    return parsed.netloc or parsed.path.split("/", 1)[0]
+
+
+def _safe_status_event_text(value: Any, *, limit: int = 512) -> str:
+    text = str(value or "")
+    text = _SENSITIVE_STATUS_VALUE_PATTERN.sub(r"\1\2<redacted>", text)
+    text = _BEARER_STATUS_VALUE_PATTERN.sub("Bearer <redacted>", text)
+    text = _INTERNAL_USER_PATH_PATTERN.sub("/opt/data/users/<redacted>", text)
+    if len(text) > limit:
+        return text[:limit] + "..."
+    return text
+
+
+def _compression_event_from_status(
+    kind: Any,
+    message: Any,
+    *,
+    provider: Any = None,
+    model: Any = None,
+    base_url: Any = None,
+) -> dict[str, Any] | None:
+    text = str(message or "")
+    normalized = text.lower()
+    event_name = "context.compression.warning"
+    reason = ""
+    fallback = False
+    abort = False
+    summary_error = ""
+
+    if "compression summary failed" in normalized:
+        reason = "summary_failed"
+        fallback = True
+        match = _COMPRESSION_SUMMARY_ERROR_PATTERN.search(text)
+        summary_error = match.group("error").strip() if match else ""
+    elif "compression aborted" in normalized:
+        event_name = "context.compression.failed"
+        reason = "compression_aborted"
+        abort = True
+        match = _COMPRESSION_ABORT_ERROR_PATTERN.search(text)
+        summary_error = match.group("error").strip() if match else ""
+    elif "no auxiliary llm provider configured" in normalized:
+        reason = "no_auxiliary_provider"
+        fallback = True
+        summary_error = "no auxiliary LLM provider configured"
+    elif "session compressed" in normalized and "accuracy may degrade" in normalized:
+        reason = "repeated_compression"
+    else:
+        return None
+
+    event: dict[str, Any] = {
+        "event": event_name,
+        "reason": reason,
+        "sourceEventKind": str(kind or ""),
+        "message": _safe_status_event_text(text),
+        "fallback": fallback,
+        "abort": abort,
+        "provider": str(provider or ""),
+        "providerSource": "configured" if provider else "auto",
+        "model": str(model or ""),
+        "baseURLHost": _base_url_host(base_url),
+    }
+    if summary_error:
+        event["summaryError"] = _safe_status_event_text(summary_error)
+    return event
 
 
 def _json_preview(value: Any, *, limit: int = 500) -> str:
@@ -997,6 +1094,16 @@ def _artifact_metadata_from_mapping(value: Any) -> dict[str, Any] | None:
         item = value.get(key)
         if isinstance(item, bool):
             artifact[key] = item
+    bounded_extraction = value.get("boundedExtraction")
+    if isinstance(bounded_extraction, dict):
+        safe_extraction = {
+            key: item
+            for key, item in bounded_extraction.items()
+            if key in {"available", "defaultBytes", "maxBytes", "supportsOffset", "encoding"}
+            and isinstance(item, (bool, int, str))
+        }
+        if safe_extraction:
+            artifact["boundedExtraction"] = safe_extraction
     return artifact
 
 

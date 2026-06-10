@@ -14,7 +14,7 @@ from typing import Any
 
 from hermes_state import SessionDB
 
-from .artifacts import artifact_dir_for, find_artifact_file
+from .artifacts import artifact_dir_for, extract_artifact_text, find_artifact_file
 from .cloud_kubeconfig import CloudKubeconfigResolver
 from .profile_resolver import RuntimeProfileResolver
 from .registry import RunHandle, RunRegistry
@@ -299,6 +299,34 @@ class RuntimeManager:
         if found is None:
             raise FileNotFoundError("artifact not found")
         return found
+
+    def extract_artifact(
+        self,
+        *,
+        user_id: str,
+        session_id: str,
+        run_id: str,
+        artifact_id: str,
+        offset: int = 0,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        user_id = self.resolver.validate_user_id(user_id)
+        session_id = str(session_id or "").strip()
+        run_id = str(run_id or "").strip()
+        if not session_id:
+            raise ValueError("session_id is required")
+        if not run_id:
+            raise ValueError("run_id is required")
+        if not artifact_id:
+            raise ValueError("artifact_id is required")
+
+        user_home = self.resolver.resolve(user_id, create=False)
+        artifact_root = artifact_dir_for(user_home, session_id, run_id)
+        found = find_artifact_file(artifact_root, artifact_id)
+        if found is None:
+            raise FileNotFoundError("artifact not found")
+        path, _metadata = found
+        return extract_artifact_text(path, artifact_root, offset=offset, limit=limit)
 
     async def _pump_stdout(self, handle: RunHandle) -> None:
         proc = handle.process
