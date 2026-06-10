@@ -71,6 +71,28 @@ def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
     assert _normalize_agent_provider("qwen-oauth") == "qwen-oauth"
 
 
+def test_runtime_worker_resolves_cloud_llm_config_for_agent_and_auxiliary():
+    from runtime_manager.worker_main import _resolve_runtime_llm_config
+
+    resolved = _resolve_runtime_llm_config(
+        {
+            "llm_config": {
+                "provider": "openai-compatible",
+                "model": "qwen3.6-35b-a3b",
+                "baseURL": "https://models.example/v1",
+                "apiKey": "secret-key",
+            }
+        }
+    )
+
+    assert resolved == {
+        "model": "qwen3.6-35b-a3b",
+        "provider": "custom",
+        "base_url": "https://models.example/v1",
+        "api_key": "secret-key",
+    }
+
+
 def test_runtime_worker_projects_compression_status_as_structured_event():
     from runtime_manager.worker_main import _compression_event_from_status
 

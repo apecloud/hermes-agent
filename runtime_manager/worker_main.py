@@ -371,27 +371,7 @@ def main() -> int:
             session_key=approval_session_key,
         )
         register_gateway_notify(approval_session_key, approval_notify)
-        llm_config = request.get("llm_config")
-        if not isinstance(llm_config, dict):
-            llm_config = {}
-        model = (
-            request.get("model")
-            or llm_config.get("model")
-            or llm_config.get("name")
-            or llm_config.get("default")
-            or ""
-        )
-        api_key = _first_present(request.get("api_key"), llm_config.get("api_key"), llm_config.get("apiKey"))
-        base_url = _first_present(
-            request.get("base_url"),
-            request.get("baseURL"),
-            llm_config.get("base_url"),
-            llm_config.get("baseURL"),
-        )
-        provider = _normalize_agent_provider(
-            _first_present(request.get("provider"), llm_config.get("provider")),
-            base_url=base_url,
-        )
+        runtime_llm_config = _resolve_runtime_llm_config(request)
 
         system_prompt = _compose_effective_system_prompt(
             request,
@@ -400,10 +380,10 @@ def main() -> int:
         )
 
         agent = AIAgent(
-            model=str(model or ""),
-            provider=provider,
-            api_key=api_key,
-            base_url=base_url,
+            model=runtime_llm_config["model"],
+            provider=runtime_llm_config["provider"],
+            api_key=runtime_llm_config["api_key"],
+            base_url=runtime_llm_config["base_url"],
             session_id=session_id,
             session_db=SessionDB(),
             quiet_mode=True,
@@ -504,6 +484,38 @@ def _first_present(*values: Any) -> Any:
             continue
         return value
     return None
+
+
+def _resolve_runtime_llm_config(request: dict[str, Any]) -> dict[str, Any]:
+    llm_config = request.get("llm_config")
+    if not isinstance(llm_config, dict):
+        llm_config = {}
+
+    model = (
+        request.get("model")
+        or llm_config.get("model")
+        or llm_config.get("name")
+        or llm_config.get("default")
+        or ""
+    )
+    api_key = _first_present(request.get("api_key"), llm_config.get("api_key"), llm_config.get("apiKey"))
+    base_url = _first_present(
+        request.get("base_url"),
+        request.get("baseURL"),
+        llm_config.get("base_url"),
+        llm_config.get("baseURL"),
+    )
+    provider = _normalize_agent_provider(
+        _first_present(request.get("provider"), llm_config.get("provider")),
+        base_url=base_url,
+    )
+
+    return {
+        "model": str(model or ""),
+        "provider": provider,
+        "api_key": api_key,
+        "base_url": base_url,
+    }
 
 
 def _normalize_agent_provider(provider: Any, *, base_url: Any = None) -> str | None:
