@@ -30,35 +30,7 @@ def test_report_artifact_metadata_is_discovered_from_controlled_dir(tmp_path):
     assert artifact["source"] == "tool"
     assert artifact["canDownload"] is True
     assert artifact["canBrowse"] is True
-    assert artifact["boundedExtraction"] == {
-        "available": True,
-        "defaultBytes": 65536,
-        "maxBytes": 262144,
-        "supportsOffset": True,
-        "encoding": "utf-8",
-    }
     assert "path" not in json.dumps(artifact, ensure_ascii=False).lower()
-
-
-def test_report_artifact_text_extraction_is_bounded_and_offset_based(tmp_path):
-    from runtime_manager.artifacts import extract_artifact_text, metadata_for_artifact_file
-
-    artifact_dir = tmp_path / "artifacts"
-    artifact_dir.mkdir()
-    report = artifact_dir / "awr.txt"
-    report.write_text("0123456789" * 10, encoding="utf-8")
-    metadata = metadata_for_artifact_file(report, artifact_dir)
-
-    extracted = extract_artifact_text(report, artifact_dir, offset=10, limit=15)
-
-    assert extracted["artifactId"] == metadata["artifactId"]
-    assert extracted["text"] == "012345678901234"
-    assert extracted["offset"] == 10
-    assert extracted["limit"] == 15
-    assert extracted["extractedBytes"] == 15
-    assert extracted["nextOffset"] == 25
-    assert extracted["truncated"] is True
-    assert "path" not in json.dumps(extracted, ensure_ascii=False).lower()
 
 
 def test_runtime_worker_adds_report_artifact_without_stdout_truncation(tmp_path, monkeypatch):
@@ -107,36 +79,6 @@ def test_runtime_manager_serves_report_artifact_by_user_session_run(tmp_path):
     assert response.headers["content-type"].startswith("text/html")
     assert "attachment" in response.headers["content-disposition"]
     assert "awr.html" in response.headers["content-disposition"]
-
-
-def test_runtime_manager_extracts_report_artifact_by_user_session_run(tmp_path):
-    from runtime_manager.artifacts import metadata_for_artifact_file
-
-    user_home = tmp_path / "user-1"
-    artifact_dir = user_home / "sessions" / "conv-1.artifacts" / "run-1"
-    artifact_dir.mkdir(parents=True)
-    report = artifact_dir / "awr.html"
-    report.write_text("<html><body>0123456789abcdef</body></html>", encoding="utf-8")
-    metadata = metadata_for_artifact_file(report, artifact_dir)
-
-    app = create_app(users_root=tmp_path, api_key="secret")
-    client = TestClient(app)
-
-    response = client.get(
-        f"/agent/sessions/conv-1/artifacts/{metadata['artifactId']}/extract",
-        params={"user_id": "user-1", "run_id": "run-1", "offset": "12", "limit": "8"},
-        headers={"Authorization": "Bearer secret"},
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["artifactId"] == metadata["artifactId"]
-    assert body["fileName"] == "awr.html"
-    assert body["text"] == "01234567"
-    assert body["offset"] == 12
-    assert body["limit"] == 8
-    assert body["nextOffset"] == 20
-    assert "path" not in json.dumps(body, ensure_ascii=False).lower()
 
 
 def test_runtime_manager_rejects_artifact_path_escape(tmp_path):

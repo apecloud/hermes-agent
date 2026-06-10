@@ -1106,16 +1106,6 @@ def _artifact_metadata_from_mapping(value: Any) -> dict[str, Any] | None:
         item = value.get(key)
         if isinstance(item, bool):
             artifact[key] = item
-    bounded_extraction = value.get("boundedExtraction")
-    if isinstance(bounded_extraction, dict):
-        safe_extraction = {
-            key: item
-            for key, item in bounded_extraction.items()
-            if key in {"available", "defaultBytes", "maxBytes", "supportsOffset", "encoding"}
-            and isinstance(item, (bool, int, str))
-        }
-        if safe_extraction:
-            artifact["boundedExtraction"] = safe_extraction
     return artifact
 
 

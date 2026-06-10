@@ -11,16 +11,6 @@ _BROWSABLE_MIME_PREFIXES = ("text/",)
 _BROWSABLE_MIME_TYPES = {
     "application/pdf",
 }
-DEFAULT_EXTRACT_BYTES = 64 * 1024
-MAX_EXTRACT_BYTES = 256 * 1024
-_EXTRACTABLE_MIME_PREFIXES = ("text/",)
-_EXTRACTABLE_MIME_TYPES = {
-    "application/json",
-    "application/xml",
-    "application/xhtml+xml",
-    "application/yaml",
-    "application/x-yaml",
-}
 
 
 def artifact_dir_for(user_home: Path, session_id: str, run_id: str) -> Path:
@@ -66,7 +56,6 @@ def metadata_for_artifact_file(
         "summary": summary or f"Generated report file: {file_name}",
         "canDownload": True,
         "canBrowse": can_browse_mime_type(mime_type),
-        "boundedExtraction": bounded_extraction_capability(mime_type),
     }
 
 
@@ -109,77 +98,6 @@ def can_browse_mime_type(mime_type: str) -> bool:
     if not normalized:
         return False
     return normalized in _BROWSABLE_MIME_TYPES or normalized.startswith(_BROWSABLE_MIME_PREFIXES)
-
-
-def can_extract_mime_type(mime_type: str) -> bool:
-    normalized = str(mime_type or "").split(";", 1)[0].strip().lower()
-    if not normalized:
-        return False
-    return normalized in _EXTRACTABLE_MIME_TYPES or normalized.startswith(_EXTRACTABLE_MIME_PREFIXES)
-
-
-def bounded_extraction_capability(mime_type: str) -> dict[str, Any]:
-    """Describe the runtime contract for model-facing bounded reads.
-
-    Cloud may expose this through its own auth layer, but the runtime never
-    returns full artifact content through metadata or turn-action events.
-    """
-    return {
-        "available": can_extract_mime_type(mime_type),
-        "defaultBytes": DEFAULT_EXTRACT_BYTES,
-        "maxBytes": MAX_EXTRACT_BYTES,
-        "supportsOffset": True,
-        "encoding": "utf-8",
-    }
-
-
-def extract_artifact_text(
-    path: Path,
-    artifact_root: Path,
-    *,
-    offset: int = 0,
-    limit: int | None = None,
-) -> dict[str, Any]:
-    """Return a bounded UTF-8 text slice from a controlled artifact file."""
-    root = artifact_root.resolve()
-    file_path = path.resolve()
-    file_path.relative_to(root)
-    metadata = metadata_for_artifact_file(file_path, root)
-    if not can_extract_mime_type(str(metadata.get("mimeType") or "")):
-        raise ValueError("artifact is not text-extractable")
-
-    safe_offset = max(0, int(offset or 0))
-    requested_limit = int(limit or DEFAULT_EXTRACT_BYTES)
-    safe_limit = min(max(1, requested_limit), MAX_EXTRACT_BYTES)
-    size_bytes = int(metadata.get("sizeBytes") or 0)
-    if safe_offset >= size_bytes:
-        chunk = b""
-    else:
-        with file_path.open("rb") as handle:
-            handle.seek(safe_offset)
-            chunk = handle.read(safe_limit)
-
-    next_offset = safe_offset + len(chunk)
-    truncated = next_offset < size_bytes
-    text = chunk.decode("utf-8", errors="replace")
-    return {
-        "object": "runtime_manager.artifact_extraction",
-        "artifactId": metadata["artifactId"],
-        "fileName": metadata["fileName"],
-        "sizeBytes": metadata["sizeBytes"],
-        "mimeType": metadata["mimeType"],
-        "sha256": metadata["sha256"],
-        "kind": metadata["kind"],
-        "source": metadata["source"],
-        "summary": metadata["summary"],
-        "text": text,
-        "offset": safe_offset,
-        "limit": safe_limit,
-        "extractedBytes": len(chunk),
-        "nextOffset": next_offset if truncated else None,
-        "truncated": truncated,
-        "encoding": "utf-8",
-    }
 
 
 def discover_artifacts(
