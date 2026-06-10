@@ -71,6 +71,135 @@ def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
     assert _normalize_agent_provider("qwen-oauth") == "qwen-oauth"
 
 
+def test_runtime_worker_resolves_cloud_llm_config_for_agent_and_auxiliary():
+    from runtime_manager.worker_main import _resolve_runtime_llm_config
+
+    resolved = _resolve_runtime_llm_config(
+        {
+            "llm_config": {
+                "provider": "openai-compatible",
+                "model": "qwen3.6-35b-a3b",
+                "baseURL": "https://models.example/v1",
+                "apiKey": "secret-key",
+            }
+        }
+    )
+
+    assert resolved == {
+        "model": "qwen3.6-35b-a3b",
+        "provider": "custom",
+        "base_url": "https://models.example/v1",
+        "api_key": "secret-key",
+    }
+
+
+def test_runtime_worker_treats_named_cloud_provider_with_endpoint_as_custom():
+    from runtime_manager.worker_main import _resolve_runtime_llm_config
+
+    resolved = _resolve_runtime_llm_config(
+        {
+            "llm_config": {
+                "provider": "Qwen",
+                "model": "qwen3.6-35b-a3b",
+                "baseURL": "https://models.example/v1",
+                "apiKey": "secret-key",
+            }
+        }
+    )
+
+    assert resolved == {
+        "model": "qwen3.6-35b-a3b",
+        "provider": "custom",
+        "base_url": "https://models.example/v1",
+        "api_key": "secret-key",
+    }
+
+
+def test_runtime_worker_resolves_model_limit_entries_from_llm_config():
+    from runtime_manager.worker_main import _resolve_runtime_llm_config
+
+    resolved = _resolve_runtime_llm_config(
+        {
+            "llm_config": {
+                "provider": "Qwen",
+                "model": "qwen3.6-35b-a3b",
+                "baseURL": "https://models.example/v1",
+                "apiKey": "secret-key",
+                "max_tokens": "8192",
+                "context_length": "131072",
+            }
+        }
+    )
+
+    assert resolved["max_tokens"] == 8192
+    assert resolved["context_length"] == 131072
+
+
+def test_runtime_worker_applies_context_length_to_agent_compressor():
+    from runtime_manager.worker_main import _apply_runtime_llm_config_to_agent
+
+    class Compressor:
+        def __init__(self):
+            self.update_call = None
+
+        def update_model(self, **kwargs):
+            self.update_call = kwargs
+
+    class Agent:
+        model = "qwen3.6-35b-a3b"
+        provider = "custom"
+        base_url = "https://models.example/v1"
+        api_key = "secret-key"
+        api_mode = ""
+
+        def __init__(self):
+            self.context_compressor = Compressor()
+            self._session_init_model_config = {}
+
+    agent = Agent()
+
+    _apply_runtime_llm_config_to_agent(
+        agent,
+        {
+            "context_length": 131072,
+        },
+    )
+
+    assert agent._config_context_length == 131072
+    assert agent._session_init_model_config["context_length"] == 131072
+    assert agent.context_compressor.update_call == {
+        "model": "qwen3.6-35b-a3b",
+        "context_length": 131072,
+        "base_url": "https://models.example/v1",
+        "api_key": "secret-key",
+        "provider": "custom",
+        "api_mode": "",
+    }
+
+
+def test_runtime_worker_projects_compression_status_as_structured_event():
+    from runtime_manager.worker_main import _compression_event_from_status
+
+    event = _compression_event_from_status(
+        "warn",
+        "⚠ Compression summary failed: no auxiliary LLM provider configured "
+        "api_key=secret-token. Inserted a fallback context marker.",
+        provider="custom",
+        model="qwen3.6-35b-a3b",
+        base_url="https://models.example/v1",
+    )
+
+    assert event is not None
+    assert event["event"] == "context.compression.warning"
+    assert event["reason"] == "summary_failed"
+    assert event["fallback"] is True
+    assert event["abort"] is False
+    assert event["provider"] == "custom"
+    assert event["model"] == "qwen3.6-35b-a3b"
+    assert event["baseURLHost"] == "models.example"
+    assert "secret-token" not in json.dumps(event, ensure_ascii=False)
+
+
 def test_runtime_worker_tool_event_helpers_are_json_safe():
     from runtime_manager.worker_main import (
         _approval_display_fields,
