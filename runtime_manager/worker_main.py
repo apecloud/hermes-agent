@@ -384,6 +384,7 @@ def main() -> int:
             provider=runtime_llm_config["provider"],
             api_key=runtime_llm_config["api_key"],
             base_url=runtime_llm_config["base_url"],
+            max_tokens=runtime_llm_config.get("max_tokens"),
             session_id=session_id,
             session_db=SessionDB(),
             quiet_mode=True,
@@ -407,6 +408,7 @@ def main() -> int:
             ephemeral_system_prompt=system_prompt,
             max_iterations=int(request.get("max_iterations") or 90),
         )
+        _apply_runtime_llm_config_to_agent(agent, runtime_llm_config)
         _AGENT_HOLDER["agent"] = agent
 
         emit({"event": "run.running", "run_id": run_id, "timestamp": time.time()})
@@ -512,12 +514,65 @@ def _resolve_runtime_llm_config(request: dict[str, Any]) -> dict[str, Any]:
     if base_url and api_key:
         provider = "custom"
 
-    return {
+    resolved = {
         "model": str(model or ""),
         "provider": provider,
         "api_key": api_key,
         "base_url": base_url,
     }
+    max_tokens = _coerce_positive_int(
+        _first_present(
+            request.get("max_tokens"),
+            request.get("maxTokens"),
+            llm_config.get("max_tokens"),
+            llm_config.get("maxTokens"),
+        )
+    )
+    if max_tokens > 0:
+        resolved["max_tokens"] = max_tokens
+
+    context_length = _coerce_positive_int(
+        _first_present(
+            request.get("context_length"),
+            request.get("contextLength"),
+            request.get("context_window"),
+            request.get("contextWindow"),
+            llm_config.get("context_length"),
+            llm_config.get("contextLength"),
+            llm_config.get("context_window"),
+            llm_config.get("contextWindow"),
+        )
+    )
+    if context_length > 0:
+        resolved["context_length"] = context_length
+
+    return resolved
+
+
+def _apply_runtime_llm_config_to_agent(agent: Any, runtime_llm_config: dict[str, Any]) -> None:
+    context_length = runtime_llm_config.get("context_length")
+    if context_length is None:
+        return
+
+    setattr(agent, "_config_context_length", context_length)
+
+    session_model_config = getattr(agent, "_session_init_model_config", None)
+    if isinstance(session_model_config, dict):
+        session_model_config["context_length"] = context_length
+
+    compressor = getattr(agent, "context_compressor", None)
+    update_model = getattr(compressor, "update_model", None)
+    if not callable(update_model):
+        return
+
+    update_model(
+        model=str(getattr(agent, "model", None) or runtime_llm_config.get("model") or ""),
+        context_length=context_length,
+        base_url=str(getattr(agent, "base_url", None) or runtime_llm_config.get("base_url") or ""),
+        api_key=getattr(agent, "api_key", None) or runtime_llm_config.get("api_key") or "",
+        provider=str(getattr(agent, "provider", None) or runtime_llm_config.get("provider") or ""),
+        api_mode=str(getattr(agent, "api_mode", None) or runtime_llm_config.get("api_mode") or ""),
+    )
 
 
 def _normalize_agent_provider(provider: Any, *, base_url: Any = None) -> str | None:
