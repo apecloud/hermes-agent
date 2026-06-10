@@ -509,6 +509,8 @@ def _resolve_runtime_llm_config(request: dict[str, Any]) -> dict[str, Any]:
         _first_present(request.get("provider"), llm_config.get("provider")),
         base_url=base_url,
     )
+    if base_url and api_key:
+        provider = "custom"
 
     return {
         "model": str(model or ""),
