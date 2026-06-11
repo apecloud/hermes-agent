@@ -177,6 +177,104 @@ def test_runtime_worker_applies_context_length_to_agent_compressor():
     }
 
 
+def test_runtime_worker_llm_request_metadata_is_safe_and_actionable():
+    from runtime_manager.worker_main import _llm_request_metadata_event
+
+    event = _llm_request_metadata_event(
+        {
+            "api_request_id": "turn-1:api:1",
+            "turn_id": "turn-1",
+            "api_call_count": 1,
+            "provider": "custom",
+            "model": "qwen3.6-35b-a3b",
+            "base_url": "https://models.example/v1",
+            "api_mode": "chat_completions",
+            "message_count": 3,
+            "request_char_count": 12345,
+            "approx_input_tokens": 6789,
+            "max_tokens": 8192,
+            "tool_count": 6,
+            "request": {
+                "body": {
+                    "messages": [
+                        {"role": "system", "content": "SECRET PROMPT"},
+                        {"role": "user", "content": "diagnose"},
+                    ],
+                    "tools": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": "terminal",
+                                "parameters": {"properties": {"command": {"description": "SECRET SCHEMA"}}},
+                            },
+                        },
+                        {"type": "function", "function": {"name": "read_file"}},
+                    ],
+                    "tool_choice": "auto",
+                    "api_key": "secret-key",
+                }
+            },
+        },
+        run_id="run-1",
+        request={
+            "skills": ["dba-diagnose-oracle"],
+            "enabled_toolsets": ["terminal", "file"],
+        },
+        system_prompt="BASE\n\ndba-diagnose-oracle\n\nSECRET PROMPT",
+    )
+
+    assert event["event"] == "llm.request.metadata"
+    assert event["run_id"] == "run-1"
+    assert event["skills_count"] == 1
+    assert event["skill_names"] == ["dba-diagnose-oracle"]
+    assert event["skill_prompt_presence"] == {"dba-diagnose-oracle": True}
+    assert event["system_prompt_chars"] > 0
+    assert len(event["system_prompt_sha256"]) == 64
+    assert event["tools_count"] == 2
+    assert event["tool_names"] == ["terminal", "read_file"]
+    assert event["tool_choice"] == "auto"
+    assert event["enabled_toolsets"] == ["terminal", "file"]
+    encoded = json.dumps(event, ensure_ascii=False)
+    assert "SECRET PROMPT" not in encoded
+    assert "SECRET SCHEMA" not in encoded
+    assert "secret-key" not in encoded
+
+
+def test_runtime_worker_llm_response_metadata_is_safe_and_actionable():
+    from types import SimpleNamespace
+
+    from runtime_manager.worker_main import _llm_response_metadata_event
+
+    tool_call = SimpleNamespace(function=SimpleNamespace(name="terminal"))
+    event = _llm_response_metadata_event(
+        {
+            "api_request_id": "turn-1:api:1",
+            "turn_id": "turn-1",
+            "api_call_count": 1,
+            "provider": "custom",
+            "model": "qwen3.6-35b-a3b",
+            "base_url": "https://models.example/v1",
+            "api_mode": "chat_completions",
+            "api_duration": 1.25,
+            "finish_reason": "tool_calls",
+            "response_model": "qwen3.6-35b-a3b",
+            "message_count": 3,
+            "assistant_content_chars": 0,
+            "assistant_tool_call_count": 1,
+            "assistant_message": SimpleNamespace(tool_calls=[tool_call]),
+            "usage": {"prompt_tokens": 100, "completion_tokens": 20},
+        },
+        run_id="run-1",
+    )
+
+    assert event["event"] == "llm.response.metadata"
+    assert event["run_id"] == "run-1"
+    assert event["finish_reason"] == "tool_calls"
+    assert event["assistant_tool_calls_count"] == 1
+    assert event["assistant_tool_names"] == ["terminal"]
+    assert event["usage"] == {"prompt_tokens": 100, "completion_tokens": 20}
+
+
 def test_runtime_worker_projects_compression_status_as_structured_event():
     from runtime_manager.worker_main import _compression_event_from_status
 
