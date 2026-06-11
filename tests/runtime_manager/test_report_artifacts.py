@@ -33,6 +33,40 @@ def test_report_artifact_metadata_is_discovered_from_controlled_dir(tmp_path):
     assert "path" not in json.dumps(artifact, ensure_ascii=False).lower()
 
 
+def test_report_artifact_snapshot_updates_same_path_without_new_asset(tmp_path):
+    from runtime_manager.artifacts import discover_artifacts, find_artifact_file
+
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir()
+    report = artifact_dir / "analysis.txt"
+    report.write_text("first report", encoding="utf-8")
+
+    first = discover_artifacts(artifact_dir, seen_artifact_ids=set())[0]
+    first_id = first["artifactId"]
+    report.write_text("second report", encoding="utf-8")
+    second = discover_artifacts(artifact_dir, seen_artifact_ids={first_id})
+
+    assert second == []
+    first_path, first_metadata = find_artifact_file(artifact_dir, first_id)
+    assert first_path.read_text(encoding="utf-8") == "second report"
+    assert first_metadata["artifactId"] == first_id
+    assert first_metadata["sha256"] == hashlib.sha256(b"second report").hexdigest()
+
+
+def test_report_artifact_discovery_ignores_published_snapshots(tmp_path):
+    from runtime_manager.artifacts import discover_artifacts
+
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir()
+    report = artifact_dir / "analysis.txt"
+    report.write_text("first report", encoding="utf-8")
+    discover_artifacts(artifact_dir, seen_artifact_ids=set())
+
+    discovered = discover_artifacts(artifact_dir, seen_artifact_ids=set())
+
+    assert [artifact["fileName"] for artifact in discovered] == ["analysis.txt"]
+
+
 def test_runtime_worker_adds_report_artifact_without_stdout_truncation(tmp_path, monkeypatch):
     from runtime_manager.worker_main import _safe_tool_result_fields
 
@@ -79,6 +113,31 @@ def test_runtime_manager_serves_report_artifact_by_user_session_run(tmp_path):
     assert response.headers["content-type"].startswith("text/html")
     assert "attachment" in response.headers["content-disposition"]
     assert "awr.html" in response.headers["content-disposition"]
+
+
+def test_runtime_manager_serves_latest_published_report_artifact_after_source_overwrite(tmp_path):
+    from runtime_manager.artifacts import discover_artifacts
+
+    user_home = tmp_path / "user-1"
+    artifact_dir = user_home / "sessions" / "conv-1.artifacts" / "run-1"
+    artifact_dir.mkdir(parents=True)
+    report = artifact_dir / "analysis.txt"
+    report.write_text("first report", encoding="utf-8")
+    metadata = discover_artifacts(artifact_dir, seen_artifact_ids=set())[0]
+    report.write_text("second report", encoding="utf-8")
+    assert discover_artifacts(artifact_dir, seen_artifact_ids={metadata["artifactId"]}) == []
+
+    app = create_app(users_root=tmp_path, api_key="secret")
+    client = TestClient(app)
+
+    response = client.get(
+        f"/agent/sessions/conv-1/artifacts/{metadata['artifactId']}",
+        params={"user_id": "user-1", "run_id": "run-1"},
+        headers={"Authorization": "Bearer secret"},
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"second report"
 
 
 def test_runtime_manager_rejects_artifact_path_escape(tmp_path):

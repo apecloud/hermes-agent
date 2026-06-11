@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import mimetypes
+import os
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
 _SEGMENT_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
+_PUBLISHED_DIR_NAME = ".published"
 _BROWSABLE_MIME_PREFIXES = ("text/",)
 _BROWSABLE_MIME_TYPES = {
     "application/pdf",
@@ -73,13 +76,16 @@ def file_digest(path: Path) -> tuple[int, str]:
 
 
 def artifact_id_for_file(path: Path, artifact_root: Path, sha256: str) -> str:
+    _ = sha256
     try:
         relative = path.resolve().relative_to(artifact_root.resolve())
     except ValueError:
         relative = path.name
-    stem = Path(str(relative)).stem or Path(str(relative)).name
-    name_segment = safe_artifact_segment(stem, fallback="artifact")[:48]
-    return f"{name_segment}-{sha256[:16]}"
+    relative_text = str(relative)
+    suffix = Path(relative_text).suffix
+    if suffix:
+        relative_text = relative_text[: -len(suffix)]
+    return safe_artifact_segment(relative_text, fallback="artifact")[:64]
 
 
 def infer_mime_type(path: Path) -> str:
@@ -122,8 +128,11 @@ def discover_artifacts(
     for path in candidates:
         if len(artifacts) >= max_files:
             break
+        if _is_published_path(path, root):
+            continue
         try:
             metadata = metadata_for_artifact_file(path, root)
+            metadata = publish_artifact_snapshot(path, root, metadata=metadata)
         except (FileNotFoundError, OSError, ValueError):
             continue
         artifact_id = metadata["artifactId"]
@@ -147,11 +156,15 @@ def find_artifact_file(
         return None
     if not root.is_dir():
         return None
+    if found := find_published_artifact_file(root, requested_id):
+        return found
     try:
         candidates = sorted(root.rglob("*"))
     except OSError:
         return None
     for path in candidates:
+        if _is_published_path(path, root):
+            continue
         try:
             metadata = metadata_for_artifact_file(path, root)
         except (FileNotFoundError, OSError, ValueError):
@@ -159,3 +172,67 @@ def find_artifact_file(
         if path.stem == requested_id or metadata["artifactId"] == requested_id:
             return path.resolve(), metadata
     return None
+
+
+def publish_artifact_snapshot(path: Path, artifact_root: Path, *, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
+    root = artifact_root.resolve()
+    file_path = path.resolve()
+    file_path.relative_to(root)
+    if _is_published_path(file_path, root):
+        raise ValueError("published artifact snapshots are not source artifacts")
+    metadata = dict(metadata or metadata_for_artifact_file(file_path, root))
+    artifact_id = str(metadata.get("artifactId") or "").strip()
+    if not artifact_id:
+        raise ValueError("artifactId is required")
+    snapshot_dir = _published_root(root) / safe_artifact_segment(artifact_id, fallback="artifact")
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+    snapshot_path = snapshot_dir / file_path.name
+    tmp_path = snapshot_dir / f".{file_path.name}.{os.getpid()}.tmp"
+    try:
+        shutil.copyfile(file_path, tmp_path)
+        os.replace(tmp_path, snapshot_path)
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return metadata
+
+
+def find_published_artifact_file(
+    artifact_root: Path,
+    artifact_id: str,
+) -> tuple[Path, dict[str, Any]] | None:
+    requested_id = str(artifact_id or "").strip()
+    if not requested_id or "/" in requested_id or "\\" in requested_id:
+        return None
+    try:
+        root = artifact_root.resolve()
+        snapshot_dir = _published_root(root) / safe_artifact_segment(requested_id, fallback="artifact")
+    except Exception:
+        return None
+    if not snapshot_dir.is_dir():
+        return None
+    try:
+        candidates = sorted(path for path in snapshot_dir.iterdir() if path.is_file())
+    except OSError:
+        return None
+    for path in candidates:
+        try:
+            metadata = metadata_for_artifact_file(path, snapshot_dir, artifact_id=requested_id)
+        except (FileNotFoundError, OSError, ValueError):
+            continue
+        return path.resolve(), metadata
+    return None
+
+
+def _published_root(artifact_root: Path) -> Path:
+    return artifact_root / _PUBLISHED_DIR_NAME
+
+
+def _is_published_path(path: Path, artifact_root: Path) -> bool:
+    try:
+        path.resolve().relative_to(_published_root(artifact_root.resolve()).resolve())
+        return True
+    except ValueError:
+        return False
