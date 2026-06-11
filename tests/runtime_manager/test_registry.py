@@ -240,6 +240,80 @@ def test_runtime_worker_llm_request_metadata_is_safe_and_actionable():
     assert "secret-key" not in encoded
 
 
+def test_runtime_worker_llm_request_metadata_log_record_is_safe_and_greppable():
+    from runtime_manager.worker_main import (
+        _llm_metadata_log_record,
+        _llm_request_metadata_event,
+    )
+
+    event = _llm_request_metadata_event(
+        {
+            "api_request_id": "turn-1:api:1",
+            "turn_id": "turn-1",
+            "api_call_count": 1,
+            "provider": "custom",
+            "model": "qwen3.6-35b-a3b",
+            "base_url": "https://models.example/v1",
+            "request_char_count": 12345,
+            "approx_input_tokens": 6789,
+            "request": {
+                "body": {
+                    "messages": [{"role": "user", "content": "SECRET USER INPUT"}],
+                    "tools": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": "terminal",
+                                "parameters": {"properties": {"command": {"description": "SECRET SCHEMA"}}},
+                            },
+                        }
+                    ],
+                    "tool_choice": "auto",
+                    "api_key": "secret-key",
+                }
+            },
+        },
+        run_id="run-1",
+        request={
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "session_id": "session-1",
+            "message": "SECRET REQUEST",
+            "skills": ["dba-diagnose-oracle"],
+            "enabled_toolsets": ["terminal", "file"],
+        },
+        system_prompt="BASE\n\ndba-diagnose-oracle\n\nSECRET PROMPT",
+    )
+
+    record = _llm_metadata_log_record(
+        event,
+        request={
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "session_id": "session-1",
+            "message": "SECRET REQUEST",
+        },
+    )
+
+    assert record["message"] == "runtime.llm.metadata"
+    assert record["event"] == "llm.request.metadata"
+    assert record["run_id"] == "run-1"
+    assert record["session_id"] == "session-1"
+    assert record["user_id"] == "user-1"
+    assert record["conversation_id"] == "conv-1"
+    assert record["skill_names"] == ["dba-diagnose-oracle"]
+    assert record["tools_count"] == 1
+    assert record["tool_names"] == ["terminal"]
+    assert record["tool_choice"] == "auto"
+
+    encoded = json.dumps(record, ensure_ascii=False)
+    assert "SECRET USER INPUT" not in encoded
+    assert "SECRET REQUEST" not in encoded
+    assert "SECRET PROMPT" not in encoded
+    assert "SECRET SCHEMA" not in encoded
+    assert "secret-key" not in encoded
+
+
 def test_runtime_worker_llm_response_metadata_is_safe_and_actionable():
     from types import SimpleNamespace
 
@@ -273,6 +347,55 @@ def test_runtime_worker_llm_response_metadata_is_safe_and_actionable():
     assert event["assistant_tool_calls_count"] == 1
     assert event["assistant_tool_names"] == ["terminal"]
     assert event["usage"] == {"prompt_tokens": 100, "completion_tokens": 20}
+
+
+def test_runtime_worker_llm_response_metadata_log_record_is_safe_and_greppable():
+    from types import SimpleNamespace
+
+    from runtime_manager.worker_main import (
+        _llm_metadata_log_record,
+        _llm_response_metadata_event,
+    )
+
+    tool_call = SimpleNamespace(function=SimpleNamespace(name="terminal"))
+    event = _llm_response_metadata_event(
+        {
+            "api_request_id": "turn-1:api:1",
+            "turn_id": "turn-1",
+            "api_call_count": 1,
+            "provider": "custom",
+            "model": "qwen3.6-35b-a3b",
+            "base_url": "https://models.example/v1",
+            "api_mode": "chat_completions",
+            "finish_reason": "tool_calls",
+            "response_model": "qwen3.6-35b-a3b",
+            "assistant_content_chars": 0,
+            "assistant_tool_call_count": 1,
+            "assistant_message": SimpleNamespace(tool_calls=[tool_call]),
+            "usage": {"prompt_tokens": 100, "completion_tokens": 20},
+        },
+        run_id="run-1",
+    )
+
+    record = _llm_metadata_log_record(
+        event,
+        request={
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "session_id": "session-1",
+            "message": "SECRET REQUEST",
+        },
+    )
+
+    assert record["message"] == "runtime.llm.metadata"
+    assert record["event"] == "llm.response.metadata"
+    assert record["run_id"] == "run-1"
+    assert record["session_id"] == "session-1"
+    assert record["finish_reason"] == "tool_calls"
+    assert record["assistant_tool_calls_count"] == 1
+    assert record["assistant_tool_names"] == ["terminal"]
+    assert record["output_tokens"] == 20
+    assert "SECRET REQUEST" not in json.dumps(record, ensure_ascii=False)
 
 
 def test_runtime_worker_projects_compression_status_as_structured_event():
