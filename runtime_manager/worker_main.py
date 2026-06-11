@@ -65,6 +65,12 @@ def emit(event: dict[str, Any]) -> None:
         sys.stdout.flush()
 
 
+def log_event(event: dict[str, Any]) -> None:
+    with _OUTPUT_LOCK:
+        sys.stderr.write(json.dumps(event, ensure_ascii=False) + "\n")
+        sys.stderr.flush()
+
+
 def main() -> int:
     first_line = sys.stdin.readline()
     if not first_line:
@@ -651,11 +657,13 @@ def _register_runtime_llm_debug_hooks(
         )
         if event:
             emit_fn(event)
+            _log_llm_metadata_event(event, request=request)
 
     def on_post_api_request(**kwargs: Any) -> None:
         event = _llm_response_metadata_event(kwargs, run_id=run_id)
         if event:
             emit_fn(event)
+            _log_llm_metadata_event(event, request=request)
 
     for hook_name, callback in (
         ("pre_api_request", on_pre_api_request),
@@ -759,6 +767,87 @@ def _llm_response_metadata_event(
         ),
         "usage": hook_kwargs.get("usage") if isinstance(hook_kwargs.get("usage"), dict) else {},
     }
+
+
+def _log_llm_metadata_event(event: dict[str, Any], *, request: dict[str, Any]) -> None:
+    try:
+        log_event(_llm_metadata_log_record(event, request=request))
+    except Exception:
+        return
+
+
+def _llm_metadata_log_record(event: dict[str, Any], *, request: dict[str, Any]) -> dict[str, Any]:
+    record: dict[str, Any] = {
+        "message": "runtime.llm.metadata",
+        "event": str(event.get("event") or ""),
+        "run_id": str(event.get("run_id") or ""),
+        "session_id": str(request.get("session_id") or request.get("conversation_id") or ""),
+        "user_id": str(request.get("user_id") or ""),
+        "conversation_id": str(request.get("conversation_id") or ""),
+        "timestamp": event.get("timestamp"),
+        "api_request_id": str(event.get("api_request_id") or ""),
+        "turn_id": str(event.get("turn_id") or ""),
+        "api_call_count": _coerce_positive_int(event.get("api_call_count")),
+        "provider": str(event.get("provider") or ""),
+        "model": str(event.get("model") or ""),
+        "base_url_host": str(event.get("base_url_host") or ""),
+        "api_mode": str(event.get("api_mode") or ""),
+    }
+
+    if event.get("event") == "llm.request.metadata":
+        record.update(
+            {
+                "skills_count": _coerce_positive_int(event.get("skills_count")),
+                "skill_names": _normalize_string_list(event.get("skill_names")),
+                "skill_prompt_presence": event.get("skill_prompt_presence")
+                if isinstance(event.get("skill_prompt_presence"), dict)
+                else {},
+                "enabled_toolsets": _normalize_string_list(event.get("enabled_toolsets")),
+                "disabled_toolsets": _normalize_string_list(event.get("disabled_toolsets")),
+                "tools_count": _coerce_positive_int(event.get("tools_count")),
+                "tool_names": _normalize_string_list(event.get("tool_names")),
+                "tool_choice": str(event.get("tool_choice") or ""),
+                "request_message_count": _coerce_positive_int(
+                    event.get("request_message_count")
+                ),
+                "request_char_count": _coerce_positive_int(event.get("request_char_count")),
+                "approx_input_tokens": _coerce_positive_int(event.get("approx_input_tokens")),
+                "max_tokens": _coerce_positive_int(event.get("max_tokens")),
+                "system_prompt_chars": _coerce_positive_int(event.get("system_prompt_chars")),
+                "system_prompt_sha256": str(event.get("system_prompt_sha256") or ""),
+            }
+        )
+    elif event.get("event") == "llm.response.metadata":
+        record.update(
+            {
+                "finish_reason": str(event.get("finish_reason") or ""),
+                "assistant_tool_calls_count": _coerce_positive_int(
+                    event.get("assistant_tool_calls_count")
+                ),
+                "assistant_tool_names": _normalize_string_list(
+                    event.get("assistant_tool_names")
+                ),
+                "assistant_content_chars": _coerce_positive_int(
+                    event.get("assistant_content_chars")
+                ),
+                "response_model": str(event.get("response_model") or ""),
+                "output_tokens": _usage_output_tokens(event.get("usage")),
+            }
+        )
+    return record
+
+
+def _usage_output_tokens(value: Any) -> int:
+    if not isinstance(value, dict):
+        return 0
+    return _coerce_positive_int(
+        _first_present(
+            value.get("completion_tokens"),
+            value.get("output_tokens"),
+            value.get("completionTokens"),
+            value.get("outputTokens"),
+        )
+    )
 
 
 def _hook_request_body(hook_kwargs: dict[str, Any]) -> dict[str, Any]:
