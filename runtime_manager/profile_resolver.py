@@ -9,6 +9,7 @@ from typing import Any
 
 from .cloud_kubeconfig import CloudKubeconfigResolver
 from .home_resolver import UserHomeResolver
+from .ops_env import extract_apiserver_ops_env
 
 _DEFAULT_ENABLED_TOOLSETS = ("terminal", "file")
 _DEFAULT_SYSTEM_PROMPT_FILENAMES = ("system-prompt.md", "system_prompt.md")
@@ -97,6 +98,7 @@ class RuntimeProfileResolver:
         worker_env["HERMES_HOME"] = str(user_home)
         worker_env["HOME"] = str(home_dir)
         worker_env["TERMINAL_CWD"] = str(workspace_dir)
+        worker_env.update(extract_apiserver_ops_env(payload))
         return ResolvedRunContext(
             user_id=user_id,
             conversation_id=conversation_id,

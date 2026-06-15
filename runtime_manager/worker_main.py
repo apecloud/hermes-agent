@@ -96,8 +96,10 @@ def main() -> int:
 
     hermes_home = str(request["hermes_home"])
     from runtime_manager.bootstrap import load_profile_environment
+    from runtime_manager.ops_env import apply_apiserver_ops_env
 
     load_profile_environment(hermes_home)
+    apply_apiserver_ops_env(request.get("ops_env") or {})
     os.environ["HERMES_RUNTIME_RUN_ID"] = run_id
     os.environ["HERMES_SESSION_KEY"] = approval_session_key
     if request.get("artifact_dir") and not os.environ.get("HERMES_ARTIFACT_DIR"):
@@ -957,6 +959,7 @@ def _coerce_nonnegative_float(value: Any) -> float:
 
 def _safe_status_event_text(value: Any, *, limit: int = 512) -> str:
     text = str(value or "")
+    text = _redact_runtime_secret_values(text)
     text = _SENSITIVE_STATUS_VALUE_PATTERN.sub(r"\1\2<redacted>", text)
     text = _BEARER_STATUS_VALUE_PATTERN.sub("Bearer <redacted>", text)
     text = _INTERNAL_USER_PATH_PATTERN.sub("/opt/data/users/<redacted>", text)
@@ -1276,6 +1279,7 @@ def _drop_command_environment_prefix(tokens: list[str]) -> list[str]:
 def _sanitize_command_preview(command: str, *, limit: int) -> str:
     tokens = _drop_command_environment_prefix(_split_command(command))
     text = " ".join(tokens) if tokens else command
+    text = _redact_runtime_secret_values(text)
     text = _KUBECONFIG_ASSIGNMENT_PATTERN.sub(r"\1", text)
     text = _KUBECONFIG_FLAG_EQUAL_PATTERN.sub(" ", text)
     text = _KUBECONFIG_FLAG_VALUE_PATTERN.sub(" ", text)
@@ -1287,6 +1291,7 @@ def _sanitize_command_preview(command: str, *, limit: int) -> str:
 
 
 def _safe_text_preview(text: str, *, limit: int) -> str:
+    text = _redact_runtime_secret_values(text)
     text = _KUBECONFIG_ASSIGNMENT_PATTERN.sub(r"\1", text)
     text = _KUBECONFIG_FLAG_EQUAL_PATTERN.sub(" ", text)
     text = _KUBECONFIG_FLAG_VALUE_PATTERN.sub(" ", text)
@@ -1298,6 +1303,7 @@ def _safe_text_preview(text: str, *, limit: int) -> str:
 
 
 def _safe_output_preview(text: str, *, limit: int) -> str:
+    text = _redact_runtime_secret_values(text)
     text = _KUBECONFIG_ASSIGNMENT_PATTERN.sub(r"\1", text)
     text = _KUBECONFIG_FLAG_EQUAL_PATTERN.sub(" ", text)
     text = _KUBECONFIG_FLAG_VALUE_PATTERN.sub(" ", text)
@@ -1306,6 +1312,19 @@ def _safe_output_preview(text: str, *, limit: int) -> str:
     text = _SENSITIVE_FLAG_VALUE_PATTERN.sub(r"\1 <redacted>", text)
     text = _INTERNAL_USER_PATH_PATTERN.sub("/opt/data/users/<redacted>", text)
     return _bounded_output_preview(text, limit=limit)
+
+
+def _redact_runtime_secret_values(text: str) -> str:
+    if not text:
+        return text
+    try:
+        from runtime_manager.ops_env import runtime_secret_values_from_env
+
+        for secret in runtime_secret_values_from_env():
+            text = text.replace(secret, "<redacted>")
+    except Exception:
+        pass
+    return text
 
 
 def _bounded_preview(text: str, *, limit: int) -> str:

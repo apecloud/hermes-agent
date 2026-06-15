@@ -16,6 +16,7 @@ from hermes_state import SessionDB
 
 from .artifacts import artifact_dir_for, find_artifact_file
 from .cloud_kubeconfig import CloudKubeconfigResolver
+from .ops_env import extract_apiserver_ops_env
 from .profile_resolver import RuntimeProfileResolver
 from .registry import RunHandle, RunRegistry
 
@@ -153,6 +154,7 @@ class RuntimeManager:
             "skip_context_files": bool(payload.get("skip_context_files", True)),
             "max_iterations": resolved.max_iterations,
             "metadata": payload.get("metadata") or {},
+            "ops_env": extract_apiserver_ops_env(payload),
             "artifact_dir": str(artifact_dir),
         }
         assert proc.stdin is not None

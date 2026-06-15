@@ -177,6 +177,55 @@ def test_runtime_worker_applies_context_length_to_agent_compressor():
     }
 
 
+def test_runtime_ops_env_extracts_only_apiserver_allowlist():
+    from runtime_manager.ops_env import extract_apiserver_ops_env
+
+    extracted = extract_apiserver_ops_env(
+        {
+            "opsEnv": {
+                "APISERVER_USER_TYPE": "frontend",
+                "APISERVER_OPS_ENDPOINT": "http://apiserver.kb-cloud:8080",
+                "APISERVER_USER_TOKEN": "secret-token",
+                "OPENAI_API_KEY": "must-not-forward",
+            },
+            "metadata": {
+                "opsEnv": {
+                    "APISERVER_USER_TYPE": "metadata-value",
+                    "APISERVER_USER_TOKEN": "",
+                }
+            },
+        }
+    )
+
+    assert extracted == {
+        "APISERVER_USER_TYPE": "metadata-value",
+        "APISERVER_OPS_ENDPOINT": "http://apiserver.kb-cloud:8080",
+        "APISERVER_USER_TOKEN": "secret-token",
+    }
+
+
+def test_runtime_ops_env_reapplies_after_profile_bootstrap(monkeypatch):
+    from runtime_manager.ops_env import apply_apiserver_ops_env
+
+    monkeypatch.setenv("APISERVER_USER_TOKEN", "stale-profile-token")
+    applied = apply_apiserver_ops_env(
+        {
+            "APISERVER_USER_TYPE": "admin",
+            "APISERVER_OPS_ENDPOINT": "http://internal-apiserver",
+            "APISERVER_USER_TOKEN": "fresh-run-token",
+            "UNSAFE_ENV": "ignored",
+        }
+    )
+
+    assert applied == {
+        "APISERVER_USER_TYPE": "admin",
+        "APISERVER_OPS_ENDPOINT": "http://internal-apiserver",
+        "APISERVER_USER_TOKEN": "fresh-run-token",
+    }
+    assert os.environ["APISERVER_USER_TOKEN"] == "fresh-run-token"
+    assert "UNSAFE_ENV" not in os.environ
+
+
 def test_runtime_worker_llm_request_metadata_is_safe_and_actionable():
     from runtime_manager.worker_main import _llm_request_metadata_event
 
@@ -557,6 +606,22 @@ def test_runtime_worker_tool_event_helpers_are_json_safe():
     assert "NAME     READY" in result_fields["stdout_preview"]
     assert "secret-token" not in json.dumps(result_fields, ensure_ascii=False)
     assert "stderr-secret" not in json.dumps(result_fields, ensure_ascii=False)
+
+    os.environ["APISERVER_USER_TOKEN"] = "ops-token-secret"
+    try:
+        result_fields = _safe_tool_result_fields(
+            {
+                "output": "token value: ops-token-secret",
+                "stderr": "authorization failed for ops-token-secret",
+                "exit_code": 1,
+                "error": "ops-token-secret",
+            }
+        )
+    finally:
+        os.environ.pop("APISERVER_USER_TOKEN", None)
+    encoded = json.dumps(result_fields, ensure_ascii=False)
+    assert "ops-token-secret" not in encoded
+    assert encoded.count("<redacted>") >= 2
 
     approval_fields = _approval_display_fields(
         {
@@ -1007,6 +1072,64 @@ async def test_runtime_manager_sets_worker_profile_env_to_user_workspace(tmp_pat
         "hermes_home": str(user_home),
         "home": str(user_home / "home"),
         "terminal_cwd": str(user_home / "workspace"),
+    }
+
+
+@pytest.mark.asyncio
+async def test_runtime_manager_forwards_apiserver_ops_env_to_worker(tmp_path):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, os, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'user_type': os.environ.get('APISERVER_USER_TYPE'), 'endpoint': os.environ.get('APISERVER_OPS_ENDPOINT'), 'token': os.environ.get('APISERVER_USER_TOKEN'), 'unsafe': os.environ.get('OPENAI_API_KEY'), 'request_ops_env': req.get('ops_env')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+            "opsEnv": {
+                "APISERVER_USER_TYPE": "frontend",
+                "APISERVER_OPS_ENDPOINT": "http://apiserver.internal",
+                "APISERVER_USER_TOKEN": "ops-token",
+                "OPENAI_API_KEY": "must-not-forward",
+            },
+        }
+    )
+
+    for _ in range(100):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    assert json.loads(handle.output) == {
+        "user_type": "frontend",
+        "endpoint": "http://apiserver.internal",
+        "token": "ops-token",
+        "unsafe": None,
+        "request_ops_env": {
+            "APISERVER_USER_TYPE": "frontend",
+            "APISERVER_OPS_ENDPOINT": "http://apiserver.internal",
+            "APISERVER_USER_TOKEN": "ops-token",
+        },
     }
 
 
