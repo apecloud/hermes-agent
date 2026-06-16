@@ -19,7 +19,7 @@ from .manager import RuntimeManager
 
 
 class RunRequest(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     user_id: str
     conversation_id: str
@@ -39,6 +39,7 @@ class RunRequest(BaseModel):
     skip_context_files: bool = True
     max_iterations: int | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+    ops_env: dict[str, Any] = Field(default_factory=dict, alias="opsEnv")
     session_id: str | None = None
 
 
