@@ -438,17 +438,17 @@ class TestUnsupportedPlatform:
 
 class TestFailedDownloadCaching:
     @patch("tools.tirith_security._mark_install_failed")
-    @patch("tools.tirith_security._is_install_failed_on_disk", return_value=False)
     @patch("tools.tirith_security._install_tirith", return_value=(None, "download_failed"))
     @patch("tools.tirith_security.shutil.which", return_value=None)
-    def test_failed_install_cached_no_retry(self, mock_which, mock_install,
-                                             mock_disk_check, mock_mark):
-        """After a failed download, subsequent resolves must not retry."""
-        from tools.tirith_security import _resolve_tirith_path, _INSTALL_FAILED
+    def test_background_failed_install_cached_no_retry(self, mock_which,
+                                                       mock_install,
+                                                       mock_mark):
+        """After a background download fails, subsequent resolves must not retry."""
+        from tools.tirith_security import _background_install, _resolve_tirith_path, _INSTALL_FAILED
         _tirith_mod._resolved_path = None
 
-        # First call: tries install, fails
-        _resolve_tirith_path("tirith")
+        # Background worker tries install, fails, and caches the miss.
+        _background_install()
         assert mock_install.call_count == 1
         assert _tirith_mod._resolved_path is _INSTALL_FAILED
         mock_mark.assert_called_once_with("download_failed")  # reason persisted
@@ -459,31 +459,45 @@ class TestFailedDownloadCaching:
 
         _tirith_mod._resolved_path = None
 
-    @patch("tools.tirith_security._mark_install_failed")
-    @patch("tools.tirith_security._is_install_failed_on_disk", return_value=False)
-    @patch("tools.tirith_security._install_tirith", return_value=(None, "download_failed"))
     @patch("tools.tirith_security.shutil.which", return_value=None)
     @patch("tools.tirith_security.subprocess.run")
     @patch("tools.tirith_security._load_security_config")
     def test_failed_install_scan_uses_fail_open(self, mock_cfg, mock_run,
-                                                 mock_which, mock_install,
-                                                 mock_disk_check, mock_mark):
-        """After cached miss, check_command_security hits OSError → fail_open."""
+                                                 mock_which):
+        """Missing tirith on the hot path starts install and fails open."""
         _tirith_mod._resolved_path = None
         mock_cfg.return_value = {"tirith_enabled": True, "tirith_path": "tirith",
                                  "tirith_timeout": 5, "tirith_fail_open": True}
         mock_run.side_effect = FileNotFoundError("No such file: tirith")
-        # First command triggers install attempt + cached miss + scan
-        result = check_command_security("echo hello")
-        assert result["action"] == "allow"
-        assert mock_install.call_count == 1
 
-        # Second command: no install retry, just hits OSError → allow
-        result = check_command_security("echo world")
-        assert result["action"] == "allow"
-        assert mock_install.call_count == 1  # still 1
+        with patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._read_failure_reason", return_value=None), \
+             patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
+             patch(
+                 "tools.tirith_security._install_tirith",
+                 side_effect=AssertionError("hot path must not install synchronously"),
+             ) as mock_install, \
+             patch("tools.tirith_security.threading.Thread") as MockThread:
+            mock_thread = MagicMock()
+            mock_thread.is_alive.return_value = False
+            MockThread.return_value = mock_thread
+
+            result = check_command_security("echo hello")
+            assert result["action"] == "allow"
+            assert "unavailable" in result["summary"]
+            mock_install.assert_not_called()
+            MockThread.assert_called_once()
+            mock_thread.start.assert_called_once()
+
+            # While the background installer is considered running, a second
+            # command should fail open without starting a parallel installer.
+            mock_thread.is_alive.return_value = True
+            result = check_command_security("echo world")
+            assert result["action"] == "allow"
+            assert MockThread.call_count == 1
 
         _tirith_mod._resolved_path = None
+        _tirith_mod._install_thread = None
 
 
 # ---------------------------------------------------------------------------
@@ -520,21 +534,28 @@ class TestExplicitPathNoAutoDownload:
 
         _tirith_mod._resolved_path = None
 
-    @patch("tools.tirith_security._mark_install_failed")
     @patch("tools.tirith_security._is_install_failed_on_disk", return_value=False)
-    @patch("tools.tirith_security._install_tirith", return_value=("/auto/tirith", ""))
     @patch("tools.tirith_security.shutil.which", return_value=None)
-    def test_default_path_does_auto_download(self, mock_which, mock_install,
-                                              mock_disk_check, mock_mark):
-        """The default bare 'tirith' SHOULD trigger auto-download."""
+    def test_default_path_starts_background_download(self, mock_which,
+                                                     mock_disk_check):
+        """The default bare 'tirith' SHOULD trigger background auto-download."""
         from tools.tirith_security import _resolve_tirith_path
         _tirith_mod._resolved_path = None
 
-        result = _resolve_tirith_path("tirith")
-        mock_install.assert_called_once()
-        assert result == "/auto/tirith"
+        with patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._read_failure_reason", return_value=None), \
+             patch("tools.tirith_security._install_tirith") as mock_install, \
+             patch("tools.tirith_security.threading.Thread") as MockThread:
+            mock_thread = MagicMock()
+            MockThread.return_value = mock_thread
+            result = _resolve_tirith_path("tirith")
+            mock_install.assert_not_called()
+            MockThread.assert_called_once()
+            mock_thread.start.assert_called_once()
+            assert result == "tirith"
 
         _tirith_mod._resolved_path = None
+        _tirith_mod._install_thread = None
 
 
 # ---------------------------------------------------------------------------
@@ -806,6 +827,52 @@ class TestInstallArchiveMemberValidation:
 # ---------------------------------------------------------------------------
 
 class TestBackgroundInstall:
+    @patch("tools.tirith_security.subprocess.run")
+    @patch("tools.tirith_security._load_security_config")
+    def test_check_command_security_starts_install_in_background_when_missing(
+        self,
+        mock_cfg,
+        mock_run,
+    ):
+        """Terminal hot path must not synchronously download tirith.
+
+        A missing default tirith binary should fail open for the current
+        command and kick off the existing background installer. If the hot
+        path calls _install_tirith directly, this test fails immediately.
+        """
+        _tirith_mod._resolved_path = None
+        mock_cfg.return_value = {
+            "tirith_enabled": True,
+            "tirith_path": "tirith",
+            "tirith_timeout": 5,
+            "tirith_fail_open": True,
+        }
+        mock_run.side_effect = FileNotFoundError("No such file: tirith")
+
+        with patch("tools.tirith_security.shutil.which", return_value=None), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._read_failure_reason", return_value=None), \
+             patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
+             patch(
+                 "tools.tirith_security._install_tirith",
+                 side_effect=AssertionError("hot path must not install synchronously"),
+             ) as mock_install, \
+             patch("tools.tirith_security.threading.Thread") as MockThread:
+            mock_thread = MagicMock()
+            mock_thread.is_alive.return_value = False
+            MockThread.return_value = mock_thread
+
+            result = check_command_security("kubectl config get-contexts -o name")
+
+            assert result["action"] == "allow"
+            assert "unavailable" in result["summary"]
+            mock_install.assert_not_called()
+            MockThread.assert_called_once()
+            mock_thread.start.assert_called_once()
+
+        _tirith_mod._resolved_path = None
+        _tirith_mod._install_thread = None
+
     def test_ensure_installed_non_blocking(self):
         """ensure_installed must return immediately when download needed."""
         _tirith_mod._resolved_path = None
@@ -948,32 +1015,31 @@ class TestDiskFailureMarker:
                 assert _is_install_failed_on_disk()  # still failed
 
     @patch("tools.tirith_security._mark_install_failed")
-    @patch("tools.tirith_security._is_install_failed_on_disk", return_value=False)
     @patch("tools.tirith_security._install_tirith", return_value=(None, "cosign_missing"))
     @patch("tools.tirith_security.shutil.which", return_value=None)
-    def test_sync_resolve_persists_failure(self, mock_which, mock_install,
-                                            mock_disk_check, mock_mark):
-        """Synchronous _resolve_tirith_path persists failure to disk."""
-        from tools.tirith_security import _resolve_tirith_path
+    def test_background_install_persists_failure(self, mock_which, mock_install,
+                                                 mock_mark):
+        """Background installer persists failure to disk."""
+        from tools.tirith_security import _background_install
         _tirith_mod._resolved_path = None
 
-        _resolve_tirith_path("tirith")
+        _background_install()
         mock_mark.assert_called_once_with("cosign_missing")
 
         _tirith_mod._resolved_path = None
 
     @patch("tools.tirith_security._clear_install_failed")
-    @patch("tools.tirith_security._is_install_failed_on_disk", return_value=False)
     @patch("tools.tirith_security._install_tirith", return_value=("/installed/tirith", ""))
     @patch("tools.tirith_security.shutil.which", return_value=None)
-    def test_sync_resolve_clears_marker_on_success(self, mock_which, mock_install,
-                                                    mock_disk_check, mock_clear):
-        """Successful install clears the disk failure marker."""
-        from tools.tirith_security import _resolve_tirith_path
+    def test_background_install_clears_marker_on_success(self, mock_which,
+                                                         mock_install,
+                                                         mock_clear):
+        """Successful background install clears the disk failure marker."""
+        from tools.tirith_security import _background_install
         _tirith_mod._resolved_path = None
 
-        result = _resolve_tirith_path("tirith")
-        assert result == "/installed/tirith"
+        _background_install()
+        assert _tirith_mod._resolved_path == "/installed/tirith"
         mock_clear.assert_called_once()
 
         _tirith_mod._resolved_path = None
@@ -1047,7 +1113,7 @@ class TestDiskFailureMarker:
         _tirith_mod._resolved_path = None
 
     def test_cosign_missing_disk_marker_allows_retry(self):
-        """Disk marker with cosign_missing reason allows retry when cosign appears."""
+        """Disk marker with cosign_missing reason starts retry when cosign appears."""
         from tools.tirith_security import _resolve_tirith_path
         _tirith_mod._resolved_path = None
 
@@ -1055,16 +1121,22 @@ class TestDiskFailureMarker:
         with patch("tools.tirith_security.shutil.which", return_value=None), \
              patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
-             patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
-             patch("tools.tirith_security._clear_install_failed"):
+             patch("tools.tirith_security._install_tirith") as mock_install, \
+             patch("tools.tirith_security._clear_install_failed"), \
+             patch("tools.tirith_security.threading.Thread") as MockThread:
+            mock_thread = MagicMock()
+            MockThread.return_value = mock_thread
             result = _resolve_tirith_path("tirith")
-            mock_install.assert_called_once()  # network retry happened
-            assert result == "/new/tirith"
+            mock_install.assert_not_called()
+            MockThread.assert_called_once()
+            mock_thread.start.assert_called_once()
+            assert result == "tirith"
 
         _tirith_mod._resolved_path = None
+        _tirith_mod._install_thread = None
 
     def test_in_memory_cosign_missing_retries_when_cosign_appears(self):
-        """In-memory _INSTALL_FAILED with cosign_missing retries when cosign appears."""
+        """In-memory cosign_missing starts background retry when cosign appears."""
         from tools.tirith_security import _resolve_tirith_path, _INSTALL_FAILED
         _tirith_mod._resolved_path = _INSTALL_FAILED
         _tirith_mod._install_failure_reason = "cosign_missing"
@@ -1079,13 +1151,19 @@ class TestDiskFailureMarker:
         with patch("tools.tirith_security.shutil.which", side_effect=_which_side_effect), \
              patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
-             patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
-             patch("tools.tirith_security._clear_install_failed"):
+             patch("tools.tirith_security._install_tirith") as mock_install, \
+             patch("tools.tirith_security._clear_install_failed"), \
+             patch("tools.tirith_security.threading.Thread") as MockThread:
+            mock_thread = MagicMock()
+            MockThread.return_value = mock_thread
             result = _resolve_tirith_path("tirith")
-            mock_install.assert_called_once()  # network retry happened
-            assert result == "/new/tirith"
+            mock_install.assert_not_called()
+            MockThread.assert_called_once()
+            mock_thread.start.assert_called_once()
+            assert result == "tirith"
 
         _tirith_mod._resolved_path = None
+        _tirith_mod._install_thread = None
 
     def test_in_memory_cosign_exec_failed_not_retried(self):
         """In-memory _INSTALL_FAILED with cosign_exec_failed is NOT retried."""
@@ -1131,7 +1209,7 @@ class TestDiskFailureMarker:
             assert _tirith_mod._resolved_path is _INSTALL_FAILED
             assert _tirith_mod._install_failure_reason == "cosign_missing"
 
-        # Second call: cosign now on PATH → in-memory retry fires
+        # Second call: cosign now on PATH → in-memory background retry fires
         def _which_side_effect(name):
             if name == "tirith":
                 return None
@@ -1142,13 +1220,19 @@ class TestDiskFailureMarker:
         with patch("tools.tirith_security.shutil.which", side_effect=_which_side_effect), \
              patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
-             patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
-             patch("tools.tirith_security._clear_install_failed"):
+             patch("tools.tirith_security._install_tirith") as mock_install, \
+             patch("tools.tirith_security._clear_install_failed"), \
+             patch("tools.tirith_security.threading.Thread") as MockThread:
+            mock_thread = MagicMock()
+            MockThread.return_value = mock_thread
             result = _resolve_tirith_path("tirith")
-            mock_install.assert_called_once()
-            assert result == "/new/tirith"
+            mock_install.assert_not_called()
+            MockThread.assert_called_once()
+            mock_thread.start.assert_called_once()
+            assert result == "tirith"
 
         _tirith_mod._resolved_path = None
+        _tirith_mod._install_thread = None
 
 
 # ---------------------------------------------------------------------------
