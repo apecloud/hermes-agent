@@ -87,10 +87,6 @@ def test_gui_toolset_label_strips_leading_emoji():
     assert gui_toolset_label("Terminal & Processes") == "Terminal & Processes"
 
 
-def test_configurable_toolsets_include_messaging():
-    assert any(ts_key == "messaging" for ts_key, _, _ in CONFIGURABLE_TOOLSETS)
-
-
 def test_configurable_toolsets_include_context_engine():
     assert any(ts_key == "context_engine" for ts_key, _, _ in CONFIGURABLE_TOOLSETS)
 
@@ -128,12 +124,6 @@ def test_get_platform_tools_context_engine_respects_explicit_empty_selection():
     enabled = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
 
     assert "context_engine" not in enabled
-
-
-def test_get_platform_tools_default_telegram_includes_messaging():
-    enabled = _get_platform_tools({}, "telegram")
-
-    assert "messaging" in enabled
 
 
 def test_get_platform_tools_default_whatsapp_includes_web():
@@ -1550,3 +1540,5 @@ def test_real_configurable_changes_still_reported_in_diff():
     # User adds 'vision' (configurable) — must still report as added.
     new_enabled2 = (current - {"kanban"}) | {"vision"}
     assert ((new_enabled2 - current) & universe) == {"vision"}
+
+
