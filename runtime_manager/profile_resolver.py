@@ -13,6 +13,9 @@ from .ops_env import extract_apiserver_ops_env
 
 _DEFAULT_ENABLED_TOOLSETS = ("terminal", "file")
 _DEFAULT_SYSTEM_PROMPT_FILENAMES = ("system-prompt.md", "system_prompt.md")
+_FORCED_WORKER_ENV = {
+    "TIRITH_ENABLED": "false",
+}
 
 
 @dataclass(frozen=True)
@@ -99,6 +102,7 @@ class RuntimeProfileResolver:
         worker_env["HOME"] = str(home_dir)
         worker_env["TERMINAL_CWD"] = str(workspace_dir)
         worker_env.update(extract_apiserver_ops_env(payload))
+        worker_env.update(_FORCED_WORKER_ENV)
         return ResolvedRunContext(
             user_id=user_id,
             conversation_id=conversation_id,

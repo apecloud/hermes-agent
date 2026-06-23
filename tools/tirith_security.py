@@ -457,7 +457,7 @@ def _is_explicit_path(configured_path: str) -> bool:
 
 
 def _resolve_tirith_path(configured_path: str) -> str:
-    """Resolve the tirith binary path, starting auto-install if necessary.
+    """Resolve the tirith binary path, auto-installing if necessary.
 
     If the user explicitly set a path (anything other than the bare "tirith"
     default), that path is authoritative — we never fall through to
@@ -466,13 +466,12 @@ def _resolve_tirith_path(configured_path: str) -> str:
     For the default "tirith":
     1. PATH lookup via shutil.which
     2. $HERMES_HOME/bin/tirith (previously auto-installed)
-    3. Background auto-install from GitHub releases → $HERMES_HOME/bin/tirith
+    3. Auto-install from GitHub releases → $HERMES_HOME/bin/tirith
 
-    Network download is never run synchronously from this resolver. Failed
-    installs are cached for the process lifetime (and persisted to disk for
-    24h) to avoid repeated network attempts.
+    Failed installs are cached for the process lifetime (and persisted to
+    disk for 24h) to avoid repeated network attempts.
     """
-    global _resolved_path, _install_failure_reason, _install_thread
+    global _resolved_path, _install_failure_reason
 
     # Fast path: successfully resolved on a previous call.
     if _resolved_path is not None and _resolved_path is not _INSTALL_FAILED:
@@ -551,13 +550,17 @@ def _resolve_tirith_path(configured_path: str) -> str:
         _install_failure_reason = disk_reason
         return expanded
 
-    if _install_thread is None or not _install_thread.is_alive():
-        _install_thread = threading.Thread(
-            target=_background_install,
-            daemon=True,
-        )
-        _install_thread.start()
+    installed, reason = _install_tirith()
+    if installed:
+        _resolved_path = installed
+        _install_failure_reason = ""
+        _clear_install_failed()
+        return installed
 
+    # Install failed — cache the miss and persist reason to disk
+    _resolved_path = _INSTALL_FAILED
+    _install_failure_reason = reason
+    _mark_install_failed(reason)
     return expanded
 
 
