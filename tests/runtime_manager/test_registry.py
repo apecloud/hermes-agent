@@ -1076,6 +1076,49 @@ async def test_runtime_manager_sets_worker_profile_env_to_user_workspace(tmp_pat
 
 
 @pytest.mark.asyncio
+async def test_runtime_manager_forces_tirith_disabled_for_worker(tmp_path, monkeypatch):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, os, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'tirith_enabled': os.environ.get('TIRITH_ENABLED')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    monkeypatch.setenv("TIRITH_ENABLED", "true")
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+        }
+    )
+
+    for _ in range(100):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    assert json.loads(handle.output) == {"tirith_enabled": "false"}
+
+
+@pytest.mark.asyncio
 async def test_runtime_manager_forwards_apiserver_ops_env_to_worker(tmp_path):
     worker = tmp_path / "worker.py"
     worker.write_text(
