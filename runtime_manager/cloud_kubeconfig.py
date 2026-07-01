@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
+import yaml
+
 
 _ENVIRONMENT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@:-]{0,127}$")
 _SQL_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?$")
@@ -313,9 +315,21 @@ def _decode_kubeconfig(encoded_value: str, environment_name: str) -> str:
         kubeconfig = decoded.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise RuntimeError(f"decoded kubeconfig is not UTF-8 for environment {environment_name!r}") from exc
-    if "apiVersion:" not in kubeconfig or "clusters:" not in kubeconfig:
+    if not _looks_like_kubeconfig(kubeconfig):
         raise RuntimeError(f"decoded kubeconfig does not look like a Kubernetes config for {environment_name!r}")
     return kubeconfig
+
+
+def _looks_like_kubeconfig(value: str) -> bool:
+    try:
+        data = yaml.safe_load(value)
+    except yaml.YAMLError:
+        return False
+    return (
+        isinstance(data, dict)
+        and isinstance(data.get("apiVersion"), str)
+        and isinstance(data.get("clusters"), list)
+    )
 
 
 def _safe_path_component(value: str) -> str:

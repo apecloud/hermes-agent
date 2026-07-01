@@ -110,6 +110,27 @@ def test_cloud_kubeconfig_resolver_queries_psql_and_writes_file_under_user_home(
     ]
 
 
+def test_cloud_kubeconfig_resolver_accepts_json_kubeconfig(tmp_path):
+    kubeconfig = json.dumps(
+        {
+            "apiVersion": "v1",
+            "kind": "Config",
+            "clusters": [{"name": "test", "cluster": {"server": "https://example.invalid"}}],
+            "contexts": [{"name": "test", "context": {"cluster": "test", "user": "test"}}],
+            "current-context": "test",
+            "preferences": {},
+            "users": [{"name": "test", "user": {"token": "redacted"}}],
+        }
+    )
+    encoded_kubeconfig = base64.b64encode(kubeconfig.encode("utf-8")).decode("ascii")
+    resolver = CloudKubeconfigResolver(runner=lambda cmd, timeout: FakeResult(stdout=encoded_kubeconfig))
+
+    resolver.prepare_contexts(tmp_path / "home", ["test"])
+
+    path = tmp_path / "home" / "kubeconfigs" / "test.yaml"
+    assert path.read_text(encoding="utf-8") == kubeconfig + "\n"
+
+
 def test_cloud_kubeconfig_resolver_discovers_postgres_pod_by_selector(tmp_path):
     calls = []
     kubeconfig = base64.b64encode(b"apiVersion: v1\nclusters: []\n").decode("ascii")
