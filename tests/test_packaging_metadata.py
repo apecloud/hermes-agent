@@ -78,6 +78,36 @@ def test_every_on_disk_subpackage_is_covered_by_packages_find():
     )
 
 
+def test_console_script_package_roots_are_shipped():
+    """Every package-backed console script must import from packaged code.
+
+    Console script entry points are generated from ``[project.scripts]`` even
+    when the target module's package is absent from setuptools package
+    discovery. That creates an executable that fails immediately with
+    ``ModuleNotFoundError`` inside the container.
+    """
+    data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    include = data["tool"]["setuptools"]["packages"]["find"]["include"]
+    selected = set(find_packages(where=str(REPO_ROOT), include=include))
+    py_modules = set(data["tool"]["setuptools"]["py-modules"])
+
+    missing = []
+    for script, target in data["project"]["scripts"].items():
+        module = target.split(":", 1)[0]
+        root = module.split(".", 1)[0]
+        if "." not in module:
+            if root not in py_modules:
+                missing.append((script, module))
+            continue
+        if root not in selected:
+            missing.append((script, module))
+
+    assert not missing, (
+        "Console scripts point at modules that are not shipped by setuptools "
+        f"package discovery / py-modules: {missing}"
+    )
+
+
 def test_packaging_declared_as_core_dependency():
     """Regression for #40503.
 
@@ -264,4 +294,3 @@ def test_locale_catalogs_ship_in_both_wheel_and_sdist():
     # Every on-disk catalog has the .yaml extension the globs above match.
     on_disk = list((REPO_ROOT / "locales").glob("*.yaml"))
     assert on_disk, "expected locales/*.yaml catalogs on disk"
-
