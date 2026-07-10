@@ -981,7 +981,9 @@ async def test_runtime_manager_forwards_per_run_llm_config_to_worker(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_path, monkeypatch):
+async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file_and_skills(
+    tmp_path, monkeypatch
+):
     worker = tmp_path / "worker.py"
     worker.write_text(
         "\n".join(
@@ -1022,10 +1024,56 @@ async def test_runtime_manager_defaults_worker_toolsets_to_terminal_file(tmp_pat
     assert handle.status == "completed"
     output = json.loads(handle.output)
     assert output == {
-        "enabled_toolsets": ["terminal", "file"],
+        "enabled_toolsets": ["terminal", "file", "skills"],
         "disabled_toolsets": None,
         "max_iterations": 20,
     }
+
+
+@pytest.mark.asyncio
+async def test_runtime_manager_ignores_legacy_default_enabled_toolsets_env(
+    tmp_path, monkeypatch
+):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'enabled_toolsets': req.get('enabled_toolsets')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS", "terminal,file")
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+        }
+    )
+
+    for _ in range(100):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    output = json.loads(handle.output)
+    assert output == {"enabled_toolsets": ["terminal", "file", "skills"]}
 
 
 @pytest.mark.asyncio
@@ -1227,6 +1275,49 @@ async def test_runtime_manager_does_not_inject_prompt_or_skills_without_default_
     assert not (tmp_path / "users" / "user-1" / "asset-version.json").exists()
 
 
+@pytest.mark.asyncio
+async def test_runtime_manager_ignores_legacy_default_skills_env(tmp_path, monkeypatch):
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "\n".join(
+            [
+                "import json, sys, time",
+                "req = json.loads(sys.stdin.readline())",
+                "run_id = req['run_id']",
+                "print(json.dumps({'event': 'run.completed', 'run_id': run_id, 'timestamp': time.time(), 'output': json.dumps({'skills': req.get('skills')})}), flush=True)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from runtime_manager.manager import RuntimeManager
+    import json
+    import sys
+
+    monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_SKILLS", "dba-diagnose-redis")
+    manager = RuntimeManager(
+        users_root=tmp_path / "users",
+        python_executable=sys.executable,
+        worker_script=worker,
+    )
+    handle = await manager.start_run(
+        {
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "message": "hello",
+            "model": "openai/test",
+        }
+    )
+
+    for _ in range(100):
+        if handle.status == "completed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert handle.status == "completed"
+    assert json.loads(handle.output) == {"skills": []}
+
+
 def test_worker_composes_system_prompt_with_preloaded_skills():
     from runtime_manager.worker_main import _compose_effective_system_prompt
 
@@ -1262,7 +1353,9 @@ def test_worker_fails_fast_when_requested_skill_is_missing():
 
 
 @pytest.mark.asyncio
-async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, monkeypatch):
+async def test_runtime_manager_copies_default_profile_assets_without_preloading_manifest_skills(
+    tmp_path, monkeypatch
+):
     assets = tmp_path / "cloud-assets"
     (assets / "skills" / "custom-diagnosis").mkdir(parents=True)
     (assets / "system-prompt.md").write_text("CLOUD MAINTAINED PROMPT", encoding="utf-8")
@@ -1326,7 +1419,7 @@ async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, mo
     output = json.loads(handle.output)
     assert output == {
         "system_prompt": "CLOUD MAINTAINED PROMPT",
-        "skills": ["custom-diagnosis"],
+        "skills": [],
     }
     assert (
         tmp_path
@@ -1340,7 +1433,9 @@ async def test_runtime_manager_uses_external_default_profile_assets(tmp_path, mo
 
 
 @pytest.mark.asyncio
-async def test_runtime_manager_syncs_full_nested_skill_directories(tmp_path, monkeypatch):
+async def test_runtime_manager_syncs_nested_skill_assets_without_preloading_manifest_skills(
+    tmp_path, monkeypatch
+):
     assets = tmp_path / "cloud-assets"
     skill_dir = assets / "skills" / "diagnosis" / "custom-diagnosis"
     (skill_dir / "references").mkdir(parents=True)
@@ -1403,7 +1498,7 @@ async def test_runtime_manager_syncs_full_nested_skill_directories(tmp_path, mon
         await asyncio.sleep(0.02)
 
     assert handle.status == "completed"
-    assert json.loads(handle.output) == {"skills": ["custom-diagnosis"]}
+    assert json.loads(handle.output) == {"skills": []}
     copied_skill_dir = (
         tmp_path
         / "users"
@@ -1437,7 +1532,7 @@ async def test_runtime_manager_payload_toolsets_override_default(tmp_path, monke
     import json
     import sys
 
-    monkeypatch.setenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS", "terminal,file")
+    monkeypatch.delenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS", raising=False)
     manager = RuntimeManager(
         users_root=tmp_path / "users",
         python_executable=sys.executable,

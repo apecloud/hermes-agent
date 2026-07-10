@@ -151,23 +151,22 @@ Expected health response:
   the first matching pod. The `psql` command runs inside the Postgres pod and
   normally relies on the pod's existing `PGPASSWORD` environment variable.
 - When a user home is resolved, Runtime Manager copies managed skills from the
-  default profile into `${HERMES_HOME}/skills/` and passes enabled skill names
-  from `manifest.yaml` (or `RUNTIME_MANAGER_DEFAULT_SKILLS`) to the worker for
-  preloading. Skill directories are copied recursively, preserving the relative
-  path below `skills/`, so Hermes can load supporting `references/`, `scripts/`,
-  `templates/`, and category paths with `skill_view`. The worker fails fast if a
-  requested default skill is missing instead of silently running without the
-  diagnosis guide.
+  default profile into `${HERMES_HOME}/skills/`. Skill directories are copied
+  recursively, preserving the relative path below `skills/`, so Hermes can load
+  supporting `references/`, `scripts/`, `templates/`, and category paths with
+  `skill_view`. Skills listed in the default profile `manifest.yaml` are copied
+  for discovery, but are not sent as worker preloaded skills; use request
+  `skills` only when a run must explicitly preload full skill bodies.
 - The default prompt and skill are runtime-manager deployment assets, not
   frontend settings. P0 should not expose prompt editing, skill selection, or
   Hermes profile internals to users.
-- Runtime Manager defaults new runs to the `terminal,file` toolsets unless
+- Runtime Manager defaults new runs to the `terminal,file,skills` toolsets unless
   `POST /agent/runs` explicitly supplies `enabled_toolsets`. This keeps the
   clean runtime image from loading optional browser, TTS, image, or messaging
-  tool dependencies during KubeBlocks diagnosis. Set
-  `runtimeManager.defaultEnabledToolsets` in Helm to tune this runtime-manager
-  behavior; use `all` only for development images that intentionally include
-  every optional dependency.
+  tool dependencies during KubeBlocks diagnosis, while exposing `skills_list` and
+  `skill_view` for description-first skill discovery. Use per-run
+  `enabled_toolsets` only when a caller intentionally needs to narrow or expand
+  the default runtime tool surface.
 - Runtime Manager defaults `max_iterations` to `20` unless `POST /agent/runs`
   explicitly supplies a value. This bounds diagnostic loops and lets Hermes ask
   the model for a final toolless summary when the budget is exhausted, instead
