@@ -11,7 +11,7 @@ from .cloud_kubeconfig import CloudKubeconfigResolver
 from .home_resolver import UserHomeResolver
 from .ops_env import extract_apiserver_ops_env
 
-_DEFAULT_ENABLED_TOOLSETS = ("terminal", "file")
+_DEFAULT_ENABLED_TOOLSETS = ("terminal", "file", "skills")
 _DEFAULT_SYSTEM_PROMPT_FILENAMES = ("system-prompt.md", "system_prompt.md")
 _FORCED_WORKER_ENV = {
     "TIRITH_ENABLED": "false",
@@ -49,20 +49,18 @@ class RuntimeProfileResolver:
         default_profile_dir = os.getenv("RUNTIME_MANAGER_DEFAULT_PROFILE_DIR")
         self.default_profile_dir = Path(default_profile_dir).expanduser() if default_profile_dir else None
         default_profile_manifest = _load_default_profile_manifest(self.default_profile_dir)
-        self.default_enabled_toolsets = _parse_toolset_env(
-            os.getenv("RUNTIME_MANAGER_DEFAULT_ENABLED_TOOLSETS"),
-            default=list(_DEFAULT_ENABLED_TOOLSETS),
-        )
+        self.default_enabled_toolsets = list(_DEFAULT_ENABLED_TOOLSETS)
         self.default_max_iterations = int(os.getenv("RUNTIME_MANAGER_DEFAULT_MAX_ITERATIONS", "20"))
         self.default_system_prompt = _load_default_system_prompt(
             os.getenv("RUNTIME_MANAGER_DEFAULT_SYSTEM_PROMPT_FILE")
             or default_profile_manifest.get("systemPrompt"),
             default_profile_dir=self.default_profile_dir,
         )
-        self.default_skills = _parse_string_list_env(
-            os.getenv("RUNTIME_MANAGER_DEFAULT_SKILLS"),
-            default=_extract_manifest_skill_names(default_profile_manifest),
-        )
+        # Default profile skills are copied into the per-user HERMES_HOME so
+        # Hermes can expose them through the normal description/index +
+        # skill_view flow. Do not treat manifest skills as preloaded skills:
+        # preloading expands each full SKILL.md into every run's system prompt.
+        self.default_skills: list[str] = []
 
     def validate_user_id(self, user_id: str) -> str:
         return self.home_resolver.validate_user_id(user_id)
@@ -172,18 +170,6 @@ def _normalize_toolsets(value: Any) -> list[str] | None:
     return None
 
 
-def _parse_toolset_env(value: str | None, *, default: list[str]) -> list[str] | None:
-    if value is None:
-        return default
-    return _normalize_toolsets(value)
-
-
-def _parse_string_list_env(value: str | None, *, default: list[str]) -> list[str]:
-    if value is None:
-        return list(default)
-    return _normalize_string_list(value)
-
-
 def _normalize_string_list(value: Any) -> list[str]:
     if value is None:
         return []
@@ -242,27 +228,6 @@ def _load_default_profile_manifest(default_profile_dir: Path | None) -> dict[str
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
-
-
-def _extract_manifest_skill_names(manifest: dict[str, Any]) -> list[str]:
-    skills = manifest.get("skills")
-    if not isinstance(skills, list):
-        return []
-    names: list[str] = []
-    for item in skills:
-        if isinstance(item, str):
-            name = item.strip()
-        elif isinstance(item, dict):
-            if item.get("enabled") is False:
-                continue
-            raw_name = item.get("name")
-            raw_path = item.get("path")
-            name = str(raw_name or Path(str(raw_path or "")).name).strip()
-        else:
-            continue
-        if name and name not in names:
-            names.append(name)
-    return names
 
 
 def _join_prompt_parts(*parts: Any) -> str | None:
