@@ -142,17 +142,13 @@ def _load_skill_payload(skill_identifier: str, task_id: str | None = None) -> tu
         return None
 
     try:
-        from tools.skills_tool import SKILLS_DIR, skill_view
-        from agent.skill_utils import get_external_skills_dirs
+        from tools.skills_tool import skill_view
+        from agent.skill_utils import get_all_skills_dirs
 
         identifier_path = Path(raw_identifier).expanduser()
         if identifier_path.is_absolute():
             normalized = None
-            trusted_roots = [SKILLS_DIR]
-            try:
-                trusted_roots.extend(get_external_skills_dirs())
-            except Exception:
-                pass
+            trusted_roots = get_all_skills_dirs()
 
             # Prefer the lexical path under a trusted skill root before
             # resolving symlinks.  Slash-command discovery can legitimately
@@ -169,6 +165,8 @@ def _load_skill_payload(skill_identifier: str, task_id: str | None = None) -> tu
 
             if normalized is None:
                 try:
+                    from tools.skills_tool import SKILLS_DIR
+
                     normalized = str(identifier_path.resolve().relative_to(SKILLS_DIR.resolve()))
                 except Exception:
                     normalized = raw_identifier

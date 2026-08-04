@@ -452,8 +452,16 @@ def _make_run_env(env: dict) -> dict:
         _is_passthrough = lambda _: False  # noqa: E731
 
     merged = dict(os.environ | env)
+    try:
+        from agent.runtime_profile_scope import get_runtime_profile_env_blocklist
+
+        profile_env_blocklist = get_runtime_profile_env_blocklist()
+    except Exception:
+        profile_env_blocklist = frozenset()
     run_env = {}
     for k, v in merged.items():
+        if k in profile_env_blocklist:
+            continue
         if k.startswith(_HERMES_PROVIDER_ENV_FORCE_PREFIX):
             real_key = k[len(_HERMES_PROVIDER_ENV_FORCE_PREFIX):]
             run_env[real_key] = v

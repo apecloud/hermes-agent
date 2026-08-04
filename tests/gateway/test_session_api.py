@@ -1,5 +1,6 @@
 """Focused tests for API server session-control endpoints."""
 
+import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -51,6 +52,37 @@ def _create_session_app(adapter: APIServerAdapter) -> web.Application:
     return app
 
 
+def _write_agent_profile(
+    root,
+    name: str,
+    *,
+    prompt: str,
+    skill_name: str,
+) -> None:
+    profile_dir = root / name
+    skill_dir = profile_dir / "skills" / skill_name
+    skill_dir.mkdir(parents=True)
+    (profile_dir / "manifest.yaml").write_text(
+        "\n".join(
+            [
+                "version: v1",
+                "systemPrompt: system-prompt.md",
+                "skills:",
+                f"  - path: skills/{skill_name}",
+                f"    name: {skill_name}",
+                "    enabled: true",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (profile_dir / "system-prompt.md").write_text(prompt, encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text(
+        f"---\nname: {skill_name}\ndescription: {skill_name} description\n---\n\nUse {skill_name}.",
+        encoding="utf-8",
+    )
+
+
 @pytest.mark.asyncio
 async def test_capabilities_advertises_session_control_surface(adapter):
     app = _create_session_app(adapter)
@@ -89,10 +121,11 @@ async def test_run_agent_binds_api_session_context_for_tool_env(adapter, monkeyp
         def __init__(self, session_id: str):
             self.session_id = session_id
 
-        def run_conversation(self, user_message, conversation_history, task_id):
+        def run_conversation(self, user_message, system_message=None, conversation_history=None, task_id=None):
             from gateway.session_context import get_session_env
             from tools.environments.local import _make_run_env
 
+            observed["system_message"] = system_message
             observed["task_id"] = task_id
             observed["context_session_id"] = get_session_env("HERMES_SESSION_ID")
             observed["context_platform"] = get_session_env("HERMES_SESSION_PLATFORM")
@@ -115,6 +148,7 @@ async def test_run_agent_binds_api_session_context_for_tool_env(adapter, monkeyp
     assert result["session_id"] == "request-session"
     assert usage == {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
     assert observed == {
+        "system_message": None,
         "task_id": "request-session",
         "context_session_id": "request-session",
         "context_platform": "api_server",
@@ -167,6 +201,142 @@ async def test_session_crud_and_message_history(adapter, session_db):
         deleted = await delete_resp.json()
         assert deleted == {"object": "hermes.session.deleted", "id": session_id, "deleted": True}
         assert session_db.get_session(session_id) is None
+
+
+@pytest.mark.asyncio
+async def test_create_session_records_whitelisted_agent_profile(session_db, tmp_path):
+    profiles_root = tmp_path / "profiles"
+    _write_agent_profile(
+        profiles_root,
+        "global-entry",
+        prompt="Global entry runtime prompt.",
+        skill_name="kbcloud-platform-skill",
+    )
+    adapter = APIServerAdapter(
+        PlatformConfig(
+            enabled=True,
+            extra={"agent_profiles": {"root_dir": str(profiles_root)}},
+        )
+    )
+    adapter._session_db = session_db
+
+    app = _create_session_app(adapter)
+    async with TestClient(TestServer(app)) as cli:
+        resp = await cli.post(
+            "/api/sessions",
+            json={"id": "global-session", "agent_profile": "global-entry"},
+        )
+        assert resp.status == 201, await resp.text()
+        payload = await resp.json()
+
+    assert payload["session"]["agent_profile"] == "global-entry"
+    row = session_db.get_session("global-session")
+    model_config = json.loads(row["model_config"])
+    assert model_config["agent_profile"] == "global-entry"
+    metadata = model_config["agent_profile_metadata"]
+    assert metadata["name"] == "global-entry"
+    assert metadata["version"] == "v1"
+    assert metadata["selected_skills"] == [
+        {"name": "kbcloud-platform-skill", "path": "skills/kbcloud-platform-skill"}
+    ]
+    assert metadata["profile_hash"]
+
+
+@pytest.mark.asyncio
+async def test_missing_agent_profile_defaults_to_cluster_diagnosis_when_configured(session_db, tmp_path):
+    profiles_root = tmp_path / "profiles"
+    _write_agent_profile(
+        profiles_root,
+        "cluster-diagnosis",
+        prompt="Cluster diagnosis runtime prompt.",
+        skill_name="kubeblocks-k8s-diagnosis",
+    )
+    adapter = APIServerAdapter(
+        PlatformConfig(
+            enabled=True,
+            extra={"agent_profiles": {"root_dir": str(profiles_root)}},
+        )
+    )
+    adapter._session_db = session_db
+
+    app = _create_session_app(adapter)
+    async with TestClient(TestServer(app)) as cli:
+        resp = await cli.post("/api/sessions", json={"id": "diagnosis-session"})
+        assert resp.status == 201, await resp.text()
+        payload = await resp.json()
+
+    assert payload["session"]["agent_profile"] == "cluster-diagnosis"
+    model_config = json.loads(session_db.get_session("diagnosis-session")["model_config"])
+    assert model_config["agent_profile"] == "cluster-diagnosis"
+    assert model_config["agent_profile_metadata"]["selected_skills"] == [
+        {"name": "kubeblocks-k8s-diagnosis", "path": "skills/kubeblocks-k8s-diagnosis"}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_create_session_rejects_non_whitelisted_agent_profile(adapter):
+    app = _create_session_app(adapter)
+    async with TestClient(TestServer(app)) as cli:
+        resp = await cli.post(
+            "/api/sessions",
+            json={"id": "bad-session", "agent_profile": "../../etc/passwd"},
+        )
+        assert resp.status == 400
+        payload = await resp.json()
+
+    assert payload["error"]["code"] == "invalid_agent_profile"
+
+
+@pytest.mark.asyncio
+async def test_session_chat_uses_profile_prompt_and_rejects_profile_switch(session_db, tmp_path):
+    profiles_root = tmp_path / "profiles"
+    _write_agent_profile(
+        profiles_root,
+        "global-entry",
+        prompt="Global entry runtime prompt.",
+        skill_name="kbcloud-platform-skill",
+    )
+    adapter = APIServerAdapter(
+        PlatformConfig(
+            enabled=True,
+            extra={"agent_profiles": {"root_dir": str(profiles_root)}},
+        )
+    )
+    adapter._session_db = session_db
+    app = _create_session_app(adapter)
+    mock_run = AsyncMock(return_value=({"final_response": "ok", "session_id": "global-chat"}, {"total_tokens": 1}))
+
+    with patch.object(adapter, "_run_agent", mock_run):
+        async with TestClient(TestServer(app)) as cli:
+            create_resp = await cli.post(
+                "/api/sessions",
+                json={"id": "global-chat", "agent_profile": "global-entry"},
+            )
+            assert create_resp.status == 201, await create_resp.text()
+
+            chat_resp = await cli.post(
+                "/api/sessions/global-chat/chat",
+                json={
+                    "message": "hello",
+                    "agent_profile": "global-entry",
+                    "system_message": "turn-only instruction",
+                },
+            )
+            assert chat_resp.status == 200, await chat_resp.text()
+
+            switch_resp = await cli.post(
+                "/api/sessions/global-chat/chat",
+                json={"message": "hello", "agent_profile": "cluster-diagnosis"},
+            )
+            assert switch_resp.status == 409
+            switch_payload = await switch_resp.json()
+
+    _, kwargs = mock_run.call_args
+    assert "Global entry runtime prompt." in kwargs["system_message"]
+    assert "kbcloud-platform-skill" in kwargs["system_message"]
+    assert kwargs["ephemeral_system_prompt"] == "turn-only instruction"
+    assert kwargs["agent_profile"].name == "global-entry"
+    assert switch_payload["error"]["code"] == "agent_profile_locked"
 
 
 @pytest.mark.asyncio
