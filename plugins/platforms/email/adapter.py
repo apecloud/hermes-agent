@@ -23,6 +23,10 @@ import os
 import re
 import smtplib
 import socket
+
+# Profile-scoped secret reader for multiplexing support (PR #50094)
+from agent.secret_scope import UnscopedSecretError as _UnscopedSecretError
+from agent.secret_scope import get_secret as _scoped_get_secret
 import ssl
 import uuid
 from email.header import decode_header
@@ -43,9 +47,50 @@ from gateway.platforms.base import (
     cache_image_from_bytes,
 )
 from gateway.config import Platform, PlatformConfig
-from utils import env_int
+from utils import is_truthy_value
 
 logger = logging.getLogger(__name__)
+
+
+def _get_esecret(name: str, default: str = "") -> str:
+    """Scope-aware ``EMAIL_*`` read with the default-profile startup fallback.
+
+    Secondary profiles run under ``_profile_runtime_scope`` — the scope is
+    authoritative and a scoped miss returns ``default`` (no cross-profile
+    borrow). The DEFAULT profile's adapter constructs and sends *unscoped*
+    under multiplexing, where a bare ``get_secret`` would raise
+    ``UnscopedSecretError`` and crash its email path; there ``os.environ``
+    is that profile's own value, so fall back to it. Same pattern as the
+    Slack ``SLACK_APP_TOKEN`` read (#59739) and the WhatsApp
+    ``_get_wsecret`` fix (5438e9c629).
+    """
+    try:
+        val = _scoped_get_secret(name, default)
+    except _UnscopedSecretError:
+        val = os.getenv(name)
+    return val if val is not None else default
+
+
+# Backwards-compatible alias for the name used by the original #59076 hunks.
+_get_secret = _get_esecret
+
+
+def _esecret_int(name: str, default: int) -> int:
+    """Scope-aware integer read (``env_int`` variant of ``_get_esecret``)."""
+    raw = str(_get_esecret(name, "")).strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except (ValueError, TypeError):
+        return default
+
+
+def _esecret_bool(name: str, default: bool = False) -> bool:
+    """Scope-aware boolean read (``env_bool`` variant of ``_get_esecret``)."""
+    return is_truthy_value(_get_esecret(name, ""), default=default)
+
+
 # Automated sender patterns — emails from these are silently ignored
 _NOREPLY_PATTERNS = (
     "noreply", "no-reply", "no_reply", "donotreply", "do-not-reply",
@@ -164,10 +209,10 @@ def check_email_requirements() -> bool:
     Treats blank/whitespace-only values as missing so an abandoned setup that
     left empty ``EMAIL_*`` keys in ``.env`` does not enable the platform (#40715).
     """
-    addr = os.getenv("EMAIL_ADDRESS", "").strip()
-    pwd = os.getenv("EMAIL_PASSWORD", "").strip()
-    imap = os.getenv("EMAIL_IMAP_HOST", "").strip()
-    smtp = os.getenv("EMAIL_SMTP_HOST", "").strip()
+    addr = _get_secret("EMAIL_ADDRESS", "").strip()
+    pwd = _get_secret("EMAIL_PASSWORD", "").strip()
+    imap = _get_secret("EMAIL_IMAP_HOST", "").strip()
+    smtp = _get_secret("EMAIL_SMTP_HOST", "").strip()
     return all([addr, pwd, imap, smtp])
 
 
@@ -241,6 +286,122 @@ def _extract_email_address(raw: str) -> str:
     if match:
         return match.group(1).strip().lower()
     return raw.strip().lower()
+
+
+def _domain_of(address: str) -> str:
+    """Return the lowercased domain part of an email address, or ''."""
+    _, _, domain = address.rpartition("@")
+    return domain.strip().lower()
+
+
+def _domains_aligned(a: str, b: str) -> bool:
+    """Return True if two domains are equal or in an organizational
+    parent/subdomain relationship (relaxed DMARC alignment).
+
+    DMARC relaxed alignment treats ``mail.example.com`` as aligned with
+    ``example.com``. We approximate organizational alignment by checking
+    exact equality or that one domain is a dot-suffix of the other.
+    """
+    a = (a or "").strip().lower().rstrip(".")
+    b = (b or "").strip().lower().rstrip(".")
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    return a.endswith("." + b) or b.endswith("." + a)
+
+
+# Match a single "method=result" token in an Authentication-Results header,
+# e.g. ``dmarc=pass`` or ``spf=fail``.
+_AUTH_METHOD_RE = re.compile(
+    r"\b(dmarc|dkim|spf)\s*=\s*([a-z]+)", re.IGNORECASE
+)
+# Match a property value like ``header.from=example.com`` or
+# ``smtp.mailfrom=user@example.com``.
+_AUTH_PROP_RE = re.compile(
+    r"\b(header\.from|header\.d|smtp\.mailfrom|smtp\.from|envelope-from)\s*=\s*([^\s;]+)",
+    re.IGNORECASE,
+)
+
+
+def _verify_sender_authentication(
+    msg: email_lib.message.Message,
+    from_addr: str,
+    *,
+    authserv_id: str = "",
+) -> Tuple[bool, str]:
+    """Verify that the message's ``From:`` domain is authenticated.
+
+    The ``From:`` header is attacker-controlled and is never authenticated by
+    IMAP delivery, so an allowlist keyed on ``From:`` alone is trivially
+    spoofable (GHSA-rxqh-5572-8m77). The only trustworthy signal is the
+    ``Authentication-Results`` header that the *receiving* mail server (the one
+    we IMAP into) stamps after running SPF/DKIM/DMARC. That header is prepended
+    by our own server, so the topmost instance is the one we trust; any
+    ``Authentication-Results`` an attacker injected into the body of their
+    message sorts below it.
+
+    Returns ``(authenticated, reason)``. ``authenticated`` is True when:
+      * a DMARC pass is recorded for the From domain, OR
+      * an SPF pass aligned with the From domain, OR
+      * a DKIM pass aligned (``header.d``) with the From domain.
+
+    When no ``Authentication-Results`` header is present at all, we return
+    ``(False, "no Authentication-Results header")`` — fail-closed. Operators
+    whose mail server does not stamp this header can opt out of the check
+    (see ``EmailAdapter._require_authenticated_sender``).
+    """
+    from_domain = _domain_of(from_addr)
+    if not from_domain:
+        return False, "missing From domain"
+
+    # get_all preserves header order; the receiving server prepends its result,
+    # so the FIRST Authentication-Results is the trusted one. We pin to the
+    # configured authserv-id when provided to defend against an injected header
+    # that happens to sort first.
+    headers = msg.get_all("Authentication-Results") or []
+    if not headers:
+        return False, "no Authentication-Results header"
+
+    trusted = None
+    for raw in headers:
+        value = " ".join(str(raw).split())
+        if authserv_id:
+            # authserv-id is the first token before the first ';'
+            serv = value.split(";", 1)[0].strip().lower()
+            if not _domains_aligned(serv, authserv_id) and serv != authserv_id.lower():
+                continue
+        trusted = value
+        break
+    if trusted is None:
+        return False, "no Authentication-Results from trusted authserv-id"
+
+    methods = {m.lower(): r.lower() for m, r in _AUTH_METHOD_RE.findall(trusted)}
+    props = {p.lower(): v.strip().strip('"') for p, v in _AUTH_PROP_RE.findall(trusted)}
+
+    # 1) DMARC pass is the strongest signal — DMARC already enforces From
+    #    alignment, so a pass means the From domain is authenticated.
+    if methods.get("dmarc") == "pass":
+        return True, "dmarc=pass"
+
+    # 2) SPF pass aligned with the From domain (the envelope/MAIL FROM domain
+    #    must match the From domain).
+    if methods.get("spf") == "pass":
+        spf_domain = _domain_of(props.get("smtp.mailfrom", "")) or props.get(
+            "smtp.from", ""
+        ) or props.get("envelope-from", "")
+        spf_domain = _domain_of(spf_domain) if "@" in spf_domain else spf_domain
+        if _domains_aligned(spf_domain, from_domain):
+            return True, "spf=pass aligned"
+
+    # 3) DKIM pass aligned with the From domain (the signing domain header.d
+    #    must align with the From domain).
+    if methods.get("dkim") == "pass":
+        dkim_domain = props.get("header.d", "") or _domain_of(props.get("header.from", ""))
+        if _domains_aligned(dkim_domain, from_domain):
+            return True, "dkim=pass aligned"
+
+    return False, f"authentication failed ({trusted[:120]})"
 
 
 def _extract_attachments(
@@ -318,19 +479,47 @@ class EmailAdapter(BasePlatformAdapter):
         # misleading ``[Errno 8] nodename nor servname`` (an unresolvable name)
         # instead of an obvious "host not set" error.
         extra = config.extra or {}
-        self._address = (os.getenv("EMAIL_ADDRESS", "") or extra.get("address", "")).strip()
-        self._password = os.getenv("EMAIL_PASSWORD", "")
-        self._imap_host = (os.getenv("EMAIL_IMAP_HOST", "") or extra.get("imap_host", "")).strip()
-        self._imap_port = env_int("EMAIL_IMAP_PORT", 993)
-        self._smtp_host = (os.getenv("EMAIL_SMTP_HOST", "") or extra.get("smtp_host", "")).strip()
-        self._smtp_port = env_int("EMAIL_SMTP_PORT", 587)
-        self._poll_interval = env_int("EMAIL_POLL_INTERVAL", 15)
+        self._address = (_get_secret("EMAIL_ADDRESS", "") or extra.get("address", "")).strip()
+        self._password = _get_secret("EMAIL_PASSWORD", "")
+        self._imap_host = (_get_secret("EMAIL_IMAP_HOST", "") or extra.get("imap_host", "")).strip()
+        self._imap_port = _esecret_int("EMAIL_IMAP_PORT", 993)
+        self._smtp_host = (_get_secret("EMAIL_SMTP_HOST", "") or extra.get("smtp_host", "")).strip()
+        self._smtp_port = _esecret_int("EMAIL_SMTP_PORT", 587)
+        self._poll_interval = _esecret_int("EMAIL_POLL_INTERVAL", 15)
 
         # Skip attachments — configured via config.yaml:
         #   platforms:
         #     email:
         #       skip_attachments: true
         self._skip_attachments = extra.get("skip_attachments", False)
+
+        # Require the sender's From: domain to be authenticated (SPF/DKIM/DMARC)
+        # before trusting it for authorization. The From: header is
+        # attacker-controlled and unauthenticated by IMAP, so an allowlist keyed
+        # on it alone is spoofable (GHSA-rxqh-5572-8m77). Default ON (fail-closed).
+        #
+        # Operators whose receiving mail server does not stamp an
+        # Authentication-Results header can opt out via config.yaml:
+        #   platforms:
+        #     email:
+        #       require_authenticated_sender: false
+        # or the EMAIL_TRUST_FROM_HEADER=true env mirror (parity with the other
+        # EMAIL_* access-control vars). When allow-all is in effect the operator
+        # has already chosen to accept any sender, so the check is moot and the
+        # gate below is skipped.
+        if "require_authenticated_sender" in extra:
+            self._require_authenticated_sender = bool(extra["require_authenticated_sender"])
+        elif _esecret_bool("EMAIL_TRUST_FROM_HEADER", False):
+            self._require_authenticated_sender = False
+        else:
+            self._require_authenticated_sender = True
+
+        # Optional authserv-id to pin Authentication-Results to the operator's
+        # own receiving server (defends against an injected header that sorts
+        # first). Defaults to the From-domain of the agent's own address.
+        self._authserv_id = (
+            extra.get("authserv_id", "") or _get_secret("EMAIL_AUTHSERV_ID", "")
+        ).strip().lower()
 
         # Track message IDs we've already processed to avoid duplicates
         self._seen_uids: set = set()
@@ -404,7 +593,7 @@ class EmailAdapter(BasePlatformAdapter):
             # Retry with IPv4 only.
             return _connect(ipv4_only=True)
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         """Connect to the IMAP server and start polling for new messages."""
         # Validate up front so a missing host surfaces as an actionable config
         # error instead of IMAP4_SSL("") raising the cryptic
@@ -529,7 +718,25 @@ class EmailAdapter(BasePlatformAdapter):
                     if status != "OK":
                         continue
 
-                    raw_email = msg_data[0][1]
+                    # IMAP fetch can return unexpected structures (e.g. a
+                    # single bytes item instead of a list of tuples). Guard
+                    # against IndexError / TypeError so one malformed response
+                    # doesn't abort the batch — the UID is already in
+                    # _seen_uids, so an abort would permanently skip the
+                    # remaining messages in this batch.
+                    try:
+                        raw_email = msg_data[0][1]
+                    except (IndexError, TypeError):
+                        logger.warning(
+                            "[Email] Unexpected IMAP response structure for UID %s, skipping",
+                            uid,
+                        )
+                        continue
+                    if not isinstance(raw_email, (bytes, bytearray)):
+                        logger.warning(
+                            "[Email] Non-bytes IMAP payload for UID %s, skipping", uid
+                        )
+                        continue
                     msg = email_lib.message_from_bytes(raw_email)
 
                     sender_raw = msg.get("From", "")
@@ -547,6 +754,17 @@ class EmailAdapter(BasePlatformAdapter):
                     if _is_automated_sender(sender_addr, msg_headers):
                         logger.debug("[Email] Skipping automated sender: %s", sender_addr)
                         continue
+
+                    # Verify the From: domain is authenticated (SPF/DKIM/DMARC)
+                    # while the raw message — and its trusted
+                    # Authentication-Results header — is still in scope. The
+                    # verdict is consumed at dispatch where authorization is
+                    # decided. From: is attacker-controlled, so this is the only
+                    # place a spoof can be caught (GHSA-rxqh-5572-8m77).
+                    sender_authenticated, auth_reason = _verify_sender_authentication(
+                        msg, sender_addr, authserv_id=self._authserv_id
+                    )
+
                     body = _extract_text_body(msg)
                     attachments = _extract_attachments(msg, skip_attachments=self._skip_attachments)
 
@@ -560,6 +778,8 @@ class EmailAdapter(BasePlatformAdapter):
                         "body": body,
                         "attachments": attachments,
                         "date": msg.get("Date", ""),
+                        "sender_authenticated": sender_authenticated,
+                        "auth_reason": auth_reason,
                     })
             finally:
                 try:
@@ -569,6 +789,36 @@ class EmailAdapter(BasePlatformAdapter):
         except Exception as e:
             logger.error("[Email] IMAP fetch error: %s", e)
         return results
+
+    @staticmethod
+    def _allow_all_senders() -> bool:
+        """Return True when the operator opted into accepting any sender.
+
+        Mirrors the gateway authz allow-all resolution: the per-platform
+        EMAIL_ALLOW_ALL_USERS flag or the global GATEWAY_ALLOW_ALL_USERS flag.
+        When either is set, sender identity is moot, so the From: authentication
+        gate is skipped.
+        """
+        truthy = {"true", "1", "yes"}
+        return (
+            _get_secret("EMAIL_ALLOW_ALL_USERS", "").strip().lower() in truthy
+            or os.getenv("GATEWAY_ALLOW_ALL_USERS", "").strip().lower() in truthy
+        )
+
+    @staticmethod
+    def _allowlist_in_effect() -> bool:
+        """Return True when a sender allowlist gates email access.
+
+        Authorization keys on the From: address only when an allowlist is
+        configured — the per-platform EMAIL_ALLOWED_USERS or the global
+        GATEWAY_ALLOWED_USERS. When neither is set the gateway default-denies
+        every sender regardless, so the spoofable From: identity grants nothing
+        and the authentication gate is unnecessary.
+        """
+        return bool(
+            _get_secret("EMAIL_ALLOWED_USERS", "").strip()
+            or os.getenv("GATEWAY_ALLOWED_USERS", "").strip()
+        )
 
     async def _dispatch_message(self, msg_data: Dict[str, Any]) -> None:
         """Convert a fetched email into a MessageEvent and dispatch it."""
@@ -588,12 +838,48 @@ class EmailAdapter(BasePlatformAdapter):
         # that the gateway will never authorize.  Without this early guard,
         # a race between dispatch and authorization can result in the adapter
         # sending a reply even though the handler returned None.
-        allowed_raw = os.getenv("EMAIL_ALLOWED_USERS", "").strip()
-        if allowed_raw:
+        allowed_raw = _get_secret("EMAIL_ALLOWED_USERS", "").strip()
+        if not allowed_raw:
+            if _get_secret("EMAIL_ALLOW_ALL_USERS", "").strip().lower() not in {"true", "1", "yes"} and (
+                os.getenv("GATEWAY_ALLOW_ALL_USERS", "").strip().lower() not in {"true", "1", "yes"}
+            ):
+                logger.debug(
+                    "[Email] Dropping sender at dispatch — EMAIL_ALLOWED_USERS is unset "
+                    "and open access is not opted in: %s",
+                    sender_addr,
+                )
+                return
+        else:
             allowed = {addr.strip().lower() for addr in allowed_raw.split(",") if addr.strip()}
             if sender_addr.lower() not in allowed:
                 logger.debug("[Email] Dropping non-allowlisted sender at dispatch: %s", sender_addr)
                 return
+
+        # Reject spoofed senders. The allowlist (and the gateway's own authz)
+        # key on sender_addr, which comes straight from the attacker-controlled
+        # From: header — so an attacker can forge From: an-allowlisted@addr to
+        # get authorized (GHSA-rxqh-5572-8m77). This only matters when an
+        # allowlist is actually being used to GRANT access: if no allowlist is
+        # configured the gateway default-denies everyone anyway, and if allow-all
+        # is on the operator already accepts any sender. So enforce From:
+        # authentication exactly when an allowlist is in effect and allow-all is
+        # off. Fail-closed: an unauthenticated From: is dropped before it can be
+        # matched against the allowlist.
+        if (
+            self._require_authenticated_sender
+            and self._allowlist_in_effect()
+            and not self._allow_all_senders()
+            and not msg_data.get("sender_authenticated", False)
+        ):
+            logger.warning(
+                "[Email] Dropping sender with unauthenticated From: %s (%s). "
+                "If your mail server does not stamp Authentication-Results, set "
+                "platforms.email.require_authenticated_sender: false (or "
+                "EMAIL_TRUST_FROM_HEADER=true) to accept the risk.",
+                sender_addr,
+                msg_data.get("auth_reason", "no verdict"),
+            )
+            return
 
         subject = msg_data["subject"]
         body = msg_data["body"].strip()
@@ -667,6 +953,16 @@ class EmailAdapter(BasePlatformAdapter):
             logger.error("[Email] Send failed to %s: %s", chat_id, e)
             return SendResult(success=False, error=str(e))
 
+    def _message_id_domain(self) -> str:
+        """Domain part for generated Message-IDs.
+
+        EMAIL_ADDRESS may lack an ``@`` (misconfiguration); fall back to
+        ``localhost`` instead of crashing send with an IndexError.
+        """
+        if "@" in self._address:
+            return self._address.rsplit("@", 1)[-1] or "localhost"
+        return "localhost"
+
     def _send_email(
         self,
         to_addr: str,
@@ -692,7 +988,7 @@ class EmailAdapter(BasePlatformAdapter):
             msg["References"] = original_msg_id
 
         msg["Date"] = formatdate(localtime=True)
-        msg_id = f"<hermes-{uuid.uuid4().hex[:12]}@{self._address.split('@')[1]}>"
+        msg_id = f"<hermes-{uuid.uuid4().hex[:12]}@{self._message_id_domain()}>"
         msg["Message-ID"] = msg_id
 
         msg.attach(MIMEText(body, "plain", "utf-8"))
@@ -805,7 +1101,7 @@ class EmailAdapter(BasePlatformAdapter):
             msg["References"] = original_msg_id
 
         msg["Date"] = formatdate(localtime=True)
-        msg_id = f"<hermes-{uuid.uuid4().hex[:12]}@{self._address.split('@')[1]}>"
+        msg_id = f"<hermes-{uuid.uuid4().hex[:12]}@{self._message_id_domain()}>"
         msg["Message-ID"] = msg_id
 
         if body:
@@ -885,7 +1181,7 @@ class EmailAdapter(BasePlatformAdapter):
             msg["References"] = original_msg_id
 
         msg["Date"] = formatdate(localtime=True)
-        msg_id = f"<hermes-{uuid.uuid4().hex[:12]}@{self._address.split('@')[1]}>"
+        msg_id = f"<hermes-{uuid.uuid4().hex[:12]}@{self._message_id_domain()}>"
         msg["Message-ID"] = msg_id
 
         if body:
@@ -953,11 +1249,11 @@ async def _standalone_send(
     from email.utils import formatdate
 
     extra = getattr(pconfig, "extra", {}) or {}
-    address = extra.get("address") or os.getenv("EMAIL_ADDRESS", "")
-    password = os.getenv("EMAIL_PASSWORD", "")
-    smtp_host = extra.get("smtp_host") or os.getenv("EMAIL_SMTP_HOST", "")
+    address = extra.get("address") or _get_secret("EMAIL_ADDRESS", "")
+    password = _get_secret("EMAIL_PASSWORD", "")
+    smtp_host = extra.get("smtp_host") or _get_secret("EMAIL_SMTP_HOST", "")
     try:
-        smtp_port = int(os.getenv("EMAIL_SMTP_PORT", "587"))
+        smtp_port = int(_get_secret("EMAIL_SMTP_PORT", "587") or "587")
     except (ValueError, TypeError):
         smtp_port = 587
 

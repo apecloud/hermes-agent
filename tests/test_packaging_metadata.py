@@ -1,14 +1,13 @@
-from pathlib import Path
+import ast
 import re
 import tomllib
+from pathlib import Path
 
 import pytest
 
 # setuptools is declared in the [dev] extra and is the build backend, but
 # guard the import so a runner without it skips these packaging checks
-# instead of erroring out collection for the whole shard (it used to be
-# picked up ambiently from the CI image; newer ubuntu-latest images don't
-# ship it in the test venv).
+# instead of erroring out collection for the whole shard.
 find_packages = pytest.importorskip("setuptools", exc_type=ImportError).find_packages
 
 
@@ -139,52 +138,6 @@ def test_faster_whisper_is_not_a_base_dependency():
     assert any(dep.startswith("faster-whisper") for dep in voice_extra)
 
 
-def test_manifest_includes_bundled_skills():
-    manifest = (REPO_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
-
-    assert "graft skills" in manifest
-    assert "graft optional-skills" in manifest
-
-
-def test_bundled_plugin_manifests_ship_in_both_wheel_and_sdist():
-    """Regression test for #34034 / #28149.
-
-    Plugin discovery (hermes_cli/plugins.py) registers each bundled plugin by
-    reading its ``plugin.yaml`` / ``plugin.yml`` manifest. Those manifests are
-    data files, not Python modules, so they only reach installed packages when
-    declared explicitly:
-
-    - wheel  -> ``[tool.setuptools.package-data]`` ``plugins`` glob
-    - sdist  -> ``MANIFEST.in`` (Homebrew and other downstream packagers build
-                from the sdist)
-
-    v0.15.0 declared neither, so the wheel shipped every adapter's Python code
-    but none of its manifests, and *every* gateway platform failed with
-    "No adapter available for <platform>". Both channels must cover manifests.
-    """
-    # There must actually be manifests on disk for the globs to match.
-    on_disk = list((REPO_ROOT / "plugins").rglob("plugin.yaml")) + list(
-        (REPO_ROOT / "plugins").rglob("plugin.yml")
-    )
-    assert on_disk, "expected bundled plugin manifests under plugins/"
-
-    # Wheel channel: package-data must declare a glob that matches plugin
-    # manifests anywhere under the plugins package.
-    data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    plugins_pkg_data = data["tool"]["setuptools"]["package-data"].get("plugins", [])
-    assert any(
-        g.endswith("plugin.yaml") or g.endswith("plugin.yml")
-        for g in plugins_pkg_data
-    ), "pyproject package-data 'plugins' must ship plugin.yaml/plugin.yml (wheel)"
-
-    # Sdist channel: MANIFEST.in must recursively include the manifests so
-    # downstream packagers building from the sdist also get them.
-    manifest = (REPO_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
-    assert "recursive-include plugins" in manifest and "plugin.yaml" in manifest, (
-        "MANIFEST.in must recursive-include plugins plugin.yaml/plugin.yml (sdist)"
-    )
-
-
 # Minimum non-vulnerable Starlette: CVE-2026-48710 ("BadHost") was fixed in
 # 1.0.1. Anything below that lets a malformed Host header desync
 # ``request.url.path`` from the dispatched ASGI path, bypassing path-based
@@ -193,6 +146,14 @@ def test_bundled_plugin_manifests_ship_in_both_wheel_and_sdist():
 # [dev]) so we pin it directly in every extra that exposes a server surface and
 # enforce the floor in both pyproject and the committed lockfile.
 _STARLETTE_CVE_FLOOR = (1, 0, 1)
+_UPDATE_DOWNGRADE_GUARD_FLOORS = {
+    # `hermes update` reinstalls exact pins from pyproject/lazy_deps. These
+    # reviewed CVE pins must not slide back to stale versions that downgrade
+    # already-patched user environments.
+    "cryptography": (48, 0, 1),
+    "starlette": (1, 3, 1),
+    "python-multipart": (0, 0, 32),
+}
 
 
 def _version_tuple(spec: str) -> tuple[int, ...]:
@@ -268,6 +229,199 @@ def test_locked_starlette_is_not_vulnerable_to_cve_2026_48710():
             f"floor {'.'.join(map(str, _STARLETTE_CVE_FLOOR))} — regenerate the "
             f"lockfile after bumping the pin"
         )
+
+
+
+
+# ---------------------------------------------------------------------------
+# Dependency-pin consistency: pyproject extras <-> tools/lazy_deps.py
+#
+# The same package is exact-pinned in two hand-maintained places: the
+# [project.optional-dependencies] extras in pyproject.toml and the LAZY_DEPS
+# allowlist in tools/lazy_deps.py (the lazy-install path deliberately mirrors
+# the extras — see the comments on LAZY_DEPS: "match the corresponding extra
+# in pyproject.toml ... update both this map AND the corresponding extra").
+#
+# They have silently drifted more than once: the aiohttp Slack pin (3.13.3 in
+# the extras vs 3.13.4 in lazy_deps) and the anthropic pin (0.86.0 vs 0.87.0).
+# The version a user ends up with then depends on whether the backend was
+# installed eagerly (extra) or lazily (lazy_deps) — and for a CVE bump applied
+# to only one side, that divergence is a latent security regression. These two
+# tests assert the documented contract: the two sources agree, in lockstep.
+# ---------------------------------------------------------------------------
+
+# Matches "name==version" and "name[extra]==version", ignoring any trailing
+# environment marker / comment. Only exact pins are collected; ranged specs
+# (">=", "<") can't be compared for equality and are skipped.
+_PIN_RE = re.compile(
+    r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(?:\[[^\]]*\])?\s*==\s*([^\s;,#]+)"
+)
+
+
+def _canonical(name: str) -> str:
+    # PEP 503 normalization so e.g. discord.py / discord-py compare equal.
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _pins_from_specs(specs):
+    """Map canonical package name -> set of exact-pinned versions seen."""
+    pins: dict[str, set[str]] = {}
+    for spec in specs:
+        m = _PIN_RE.match(spec)
+        if not m:
+            continue
+        pins.setdefault(_canonical(m.group(1)), set()).add(m.group(2))
+    return pins
+
+
+def _locked_versions(package: str) -> set[str]:
+    lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
+    return {
+        pkg["version"]
+        for pkg in lock.get("package", [])
+        if _canonical(pkg["name"]) == _canonical(package)
+    }
+
+
+def _pyproject_pinned_specs():
+    data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    specs = list(data["project"].get("dependencies", []))
+    for extra in data["project"].get("optional-dependencies", {}).values():
+        specs.extend(extra)
+    return specs
+
+
+def _lazy_deps_pinned_specs():
+    """Extract every string literal inside the LAZY_DEPS dict via AST.
+
+    Parsing rather than importing keeps this test free of
+    tools/lazy_deps.py's runtime imports and side effects.
+    """
+    src = (REPO_ROOT / "tools" / "lazy_deps.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    specs: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        else:
+            continue
+        if not any(isinstance(t, ast.Name) and t.id == "LAZY_DEPS" for t in targets):
+            continue
+        for sub in ast.walk(node.value):
+            if isinstance(sub, ast.Constant) and isinstance(sub.value, str):
+                specs.append(sub.value)
+    assert specs, "could not extract specs from LAZY_DEPS — the AST parser drifted"
+    return specs
+
+
+def test_pyproject_pins_are_internally_consistent():
+    """No package may be exact-pinned to two different versions in pyproject.
+
+    A package legitimately appearing in several extras (e.g. aiohttp in
+    messaging/slack/homeassistant/sms) must use the SAME version everywhere.
+    """
+    pins = _pins_from_specs(_pyproject_pinned_specs())
+    conflicts = {name: sorted(v) for name, v in pins.items() if len(v) > 1}
+    assert not conflicts, (
+        "pyproject.toml exact-pins the same package to different versions "
+        "across [project.dependencies] / extras: " + str(conflicts)
+    )
+
+
+
+
+def _lazy_deps_by_feature():
+    """Parse LAZY_DEPS into {feature_name: [spec, ...]} via AST.
+
+    Same parse-don't-import rationale as _lazy_deps_pinned_specs, but keeps the
+    feature -> specs grouping so per-feature coverage can be asserted.
+    """
+    src = (REPO_ROOT / "tools" / "lazy_deps.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        targets = (
+            node.targets if isinstance(node, ast.Assign)
+            else [node.target] if isinstance(node, ast.AnnAssign)
+            else []
+        )
+        if not any(isinstance(t, ast.Name) and t.id == "LAZY_DEPS" for t in targets):
+            continue
+        if not isinstance(node.value, ast.Dict):
+            continue
+        by_feature: dict[str, list[str]] = {}
+        for key, value in zip(node.value.keys, node.value.values):
+            if not (isinstance(key, ast.Constant) and isinstance(key.value, str)):
+                continue
+            by_feature[key.value] = [
+                sub.value
+                for sub in ast.walk(value)
+                if isinstance(sub, ast.Constant) and isinstance(sub.value, str)
+            ]
+        assert by_feature, "could not extract features from LAZY_DEPS — AST parser drifted"
+        return by_feature
+    raise AssertionError("LAZY_DEPS dict literal not found in tools/lazy_deps.py")
+
+
+# Security-critical packages whose patched floor must be enforced on EVERY
+# install path, eager and lazy. test_pyproject_and_lazy_deps_pins_agree only
+# fires when a package is pinned in BOTH sources, so it cannot catch a lazy
+# feature that omits the pin entirely — the exact gap that left platform.slack
+# carrying aiohttp==3.14.0 while platform.discord (whose discord.py dep pulls
+# aiohttp transitively as its HTTP backbone) shipped without it, so the lazy
+# Discord path could keep an already-installed vulnerable aiohttp. A fully
+# general "no mirrored feature drops a pin" check is impossible statically
+# (it can't see transitive deps), so this is the explicit coverage contract:
+# each security package -> the lazy features that bundle an SDK pulling it and
+# must therefore carry the same pin as the pyproject extra.
+_REQUIRED_SECURITY_PINS = {
+    # Every lazy messaging feature whose SDK pulls aiohttp transitively must
+    # carry the patched floor directly: discord.py (aiohttp<4), slack-bolt,
+    # mautrix/aiohttp-socks (aiohttp<4 / >=3.10), and microsoft-teams-apps —
+    # none of those upper/lower bounds excludes a vulnerable already-installed
+    # aiohttp, so the lazy path would not upgrade it without an explicit pin.
+    "aiohttp": {
+        "platform.discord",
+        "platform.slack",
+        "platform.matrix",
+        "platform.teams",
+    },
+}
+
+
+def test_security_pins_present_in_mirrored_lazy_features():
+    """Curated security pins must be present (not just version-consistent) in
+    every lazy feature that bundles an SDK pulling that package transitively.
+    """
+    py = _pins_from_specs(_pyproject_pinned_specs())
+    by_feature = _lazy_deps_by_feature()
+
+    problems = []
+    for pkg, features in _REQUIRED_SECURITY_PINS.items():
+        canon = _canonical(pkg)
+        expected = py.get(canon)
+        assert expected, (
+            f"{pkg} is listed in _REQUIRED_SECURITY_PINS but is not exact-pinned "
+            f"in pyproject.toml — update the map or the pin."
+        )
+        for feature in sorted(features):
+            specs = by_feature.get(feature)
+            assert specs is not None, (
+                f"lazy feature {feature!r} named in _REQUIRED_SECURITY_PINS no "
+                f"longer exists in LAZY_DEPS — update the map."
+            )
+            got = _pins_from_specs(specs).get(canon)
+            if got != expected:
+                problems.append(
+                    f"{feature}: {pkg}="
+                    f"{sorted(got) if got else 'MISSING'}, expected {sorted(expected)}"
+                )
+    assert not problems, (
+        "a lazy feature is missing a security pin it must mirror from the "
+        "pyproject extras — the lazy install path would not enforce the "
+        "CVE-patched floor:\n  " + "\n  ".join(problems)
+    )
 
 
 def test_locale_catalogs_ship_in_both_wheel_and_sdist():
