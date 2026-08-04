@@ -569,9 +569,45 @@ def get_all_skills_dirs() -> List[Path]:
     The local dir is always first (and always included even if it doesn't exist
     yet — callers handle that).  External dirs follow in config order.
     """
+    scoped_dirs = get_profile_scoped_skills_dirs()
+    if scoped_dirs:
+        return scoped_dirs
     dirs = [get_skills_dir()]
     dirs.extend(get_external_skills_dirs())
     return dirs
+
+
+def get_profile_scoped_skills_dirs() -> List[Path]:
+    """Return request-scoped skill roots when an agent profile is active.
+
+    Profile-scoped roots replace the user's regular skills tree for the current
+    context.  This lets an API run expose only the skills named by a whitelisted
+    profile manifest while preserving the same HERMES_HOME and state database.
+    """
+    try:
+        from agent.runtime_profile_scope import get_runtime_profile_skill_dirs
+    except Exception:
+        return []
+
+    try:
+        raw_dirs = get_runtime_profile_skill_dirs()
+    except Exception:
+        return []
+    if not raw_dirs:
+        return []
+
+    seen: Set[Path] = set()
+    result: List[Path] = []
+    for raw_dir in raw_dirs:
+        try:
+            path = Path(raw_dir).expanduser().resolve()
+        except Exception:
+            continue
+        if path in seen or not path.is_dir():
+            continue
+        seen.add(path)
+        result.append(path)
+    return result
 
 
 def normalize_skill_lookup_name(identifier: str) -> str:

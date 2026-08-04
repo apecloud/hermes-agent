@@ -1606,8 +1606,9 @@ def build_skills_system_prompt(
     visible and loadable via ``skill_view`` / ``skills_list``; only the
     descriptions are dropped, and a footer note explains the demotion.
     """
-    skills_dir = get_skills_dir()
-    external_dirs = get_all_skills_dirs()[1:]  # skip local (index 0)
+    skill_dirs = get_all_skills_dirs()
+    skills_dir = skill_dirs[0] if skill_dirs else get_skills_dir()
+    external_dirs = skill_dirs[1:]  # skip primary root (index 0)
 
     if not skills_dir.exists() and not external_dirs:
         return ""

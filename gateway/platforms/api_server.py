@@ -84,6 +84,17 @@ except ImportError:
     web = None  # type: ignore[assignment]
 
 from gateway.config import Platform, PlatformConfig
+from gateway.agent_profiles import (
+    AgentProfileError,
+    ResolvedAgentProfile,
+    choose_agent_profile_name,
+    extract_requested_agent_profile,
+    merge_model_config_patch,
+    parse_model_config,
+    resolve_agent_profile,
+    settings_from_mapping,
+    stored_agent_profile_name,
+)
 from gateway.platforms.base import (
     MEDIA_TAG_CLEANUP_RE,
     BasePlatformAdapter,
@@ -2128,6 +2139,83 @@ class APIServerAdapter(BasePlatformAdapter):
             return None
 
     # ------------------------------------------------------------------
+    # Agent profile helper
+    # ------------------------------------------------------------------
+
+    def _agent_profile_config(self) -> Dict[str, Any]:
+        """Return gateway.api_server.agent_profiles merged with adapter extras."""
+
+        merged: Dict[str, Any] = {}
+        try:
+            from gateway.run import _load_gateway_config
+
+            cfg = _load_gateway_config() or {}
+            gateway_cfg = cfg.get("gateway") if isinstance(cfg, dict) else {}
+            api_cfg = gateway_cfg.get("api_server") if isinstance(gateway_cfg, dict) else {}
+            profiles_cfg = api_cfg.get("agent_profiles") if isinstance(api_cfg, dict) else {}
+            if isinstance(profiles_cfg, dict):
+                merged.update(profiles_cfg)
+        except Exception:
+            pass
+
+        extra_cfg = (self.config.extra or {}).get("agent_profiles")
+        if isinstance(extra_cfg, dict):
+            merged.update(extra_cfg)
+        return merged
+
+    @staticmethod
+    def _agent_profile_error_response(exc: AgentProfileError) -> "web.Response":
+        return web.json_response(_openai_error(str(exc), code=exc.code), status=exc.status)
+
+    def _resolve_agent_profile_for_request(
+        self,
+        body: Dict[str, Any],
+        *,
+        session: Optional[Dict[str, Any]] = None,
+    ) -> tuple[Optional[ResolvedAgentProfile], Optional["web.Response"]]:
+        """Resolve a whitelisted runtime profile for this request.
+
+        When no profile root is configured and the client did not request a
+        profile, the feature is inactive for compatibility with stock API
+        server deployments.
+        """
+
+        try:
+            requested = extract_requested_agent_profile(body)
+            settings = settings_from_mapping(self._agent_profile_config())
+            stored = stored_agent_profile_name(session)
+            profile_name = choose_agent_profile_name(requested, stored, settings)
+            if settings.root_dir is None and requested is None and stored is None:
+                return None, None
+            return resolve_agent_profile(profile_name, settings), None
+        except AgentProfileError as exc:
+            return None, self._agent_profile_error_response(exc)
+
+    def _persist_agent_profile_metadata(
+        self,
+        session_id: Optional[str],
+        profile: Optional[ResolvedAgentProfile],
+    ) -> None:
+        """Merge profile metadata into an existing session row."""
+
+        if not session_id or profile is None:
+            return
+        db = self._ensure_session_db()
+        if db is None:
+            return
+        try:
+            session = db.get_session(session_id)
+            if not session:
+                return
+            model_config_json = merge_model_config_patch(
+                session.get("model_config"),
+                profile.model_config_patch(),
+            )
+            db.update_session_meta(session_id, model_config_json, model=None)
+        except Exception as exc:
+            logger.warning("Failed to persist agent_profile metadata for %s: %s", session_id, exc)
+
+    # ------------------------------------------------------------------
     # Agent creation helper
     # ------------------------------------------------------------------
 
@@ -2489,6 +2577,7 @@ class APIServerAdapter(BasePlatformAdapter):
         route: Optional[Dict[str, Any]] = None,
         session_model: Optional[str] = None,
         confirmed_runtime_lock: bool = False,
+        agent_profile_model_config: Optional[Dict[str, Any]] = None,
     ) -> Any:
         """
         Create an AIAgent instance using the gateway's runtime config.
@@ -2805,6 +2894,11 @@ class APIServerAdapter(BasePlatformAdapter):
                 else "global"
             ),
         }
+        if agent_profile_model_config:
+            try:
+                agent._session_init_model_config.update(agent_profile_model_config)
+            except Exception:
+                logger.debug("Could not attach agent_profile model_config", exc_info=True)
         return agent
 
     # ------------------------------------------------------------------
@@ -3164,6 +3258,10 @@ class APIServerAdapter(BasePlatformAdapter):
         # callers only need to know whether those snapshots exist.
         payload["has_system_prompt"] = bool(session.get("system_prompt"))
         payload["has_model_config"] = bool(session.get("model_config"))
+        model_config = parse_model_config(session.get("model_config"))
+        agent_profile = model_config.get("agent_profile")
+        if isinstance(agent_profile, str) and agent_profile:
+            payload["agent_profile"] = agent_profile
         return payload
 
     @staticmethod
@@ -3286,6 +3384,14 @@ class APIServerAdapter(BasePlatformAdapter):
                     "confirmed": bool(runtime_request.get("require_model_lock")),
                     "updated_at": time.time(),
                 }
+            }
+        agent_profile, profile_err = self._resolve_agent_profile_for_request(body)
+        if profile_err is not None:
+            return profile_err
+        if agent_profile:
+            model_config = {
+                **(model_config or {}),
+                **agent_profile.model_config_patch(),
             }
         title = body.get("title")
 
@@ -3444,6 +3550,7 @@ class APIServerAdapter(BasePlatformAdapter):
             fork_id,
             "api_server",
             model=source.get("model"),
+            model_config=parse_model_config(source.get("model_config")) or None,
             system_prompt=source.get("system_prompt"),
             parent_session_id=source_id,
         )
@@ -3533,12 +3640,17 @@ class APIServerAdapter(BasePlatformAdapter):
             )
             if selection_error:
                 return web.json_response(_openai_error(selection_error), status=400)
+        agent_profile, profile_err = self._resolve_agent_profile_for_request(body, session=session)
+        if profile_err is not None:
+            return profile_err
         history = await self._conversation_history_for_session(session_id)
         result, usage = await self._run_agent(
             user_message=user_message,
             conversation_history=history,
+            system_message=agent_profile.prompt if agent_profile else None,
             ephemeral_system_prompt=system_prompt,
             session_id=session_id,
+            agent_profile=agent_profile,
             gateway_session_key=gateway_session_key,
             route=route,
             session_model=session_model,
@@ -3648,6 +3760,9 @@ class APIServerAdapter(BasePlatformAdapter):
             route_source=runtime_request.get("route_source") or "global",
             model_lock=("accepted" if lock_active else ""),
         )
+        agent_profile, profile_err = self._resolve_agent_profile_for_request(body, session=session)
+        if profile_err is not None:
+            return profile_err
 
         loop = asyncio.get_running_loop()
         queue: "asyncio.Queue[Optional[tuple[str, Dict[str, Any]]]]" = asyncio.Queue()
@@ -3700,10 +3815,12 @@ class APIServerAdapter(BasePlatformAdapter):
                 result, usage = await self._run_agent(
                     user_message=user_message,
                     conversation_history=history,
+                    system_message=agent_profile.prompt if agent_profile else None,
                     ephemeral_system_prompt=system_prompt,
                     session_id=session_id,
                     stream_delta_callback=_delta,
                     tool_progress_callback=_tool_progress,
+                    agent_profile=agent_profile,
                     gateway_session_key=gateway_session_key,
                     route=route,
                     session_model=session_model,
@@ -3910,6 +4027,7 @@ class APIServerAdapter(BasePlatformAdapter):
         # authenticated.  Without this gate, any unauthenticated client could
         # read arbitrary session history by guessing/enumerating session IDs.
         provided_session_id = request.headers.get("X-Hermes-Session-Id", "").strip()
+        session: Optional[Dict[str, Any]] = None
         if provided_session_id:
             if not self._api_key:
                 logger.warning(
@@ -3944,6 +4062,7 @@ class APIServerAdapter(BasePlatformAdapter):
             try:
                 db = await self._ensure_session_db_async()
                 if db is not None:
+                    session = await asyncio.to_thread(db.get_session, session_id)
                     history = await asyncio.to_thread(db.get_messages_as_conversation, session_id)
             except Exception as e:
                 logger.warning("Failed to load session history for %s: %s", session_id, e)
@@ -3958,8 +4077,24 @@ class APIServerAdapter(BasePlatformAdapter):
                 if cm.get("role") == "user":
                     first_user = cm.get("content", "")
                     break
-            session_id = _derive_chat_session_id(system_prompt, first_user)
+            raw_profile_key = body.get("agent_profile") or body.get("agentProfile") or ""
+            if not isinstance(raw_profile_key, str):
+                raw_profile_key = ""
+            session_id = _derive_chat_session_id(
+                f"{system_prompt or ''}\nagent_profile:{raw_profile_key.strip()}",
+                first_user,
+            )
             # history already set from request body above
+            try:
+                db = self._ensure_session_db()
+                if db is not None:
+                    session = db.get_session(session_id)
+            except Exception:
+                session = None
+
+        agent_profile, profile_err = self._resolve_agent_profile_for_request(body, session=session)
+        if profile_err is not None:
+            return profile_err
 
         completion_id = f"chatcmpl-{uuid.uuid4().hex[:29]}"
         model_name = body.get("model", self._model_name)
@@ -4059,12 +4194,14 @@ class APIServerAdapter(BasePlatformAdapter):
             agent_task = asyncio.ensure_future(self._run_agent(
                 user_message=user_message,
                 conversation_history=history,
+                system_message=agent_profile.prompt if agent_profile else None,
                 ephemeral_system_prompt=system_prompt,
                 session_id=session_id,
                 stream_delta_callback=_on_delta,
                 tool_start_callback=_on_tool_start,
                 tool_complete_callback=_on_tool_complete,
                 agent_ref=agent_ref,
+                agent_profile=agent_profile,
                 gateway_session_key=gateway_session_key,
                 **agent_overrides,
                 route=route,
@@ -4084,8 +4221,10 @@ class APIServerAdapter(BasePlatformAdapter):
             return await self._run_agent(
                 user_message=user_message,
                 conversation_history=history,
+                system_message=agent_profile.prompt if agent_profile else None,
                 ephemeral_system_prompt=system_prompt,
                 session_id=session_id,
+                agent_profile=agent_profile,
                 gateway_session_key=gateway_session_key,
                 **agent_overrides,
                 route=route,
@@ -4095,7 +4234,10 @@ class APIServerAdapter(BasePlatformAdapter):
         if idempotency_key:
             fp = _make_request_fingerprint(
                 body,
-                keys=["model", "provider", "model_options", "messages", "tools", "tool_choice", "stream"],
+                keys=[
+                    "model", "provider", "model_options", "messages", "tools", "tool_choice", "stream",
+                    "agent_profile", "agentProfile",
+                ],
             )
             try:
                 result, usage = await _idem_cache.get_or_set(idempotency_key, fp, _compute_completion)
@@ -4408,6 +4550,7 @@ class APIServerAdapter(BasePlatformAdapter):
         store: bool,
         session_id: str,
         gateway_session_key: Optional[str] = None,
+        agent_profile_name: Optional[str] = None,
     ) -> "web.StreamResponse":
         """Write an SSE stream for POST /v1/responses (OpenAI Responses API).
 
@@ -4517,6 +4660,7 @@ class APIServerAdapter(BasePlatformAdapter):
                 "conversation_history": conversation_history_snapshot,
                 "instructions": instructions,
                 "session_id": session_id_snapshot or session_id,
+                "agent_profile": agent_profile_name,
             })
             if conversation:
                 self._response_store.set_conversation(conversation, response_id)
@@ -5097,6 +5241,13 @@ class APIServerAdapter(BasePlatformAdapter):
             # If no instructions provided, carry forward from previous
             if instructions is None:
                 instructions = stored.get("instructions")
+            if (
+                "agent_profile" not in body
+                and "agentProfile" not in body
+                and stored.get("agent_profile")
+            ):
+                body = dict(body)
+                body["agent_profile"] = stored.get("agent_profile")
 
         # Append new input messages to history (all but the last become history)
         for msg in input_messages[:-1]:
@@ -5114,6 +5265,16 @@ class APIServerAdapter(BasePlatformAdapter):
         # Reuse session from previous_response_id chain so the dashboard
         # groups the entire conversation under one session entry.
         session_id = stored_session_id or str(uuid.uuid4())
+        session = None
+        try:
+            db = self._ensure_session_db()
+            if db is not None:
+                session = db.get_session(session_id)
+        except Exception:
+            session = None
+        agent_profile, profile_err = self._resolve_agent_profile_for_request(body, session=session)
+        if profile_err is not None:
+            return profile_err
 
         stream = _coerce_request_bool(body.get("stream"), default=False)
         route = self._resolve_route(body.get("model"))
@@ -5175,6 +5336,7 @@ class APIServerAdapter(BasePlatformAdapter):
             agent_task = asyncio.ensure_future(self._run_agent(
                 user_message=user_message,
                 conversation_history=conversation_history,
+                system_message=agent_profile.prompt if agent_profile else None,
                 ephemeral_system_prompt=instructions,
                 session_id=session_id,
                 stream_delta_callback=_on_delta,
@@ -5182,6 +5344,7 @@ class APIServerAdapter(BasePlatformAdapter):
                 tool_start_callback=_on_tool_start,
                 tool_complete_callback=_on_tool_complete,
                 agent_ref=agent_ref,
+                agent_profile=agent_profile,
                 gateway_session_key=gateway_session_key,
                 **agent_overrides,
                 route=route,
@@ -5209,14 +5372,17 @@ class APIServerAdapter(BasePlatformAdapter):
                 store=store,
                 session_id=session_id,
                 gateway_session_key=gateway_session_key,
+                agent_profile_name=agent_profile.name if agent_profile else None,
             )
 
         async def _compute_response():
             return await self._run_agent(
                 user_message=user_message,
                 conversation_history=conversation_history,
+                system_message=agent_profile.prompt if agent_profile else None,
                 ephemeral_system_prompt=instructions,
                 session_id=session_id,
+                agent_profile=agent_profile,
                 gateway_session_key=gateway_session_key,
                 **agent_overrides,
                 route=route,
@@ -5235,6 +5401,7 @@ class APIServerAdapter(BasePlatformAdapter):
                     "provider",
                     "model_options",
                     "tools",
+                    "agent_profile", "agentProfile",
                 ],
             )
             try:
@@ -5312,6 +5479,7 @@ class APIServerAdapter(BasePlatformAdapter):
                 "conversation_history": full_history,
                 "instructions": instructions,
                 "session_id": _effective_session_id,
+                "agent_profile": agent_profile.name if agent_profile else None,
             })
             # Update conversation mapping so the next request with the same
             # conversation name automatically chains to this response
@@ -5916,6 +6084,7 @@ class APIServerAdapter(BasePlatformAdapter):
         self,
         user_message: str,
         conversation_history: List[Dict[str, str]],
+        system_message: Optional[str] = None,
         ephemeral_system_prompt: Optional[str] = None,
         session_id: Optional[str] = None,
         stream_delta_callback=None,
@@ -5932,6 +6101,7 @@ class APIServerAdapter(BasePlatformAdapter):
         requested_runtime: Optional[Dict[str, Any]] = None,
         route_source: str = "global",
         confirmed_runtime_lock: bool = False,
+        agent_profile: Optional[ResolvedAgentProfile] = None,
     ) -> tuple:
         """
         Create an agent and run a conversation in a thread executor.
@@ -5966,6 +6136,10 @@ class APIServerAdapter(BasePlatformAdapter):
 
         def _run():
             from gateway.session_context import clear_session_vars
+            from agent.runtime_profile_scope import (
+                clear_runtime_profile_scope,
+                set_runtime_profile_scope,
+            )
 
             with self._profile_scope(request_profile):
                 tokens = self._bind_api_server_session(
@@ -5973,8 +6147,14 @@ class APIServerAdapter(BasePlatformAdapter):
                     session_key=gateway_session_key or session_id or "",
                     session_id=session_id or "",
                 )
+                profile_tokens = []
                 agent = None
                 try:
+                    if agent_profile is not None:
+                        profile_tokens = set_runtime_profile_scope(
+                            skill_dirs=agent_profile.skill_dirs,
+                            env_blocklist=agent_profile.env_blocklist,
+                        )
                     agent = self._create_agent(
                         ephemeral_system_prompt=ephemeral_system_prompt,
                         session_id=session_id,
@@ -5989,9 +6169,15 @@ class APIServerAdapter(BasePlatformAdapter):
                         route=route,
                         session_model=session_model,
                         confirmed_runtime_lock=confirmed_runtime_lock,
+                        agent_profile_model_config=(
+                            agent_profile.model_config_patch()
+                            if agent_profile is not None
+                            else None
+                        ),
                     )
                     if agent_ref is not None:
                         agent_ref[0] = agent
+                    self._persist_agent_profile_metadata(session_id, agent_profile)
                     effective_task_id = session_id or str(uuid.uuid4())
                     # Baseline for selective background-process reaping on
                     # SSE client disconnect — mirrors gateway/run.py's
@@ -5999,11 +6185,14 @@ class APIServerAdapter(BasePlatformAdapter):
                     # runs its own agent lifecycle and doesn't go through
                     # TurnRunner, so it needs its own baseline.
                     _publish_turn_process_ownership(agent, effective_task_id)
-                    result = agent.run_conversation(
-                        user_message=user_message,
-                        conversation_history=conversation_history,
-                        task_id=effective_task_id,
-                    )
+                    run_kwargs = {
+                        "user_message": user_message,
+                        "conversation_history": conversation_history,
+                        "task_id": effective_task_id,
+                    }
+                    if system_message is not None:
+                        run_kwargs["system_message"] = system_message
+                    result = agent.run_conversation(**run_kwargs)
                     usage = {
                         "input_tokens": getattr(agent, "session_prompt_tokens", 0) or 0,
                         "output_tokens": getattr(agent, "session_completion_tokens", 0) or 0,
@@ -6015,6 +6204,7 @@ class APIServerAdapter(BasePlatformAdapter):
                     _eff_sid = getattr(agent, "session_id", session_id)
                     if isinstance(_eff_sid, str) and _eff_sid:
                         result["session_id"] = _eff_sid
+                        self._persist_agent_profile_metadata(_eff_sid, agent_profile)
                     # Signal whether context compression occurred during this turn
                     # so _build_response_conversation_history can skip the
                     # prior-concatenation path and store the compressed transcript
@@ -6121,6 +6311,8 @@ class APIServerAdapter(BasePlatformAdapter):
                         {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
                     )
                 finally:
+                    if profile_tokens:
+                        clear_runtime_profile_scope(profile_tokens)
                     # Turn finished (success, auth failure, or crash) — clear
                     # ownership markers so a disconnect landing after this
                     # point can't reap background work this turn left
@@ -6310,6 +6502,13 @@ class APIServerAdapter(BasePlatformAdapter):
                 stored_session_id = stored.get("session_id")
                 if instructions is None:
                     instructions = stored.get("instructions")
+                if (
+                    "agent_profile" not in body
+                    and "agentProfile" not in body
+                    and stored.get("agent_profile")
+                ):
+                    body = dict(body)
+                    body["agent_profile"] = stored.get("agent_profile")
 
         # When input is a multi-message array, extract all but the last
         # message as conversation history (the last becomes user_message).
@@ -6341,6 +6540,16 @@ class APIServerAdapter(BasePlatformAdapter):
 
         run_id = f"run_{uuid.uuid4().hex}"
         session_id = session_id or run_id
+        session = None
+        try:
+            db = await self._ensure_session_db_async()
+            if db is not None:
+                session = await asyncio.to_thread(db.get_session, session_id)
+        except Exception:
+            session = None
+        agent_profile, profile_err = self._resolve_agent_profile_for_request(body, session=session)
+        if profile_err is not None:
+            return profile_err
         # Approval queues gate host-side tool execution and must be isolated
         # per API run.  Client-provided session IDs and memory session keys are
         # conversation/memory scopes, not authorization namespaces: multiple
@@ -6384,6 +6593,7 @@ class APIServerAdapter(BasePlatformAdapter):
             created_at=created_at,
             session_id=session_id,
             model=body.get("model", self._model_name),
+            agent_profile=agent_profile.name if agent_profile else None,
         )
 
         # Background task outlives the HTTP response (and thus the middleware
@@ -6405,18 +6615,38 @@ class APIServerAdapter(BasePlatformAdapter):
                         last_event="run.cancelled",
                     )
                     return
+                profile_tokens = []
                 with self._profile_scope(request_profile):
-                    agent = self._create_agent(
-                        ephemeral_system_prompt=ephemeral_system_prompt,
-                        session_id=session_id,
-                        stream_delta_callback=_text_cb,
-                        tool_progress_callback=event_cb,
-                        gateway_session_key=gateway_session_key,
-                        requested_model=agent_overrides.get("requested_model"),
-                        requested_provider=agent_overrides.get("requested_provider"),
-                        model_options=agent_overrides.get("model_options"),
-                        route=route,
-                    )
+                    try:
+                        if agent_profile is not None:
+                            from agent.runtime_profile_scope import (
+                                clear_runtime_profile_scope,
+                                set_runtime_profile_scope,
+                            )
+
+                            profile_tokens = set_runtime_profile_scope(
+                                skill_dirs=agent_profile.skill_dirs,
+                                env_blocklist=agent_profile.env_blocklist,
+                            )
+                        agent = self._create_agent(
+                            ephemeral_system_prompt=ephemeral_system_prompt,
+                            session_id=session_id,
+                            stream_delta_callback=_text_cb,
+                            tool_progress_callback=event_cb,
+                            gateway_session_key=gateway_session_key,
+                            requested_model=agent_overrides.get("requested_model"),
+                            requested_provider=agent_overrides.get("requested_provider"),
+                            model_options=agent_overrides.get("model_options"),
+                            route=route,
+                            agent_profile_model_config=(
+                                agent_profile.model_config_patch()
+                                if agent_profile is not None
+                                else None
+                            ),
+                        )
+                    finally:
+                        if profile_tokens:
+                            clear_runtime_profile_scope(profile_tokens)
                 self._active_run_agents[run_id] = agent
 
                 def _approval_notify(approval_data: Dict[str, Any]) -> None:
@@ -6460,6 +6690,7 @@ class APIServerAdapter(BasePlatformAdapter):
                     effective_task_id = session_id or run_id
                     approval_token = None
                     session_tokens = []
+                    profile_tokens = []
                     with self._profile_scope(request_profile):
                         try:
                             # Bind approval/session identity for this API run via
@@ -6479,17 +6710,34 @@ class APIServerAdapter(BasePlatformAdapter):
                                 session_key=approval_session_key,
                                 session_id=session_id or "",
                             )
+                            if agent_profile is not None:
+                                from agent.runtime_profile_scope import (
+                                    clear_runtime_profile_scope,
+                                    set_runtime_profile_scope,
+                                )
+
+                                profile_tokens = set_runtime_profile_scope(
+                                    skill_dirs=agent_profile.skill_dirs,
+                                    env_blocklist=agent_profile.env_blocklist,
+                                )
                             register_gateway_notify(approval_session_key, _approval_notify)
+                            self._persist_agent_profile_metadata(session_id, agent_profile)
                             # /v1/runs runs its own agent lifecycle (no
                             # TurnRunner, no _run_agent) — record turn process
                             # ownership so stop/cancel can reap only the
                             # background processes this run created (#76115).
                             _publish_turn_process_ownership(agent, effective_task_id)
-                            r = agent.run_conversation(
-                                user_message=user_message,
-                                conversation_history=conversation_history,
-                                task_id=effective_task_id,
-                            )
+                            run_kwargs = {
+                                "user_message": user_message,
+                                "conversation_history": conversation_history,
+                                "task_id": effective_task_id,
+                            }
+                            if agent_profile is not None:
+                                run_kwargs["system_message"] = agent_profile.prompt
+                            r = agent.run_conversation(**run_kwargs)
+                            effective_sid = getattr(agent, "session_id", session_id)
+                            if isinstance(effective_sid, str) and effective_sid:
+                                self._persist_agent_profile_metadata(effective_sid, agent_profile)
                         finally:
                             # Worker finished (interrupted or complete) —
                             # clear turn ownership immediately so a later
@@ -6500,6 +6748,11 @@ class APIServerAdapter(BasePlatformAdapter):
                             try:
                                 unregister_gateway_notify(approval_session_key)
                             finally:
+                                if profile_tokens:
+                                    try:
+                                        clear_runtime_profile_scope(profile_tokens)
+                                    except Exception:
+                                        pass
                                 if approval_token is not None:
                                     try:
                                         reset_current_session_key(approval_token)
