@@ -84,9 +84,10 @@ RUN set -eu; \
         "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${kubectl_arch}/kubectl"; \
     curl -fsSL --retry 3 -o /tmp/kubectl.sha256 \
         "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${kubectl_arch}/kubectl.sha256"; \
-    printf '%s  %s\n' "$(cat /tmp/kubectl.sha256)" /usr/local/bin/kubectl | sha256sum -c -; \
+    printf '%s  %s\n' "$(cat /tmp/kubectl.sha256)" /usr/local/bin/kubectl > /tmp/kubectl.sha256sum; \
+    sha256sum -c /tmp/kubectl.sha256sum; \
     chmod +x /usr/local/bin/kubectl; \
-    rm /tmp/kubectl.sha256; \
+    rm /tmp/kubectl.sha256 /tmp/kubectl.sha256sum; \
     kubectl version --client=true
 
 # Prefer the fixed SQLite over Debian's vulnerable libsqlite3.so.0. Keep the
