@@ -246,13 +246,13 @@ async def test_create_session_records_whitelisted_agent_profile(session_db, tmp_
 
 
 @pytest.mark.asyncio
-async def test_missing_agent_profile_defaults_to_cluster_diagnosis_when_configured(session_db, tmp_path):
+async def test_missing_agent_profile_defaults_to_cloud_ai_agent_when_configured(session_db, tmp_path):
     profiles_root = tmp_path / "profiles"
     _write_agent_profile(
         profiles_root,
-        "cluster-diagnosis",
-        prompt="Cluster diagnosis runtime prompt.",
-        skill_name="kubeblocks-k8s-diagnosis",
+        "cloud-ai-agent",
+        prompt="Unified cloud AI agent runtime prompt.",
+        skill_name="kbcloud-platform-skill",
     )
     adapter = APIServerAdapter(
         PlatformConfig(
@@ -268,11 +268,11 @@ async def test_missing_agent_profile_defaults_to_cluster_diagnosis_when_configur
         assert resp.status == 201, await resp.text()
         payload = await resp.json()
 
-    assert payload["session"]["agent_profile"] == "cluster-diagnosis"
+    assert payload["session"]["agent_profile"] == "cloud-ai-agent"
     model_config = json.loads(session_db.get_session("diagnosis-session")["model_config"])
-    assert model_config["agent_profile"] == "cluster-diagnosis"
+    assert model_config["agent_profile"] == "cloud-ai-agent"
     assert model_config["agent_profile_metadata"]["selected_skills"] == [
-        {"name": "kubeblocks-k8s-diagnosis", "path": "skills/kubeblocks-k8s-diagnosis"}
+        {"name": "kbcloud-platform-skill", "path": "skills/kbcloud-platform-skill"}
     ]
 
 
@@ -339,6 +339,57 @@ async def test_session_chat_uses_profile_prompt_and_rejects_profile_switch(sessi
     assert "kbcloud-platform-skill" in kwargs["system_message"]
     assert kwargs["ephemeral_system_prompt"] == "turn-only instruction"
     assert kwargs["agent_profile"].name == "global-entry"
+    assert switch_payload["error"]["code"] == "agent_profile_locked"
+
+
+@pytest.mark.asyncio
+async def test_session_chat_locks_default_cloud_ai_agent_profile(session_db, tmp_path):
+    profiles_root = tmp_path / "profiles"
+    _write_agent_profile(
+        profiles_root,
+        "cloud-ai-agent",
+        prompt="Unified cloud AI agent runtime prompt.",
+        skill_name="kbcloud-platform-skill",
+    )
+    _write_agent_profile(
+        profiles_root,
+        "global-entry",
+        prompt="Global entry runtime prompt.",
+        skill_name="kbcloud-platform-skill",
+    )
+    adapter = APIServerAdapter(
+        PlatformConfig(
+            enabled=True,
+            extra={"agent_profiles": {"root_dir": str(profiles_root)}},
+        )
+    )
+    adapter._session_db = session_db
+    app = _create_session_app(adapter)
+    mock_run = AsyncMock(return_value=({"final_response": "ok", "session_id": "cloud-chat"}, {"total_tokens": 1}))
+
+    with patch.object(adapter, "_run_agent", mock_run):
+        async with TestClient(TestServer(app)) as cli:
+            create_resp = await cli.post("/api/sessions", json={"id": "cloud-chat"})
+            assert create_resp.status == 201, await create_resp.text()
+            create_payload = await create_resp.json()
+
+            chat_resp = await cli.post(
+                "/api/sessions/cloud-chat/chat",
+                json={"message": "hello"},
+            )
+            assert chat_resp.status == 200, await chat_resp.text()
+
+            switch_resp = await cli.post(
+                "/api/sessions/cloud-chat/chat",
+                json={"message": "hello", "agent_profile": "global-entry"},
+            )
+            assert switch_resp.status == 409
+            switch_payload = await switch_resp.json()
+
+    assert create_payload["session"]["agent_profile"] == "cloud-ai-agent"
+    _, kwargs = mock_run.call_args
+    assert "Unified cloud AI agent runtime prompt." in kwargs["system_message"]
+    assert kwargs["agent_profile"].name == "cloud-ai-agent"
     assert switch_payload["error"]["code"] == "agent_profile_locked"
 
 

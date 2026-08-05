@@ -17,8 +17,8 @@ from typing import Any, Mapping
 from hermes_constants import get_hermes_home
 
 
-DEFAULT_AGENT_PROFILE = "cluster-diagnosis"
-DEFAULT_ALLOWED_AGENT_PROFILES = frozenset({"global-entry", "cluster-diagnosis"})
+DEFAULT_AGENT_PROFILE = "cloud-ai-agent"
+DEFAULT_ALLOWED_AGENT_PROFILES = frozenset({"cloud-ai-agent", "global-entry", "cluster-diagnosis"})
 AGENT_PROFILE_MODEL_CONFIG_KEY = "agent_profile"
 AGENT_PROFILE_METADATA_KEY = "agent_profile_metadata"
 
