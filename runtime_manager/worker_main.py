@@ -59,6 +59,43 @@ _OUTPUT_TRUNCATION_MARKERS = (
 )
 
 
+def _load_runtime_conversation_history(
+    session_db: Any,
+    session_id: str,
+    request_history: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Load model history from Hermes' native session store.
+
+    Runtime Manager workers are short-lived, so they must explicitly restore
+    the durable Hermes transcript before calling ``run_conversation``.  The
+    request ``history`` field is retained only as a compatibility fallback for
+    older callers that do not yet rely on ``state.db``.
+    """
+
+    try:
+        native_history = session_db.get_messages_as_conversation(
+            session_id, repair_alternation=True
+        )
+    except Exception:
+        log_event(
+            {
+                "event": "runtime.history_restore_failed",
+                "session_id": session_id,
+                "timestamp": time.time(),
+            }
+        )
+        native_history = []
+
+    restored = [
+        message
+        for message in (native_history or [])
+        if isinstance(message, dict) and message.get("role") != "session_meta"
+    ]
+    if restored:
+        return restored
+    return list(request_history or [])
+
+
 def emit(event: dict[str, Any]) -> None:
     with _OUTPUT_LOCK:
         sys.stdout.write(json.dumps(event, ensure_ascii=False) + "\n")
@@ -392,6 +429,13 @@ def main() -> int:
             skill_prompt_builder=build_preloaded_skills_prompt,
         )
 
+        session_db = SessionDB()
+        conversation_history = _load_runtime_conversation_history(
+            session_db,
+            session_id,
+            request.get("history") or [],
+        )
+
         agent = AIAgent(
             model=runtime_llm_config["model"],
             provider=runtime_llm_config["provider"],
@@ -399,7 +443,7 @@ def main() -> int:
             base_url=runtime_llm_config["base_url"],
             max_tokens=runtime_llm_config.get("max_tokens"),
             session_id=session_id,
-            session_db=SessionDB(),
+            session_db=session_db,
             quiet_mode=True,
             verbose_logging=False,
             platform=HERMES_RUNTIME_PLATFORM,
@@ -433,7 +477,7 @@ def main() -> int:
         emit({"event": "run.running", "run_id": run_id, "timestamp": time.time()})
         result = agent.run_conversation(
             user_message=request["message"],
-            conversation_history=request.get("history") or [],
+            conversation_history=conversation_history,
             task_id=session_id,
         )
         usage = {

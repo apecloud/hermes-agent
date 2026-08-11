@@ -61,6 +61,56 @@ def test_runtime_worker_uses_hermes_api_server_platform():
     assert HERMES_RUNTIME_PLATFORM == "api_server"
 
 
+def test_runtime_worker_prefers_native_session_history_over_request_history():
+    from runtime_manager.worker_main import _load_runtime_conversation_history
+
+    class DB:
+        def __init__(self):
+            self.calls = []
+
+        def get_messages_as_conversation(self, session_id, *, repair_alternation=False):
+            self.calls.append((session_id, repair_alternation))
+            return [
+                {"role": "session_meta", "content": "{}"},
+                {"role": "user", "content": "native previous question"},
+                {
+                    "role": "assistant",
+                    "content": "native answer",
+                    "tool_calls": [{"id": "call_1", "type": "function"}],
+                },
+            ]
+
+    db = DB()
+
+    history = _load_runtime_conversation_history(
+        db,
+        "conv-1",
+        [{"role": "user", "content": "cloud display history"}],
+    )
+
+    assert db.calls == [("conv-1", True)]
+    assert history == [
+        {"role": "user", "content": "native previous question"},
+        {
+            "role": "assistant",
+            "content": "native answer",
+            "tool_calls": [{"id": "call_1", "type": "function"}],
+        },
+    ]
+
+
+def test_runtime_worker_falls_back_to_request_history_when_native_session_empty():
+    from runtime_manager.worker_main import _load_runtime_conversation_history
+
+    class DB:
+        def get_messages_as_conversation(self, session_id, *, repair_alternation=False):
+            return []
+
+    request_history = [{"role": "user", "content": "legacy caller history"}]
+
+    assert _load_runtime_conversation_history(DB(), "conv-empty", request_history) == request_history
+
+
 def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
     from runtime_manager.worker_main import _normalize_agent_provider
 
