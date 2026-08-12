@@ -95,6 +95,11 @@ Expected health response:
 - Keep LLM provider/model/baseURL/API key out of the Helm chart and container
   environment. Apiserver must resolve the effective Cloud LLM config for the
   current conversation and pass it in each `POST /agent/runs` request.
+- Runtime Manager restores model history from Hermes' native per-user
+  `$HERMES_HOME/state.db` session store before each worker turn. Cloud/apiserver
+  conversation records remain the business source for frontend display and
+  audit, not the primary model replay source. The request `history` field is a
+  compatibility fallback for older callers only.
 - Runtime Manager supports a mounted default profile asset directory. The Helm
   chart packages and mounts the default KubeBlocks profile at
   `/opt/hermes/default-profile` by default. Set
