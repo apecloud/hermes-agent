@@ -540,6 +540,28 @@ def test_runtime_worker_projects_compression_status_as_structured_event():
     assert "secret-token" not in json.dumps(event, ensure_ascii=False)
 
 
+def test_runtime_worker_suppresses_raw_status_stdout(capsys):
+    from run_agent import AIAgent
+    from runtime_manager.worker_main import _configure_runtime_agent_protocol
+
+    emitted: list[tuple[str, str]] = []
+    agent = AIAgent.__new__(AIAgent)
+    agent.log_prefix = ""
+    agent.status_callback = lambda kind, message: emitted.append((kind, message))
+
+    _configure_runtime_agent_protocol(agent)
+    agent._emit_status("🗜️ Compacting context — summarizing earlier conversation so I can continue...")
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert emitted == [
+        (
+            "lifecycle",
+            "🗜️ Compacting context — summarizing earlier conversation so I can continue...",
+        )
+    ]
+
+
 def test_runtime_worker_tool_event_helpers_are_json_safe():
     from runtime_manager.worker_main import (
         _approval_display_fields,

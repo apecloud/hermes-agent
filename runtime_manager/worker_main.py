@@ -142,6 +142,12 @@ def log_event(event: dict[str, Any]) -> None:
         sys.stderr.flush()
 
 
+def _configure_runtime_agent_protocol(agent: Any) -> None:
+    # Worker stdout is a JSONL protocol stream. Status rendering is owned by
+    # status_callback; raw agent status prints would corrupt the stream.
+    agent.suppress_status_output = True
+
+
 def main() -> int:
     first_line = sys.stdin.readline()
     if not first_line:
@@ -500,6 +506,7 @@ def main() -> int:
             max_iterations=int(request.get("max_iterations") or 90),
         )
         _apply_runtime_llm_config_to_agent(agent, runtime_llm_config)
+        _configure_runtime_agent_protocol(agent)
         _AGENT_HOLDER["agent"] = agent
         llm_debug_hook_registrations = _register_runtime_llm_debug_hooks(
             run_id=run_id,
