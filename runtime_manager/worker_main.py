@@ -59,17 +59,55 @@ _OUTPUT_TRUNCATION_MARKERS = (
 )
 
 
+def _project_runtime_model_history(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Project a native transcript into the messages passed to the model.
+
+    This mirrors Hermes gateway replay rules: ``session_meta`` and ``system``
+    rows are transcript/session bookkeeping, while tool-call chains need their
+    structured fields preserved so replay remains provider-valid.
+    """
+
+    projected: list[dict[str, Any]] = []
+    for message in history or []:
+        if not isinstance(message, dict):
+            continue
+        role = message.get("role")
+        if not role or role in {"session_meta", "system"}:
+            continue
+
+        has_tool_calls = "tool_calls" in message
+        has_tool_call_id = "tool_call_id" in message
+        is_tool_message = role == "tool"
+        if has_tool_calls or has_tool_call_id or is_tool_message:
+            projected.append(
+                {
+                    key: value
+                    for key, value in message.items()
+                    if key not in {"timestamp", "observed"}
+                }
+            )
+            continue
+
+        content = message.get("content")
+        if content:
+            projected.append({"role": role, "content": content})
+    return projected
+
+
 def _load_runtime_conversation_history(
     session_db: Any,
     session_id: str,
     request_history: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    """Load model history from Hermes' native session store.
+    """Load model replay history from Hermes' native session store.
 
     Runtime Manager workers are short-lived, so they must explicitly restore
-    the durable Hermes transcript before calling ``run_conversation``.  The
-    request ``history`` field is retained only as a compatibility fallback for
-    older callers that do not yet rely on ``state.db``.
+    the durable Hermes transcript before calling ``run_conversation``.  The raw
+    transcript is projected to model replay messages before use; metadata-only
+    rows such as ``session_meta`` remain in state.db for transcript/session
+    bookkeeping, not in provider-bound history.  The request ``history`` field
+    is retained only as a compatibility fallback for older callers that do not
+    yet rely on ``state.db``.
     """
 
     try:
@@ -86,14 +124,10 @@ def _load_runtime_conversation_history(
         )
         native_history = []
 
-    restored = [
-        message
-        for message in (native_history or [])
-        if isinstance(message, dict) and message.get("role") != "session_meta"
-    ]
+    restored = _project_runtime_model_history(native_history or [])
     if restored:
         return restored
-    return list(request_history or [])
+    return _project_runtime_model_history(request_history or [])
 
 
 def emit(event: dict[str, Any]) -> None:

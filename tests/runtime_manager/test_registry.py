@@ -72,11 +72,24 @@ def test_runtime_worker_prefers_native_session_history_over_request_history():
             self.calls.append((session_id, repair_alternation))
             return [
                 {"role": "session_meta", "content": "{}"},
-                {"role": "user", "content": "native previous question"},
+                {"role": "system", "content": "old injected prompt"},
+                {
+                    "role": "user",
+                    "content": "native previous question",
+                    "timestamp": 1730000000,
+                    "observed": True,
+                },
                 {
                     "role": "assistant",
                     "content": "native answer",
                     "tool_calls": [{"id": "call_1", "type": "function"}],
+                    "timestamp": 1730000001,
+                },
+                {
+                    "role": "tool",
+                    "content": '{"ok":true}',
+                    "tool_call_id": "call_1",
+                    "timestamp": 1730000002,
                 },
             ]
 
@@ -96,6 +109,7 @@ def test_runtime_worker_prefers_native_session_history_over_request_history():
             "content": "native answer",
             "tool_calls": [{"id": "call_1", "type": "function"}],
         },
+        {"role": "tool", "content": '{"ok":true}', "tool_call_id": "call_1"},
     ]
 
 
@@ -106,9 +120,15 @@ def test_runtime_worker_falls_back_to_request_history_when_native_session_empty(
         def get_messages_as_conversation(self, session_id, *, repair_alternation=False):
             return []
 
-    request_history = [{"role": "user", "content": "legacy caller history"}]
+    request_history = [
+        {"role": "session_meta", "content": "{}"},
+        {"role": "system", "content": "old prompt"},
+        {"role": "user", "content": "legacy caller history", "timestamp": 1730000000},
+    ]
 
-    assert _load_runtime_conversation_history(DB(), "conv-empty", request_history) == request_history
+    assert _load_runtime_conversation_history(DB(), "conv-empty", request_history) == [
+        {"role": "user", "content": "legacy caller history"}
+    ]
 
 
 def test_runtime_worker_normalizes_cloud_provider_aliases_to_hermes_names():
