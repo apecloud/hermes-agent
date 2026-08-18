@@ -15,6 +15,9 @@ import yaml
 _ENVIRONMENT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@:-]{0,127}$")
 _SQL_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?$")
 _PATH_COMPONENT_SAFE_RE = re.compile(r"[^A-Za-z0-9_.@:-]+")
+_DEFAULT_KUBEBLOCKS_META_PG_SELECTOR = (
+    "app.kubernetes.io/instance=apecloud-pg,apps.kubeblocks.io/component-name=postgresql"
+)
 
 
 class CommandResult(Protocol):
@@ -29,9 +32,9 @@ CommandRunner = Any
 @dataclass(frozen=True)
 class CloudMetaConfig:
     namespace: str = "kb-cloud"
-    pg_pod_name: str = "apecloud-pg-0"
-    pg_pod_selector: str = ""
-    pg_container: str = ""
+    pg_pod_name: str = ""
+    pg_pod_selector: str = _DEFAULT_KUBEBLOCKS_META_PG_SELECTOR
+    pg_container: str = "postgresql"
     database: str = "kubeblockscloud"
     environment_table: str = "admin_environment"
     kubectl: str = "kubectl"
@@ -41,9 +44,12 @@ class CloudMetaConfig:
     def from_env(cls) -> "CloudMetaConfig":
         return cls(
             namespace=os.getenv("RUNTIME_MANAGER_CLOUD_META_NAMESPACE", "kb-cloud").strip() or "kb-cloud",
-            pg_pod_name=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME", "apecloud-pg-0").strip(),
-            pg_pod_selector=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR", "").strip(),
-            pg_container=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER", "").strip(),
+            pg_pod_name=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME", "").strip(),
+            pg_pod_selector=os.getenv(
+                "RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR",
+                _DEFAULT_KUBEBLOCKS_META_PG_SELECTOR,
+            ).strip(),
+            pg_container=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER", "postgresql").strip(),
             database=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_DATABASE", "kubeblockscloud").strip()
             or "kubeblockscloud",
             environment_table=os.getenv(

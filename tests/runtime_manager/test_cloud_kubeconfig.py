@@ -110,6 +110,26 @@ def test_cloud_kubeconfig_resolver_queries_psql_and_writes_file_under_user_home(
     ]
 
 
+def test_cloud_meta_config_defaults_to_kubeblocks_postgres_selector(monkeypatch):
+    for name in (
+        "RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME",
+        "RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR",
+        "RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER",
+        "RUNTIME_MANAGER_CLOUD_META_PG_DATABASE",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    config = CloudMetaConfig.from_env()
+
+    assert config.pg_pod_name == ""
+    assert (
+        config.pg_pod_selector
+        == "app.kubernetes.io/instance=apecloud-pg,apps.kubeblocks.io/component-name=postgresql"
+    )
+    assert config.pg_container == "postgresql"
+    assert config.database == "kubeblockscloud"
+
+
 def test_cloud_kubeconfig_resolver_accepts_json_kubeconfig(tmp_path):
     kubeconfig = json.dumps(
         {
@@ -123,7 +143,10 @@ def test_cloud_kubeconfig_resolver_accepts_json_kubeconfig(tmp_path):
         }
     )
     encoded_kubeconfig = base64.b64encode(kubeconfig.encode("utf-8")).decode("ascii")
-    resolver = CloudKubeconfigResolver(runner=lambda cmd, timeout: FakeResult(stdout=encoded_kubeconfig))
+    resolver = CloudKubeconfigResolver(
+        CloudMetaConfig(pg_pod_name="apecloud-pg-postgresql-0", pg_pod_selector=""),
+        runner=lambda cmd, timeout: FakeResult(stdout=encoded_kubeconfig),
+    )
 
     resolver.prepare_contexts(tmp_path / "home", ["test"])
 
