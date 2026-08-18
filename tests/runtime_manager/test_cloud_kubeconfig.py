@@ -10,9 +10,10 @@ import pytest
 from runtime_manager.cloud_kubeconfig import (
     CloudKubeconfigResolver,
     CloudMetaConfig,
+    _psql_env_from_dsn,
+    _run_command,
     build_cluster_context_prompt,
     normalize_cluster_contexts,
-    _run_command,
 )
 
 
@@ -110,6 +111,108 @@ def test_cloud_kubeconfig_resolver_queries_psql_and_writes_file_under_user_home(
     ]
 
 
+def test_cloud_kubeconfig_resolver_prefers_dsn_without_exposing_it_in_argv(tmp_path):
+    calls = []
+    kubeconfig = "apiVersion: v1\nclusters:\n- name: kb10\n"
+    encoded_kubeconfig = base64.b64encode(kubeconfig.encode("utf-8")).decode("ascii")
+    dsn = "postgres://cloud:p%40ss@pg.example.com:5433/kubeblockscloud?sslmode=require"
+
+    def runner(cmd, *, timeout, env=None):
+        calls.append((cmd, timeout, env))
+        return FakeResult(stdout=encoded_kubeconfig)
+
+    resolver = CloudKubeconfigResolver(
+        CloudMetaConfig(
+            pg_dsn=dsn,
+            pg_pod_name="should-not-be-used",
+            psql="psql",
+            environment_table="admin_environment",
+            query_timeout_seconds=7,
+        ),
+        runner=runner,
+    )
+
+    resolver.prepare_contexts(tmp_path / "home", ["kb10"])
+
+    assert len(calls) == 1
+    cmd, timeout, env = calls[0]
+    assert timeout == 7
+    assert cmd == [
+        "psql",
+        "-t",
+        "-A",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        "select kubeconfig from admin_environment where name = 'kb10' and deleted_at = 0;",
+    ]
+    assert dsn not in cmd
+    assert env["PGHOST"] == "pg.example.com"
+    assert env["PGPORT"] == "5433"
+    assert env["PGUSER"] == "cloud"
+    assert env["PGPASSWORD"] == "p@ss"
+    assert env["PGDATABASE"] == "kubeblockscloud"
+    assert env["PGSSLMODE"] == "require"
+
+
+def test_psql_env_from_dsn_accepts_libpq_conninfo(monkeypatch):
+    monkeypatch.setenv("PGPASSWORD", "ambient-password")
+
+    env = _psql_env_from_dsn(
+        "host=pg.example.com port=5432 user=cloud password='p ss' "
+        "dbname=kubeblockscloud sslmode=require"
+    )
+
+    assert env["PGHOST"] == "pg.example.com"
+    assert env["PGPORT"] == "5432"
+    assert env["PGUSER"] == "cloud"
+    assert env["PGPASSWORD"] == "p ss"
+    assert env["PGDATABASE"] == "kubeblockscloud"
+    assert env["PGSSLMODE"] == "require"
+
+
+def test_psql_env_from_dsn_rejects_empty_connection_values():
+    with pytest.raises(ValueError, match="did not include PostgreSQL connection values"):
+        _psql_env_from_dsn("postgres://")
+
+
+def test_cloud_meta_config_defaults_to_legacy_postgres_pod(monkeypatch):
+    for name in (
+        "RUNTIME_MANAGER_CLOUD_META_PG_DSN",
+        "RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME",
+        "RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR",
+        "RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER",
+        "RUNTIME_MANAGER_CLOUD_META_PG_DATABASE",
+        "RUNTIME_MANAGER_PSQL",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    config = CloudMetaConfig.from_env()
+
+    assert config.pg_dsn == ""
+    assert config.pg_pod_name == "apecloud-pg-0"
+    assert config.pg_pod_selector == ""
+    assert config.pg_container == ""
+    assert config.database == "kubeblockscloud"
+    assert config.psql == "psql"
+
+
+def test_cloud_meta_config_reads_dsn_from_env(monkeypatch):
+    monkeypatch.setenv(
+        "RUNTIME_MANAGER_CLOUD_META_PG_DSN",
+        "postgres://cloud:secret@pg.example.com:5432/kubeblockscloud?sslmode=disable",
+    )
+    monkeypatch.setenv("RUNTIME_MANAGER_PSQL", "/usr/local/bin/psql")
+
+    config = CloudMetaConfig.from_env()
+
+    assert (
+        config.pg_dsn
+        == "postgres://cloud:secret@pg.example.com:5432/kubeblockscloud?sslmode=disable"
+    )
+    assert config.psql == "/usr/local/bin/psql"
+
+
 def test_cloud_kubeconfig_resolver_accepts_json_kubeconfig(tmp_path):
     kubeconfig = json.dumps(
         {
@@ -123,7 +226,10 @@ def test_cloud_kubeconfig_resolver_accepts_json_kubeconfig(tmp_path):
         }
     )
     encoded_kubeconfig = base64.b64encode(kubeconfig.encode("utf-8")).decode("ascii")
-    resolver = CloudKubeconfigResolver(runner=lambda cmd, timeout: FakeResult(stdout=encoded_kubeconfig))
+    resolver = CloudKubeconfigResolver(
+        CloudMetaConfig(pg_pod_name="apecloud-pg-postgresql-0", pg_pod_selector=""),
+        runner=lambda cmd, timeout: FakeResult(stdout=encoded_kubeconfig),
+    )
 
     resolver.prepare_contexts(tmp_path / "home", ["test"])
 

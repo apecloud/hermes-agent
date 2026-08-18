@@ -24,7 +24,7 @@ RUN set -eu; \
         bind9-dnsutils ca-certificates conntrack curl ethtool git \
         inetutils-telnet iperf3 iproute2 iptables iputils-ping jq less \
         lsof mtr-tiny net-tools netcat-openbsd nmap openssh-client openssl \
-        procps python3 ripgrep socat tcpdump traceroute whois xz-utils; \
+        postgresql-client procps python3 ripgrep socat tcpdump traceroute whois xz-utils; \
     rm -rf /var/lib/apt/lists/*
 
 ARG KUBECTL_VERSION=v1.36.1
