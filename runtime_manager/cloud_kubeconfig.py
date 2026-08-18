@@ -4,10 +4,12 @@ import base64
 import binascii
 import os
 import re
+import shlex
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
+from urllib.parse import parse_qs, unquote, urlparse
 
 import yaml
 
@@ -29,18 +31,21 @@ CommandRunner = Any
 @dataclass(frozen=True)
 class CloudMetaConfig:
     namespace: str = "kb-cloud"
+    pg_dsn: str = ""
     pg_pod_name: str = "apecloud-pg-0"
     pg_pod_selector: str = ""
     pg_container: str = ""
     database: str = "kubeblockscloud"
     environment_table: str = "admin_environment"
     kubectl: str = "kubectl"
+    psql: str = "psql"
     query_timeout_seconds: float = 15.0
 
     @classmethod
     def from_env(cls) -> "CloudMetaConfig":
         return cls(
             namespace=os.getenv("RUNTIME_MANAGER_CLOUD_META_NAMESPACE", "kb-cloud").strip() or "kb-cloud",
+            pg_dsn=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_DSN", "").strip(),
             pg_pod_name=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME", "apecloud-pg-0").strip(),
             pg_pod_selector=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR", "").strip(),
             pg_container=os.getenv("RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER", "").strip(),
@@ -52,6 +57,7 @@ class CloudMetaConfig:
             ).strip()
             or "admin_environment",
             kubectl=os.getenv("RUNTIME_MANAGER_KUBECTL", "kubectl").strip() or "kubectl",
+            psql=os.getenv("RUNTIME_MANAGER_PSQL", "psql").strip() or "psql",
             query_timeout_seconds=float(
                 os.getenv("RUNTIME_MANAGER_CLOUD_META_QUERY_TIMEOUT_SECONDS", "15")
             ),
@@ -165,8 +171,38 @@ class CloudKubeconfigResolver:
 
     def _query_kubeconfig(self, environment_name: str) -> str:
         _validate_environment_name(environment_name)
-        pod_name = self._resolve_postgres_pod()
         environment_name_literal = _sql_string_literal(environment_name)
+        sql = (
+            f"select kubeconfig from {self.config.environment_table} "
+            f"where name = {environment_name_literal} and deleted_at = 0;"
+        )
+        if self.config.pg_dsn:
+            result = self._query_kubeconfig_with_dsn(sql)
+        else:
+            result = self._query_kubeconfig_with_pod(sql)
+        encoded_kubeconfig = str(result.stdout or "").strip()
+        if not encoded_kubeconfig:
+            raise RuntimeError(f"no kubeconfig found for environment {environment_name!r}")
+        return _decode_kubeconfig(encoded_kubeconfig, environment_name)
+
+    def _query_kubeconfig_with_dsn(self, sql: str) -> CommandResult:
+        cmd = [
+            self.config.psql,
+            "-t",
+            "-A",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            sql,
+        ]
+        env = _psql_env_from_dsn(self.config.pg_dsn)
+        result = self.runner(cmd, timeout=self.config.query_timeout_seconds, env=env)
+        if result.returncode != 0:
+            raise RuntimeError(_command_failure_message("query Cloud metadata kubeconfig", result))
+        return result
+
+    def _query_kubeconfig_with_pod(self, sql: str) -> CommandResult:
+        pod_name = self._resolve_postgres_pod()
         cmd = [
             self.config.kubectl,
             "exec",
@@ -187,19 +223,13 @@ class CloudKubeconfigResolver:
                 "-v",
                 "ON_ERROR_STOP=1",
                 "-c",
-                (
-                    f"select kubeconfig from {self.config.environment_table} "
-                    f"where name = {environment_name_literal} and deleted_at = 0;"
-                ),
+                sql,
             ]
         )
         result = self.runner(cmd, timeout=self.config.query_timeout_seconds)
         if result.returncode != 0:
             raise RuntimeError(_command_failure_message("query Cloud metadata kubeconfig", result))
-        encoded_kubeconfig = str(result.stdout or "").strip()
-        if not encoded_kubeconfig:
-            raise RuntimeError(f"no kubeconfig found for environment {environment_name!r}")
-        return _decode_kubeconfig(encoded_kubeconfig, environment_name)
+        return result
 
     def _resolve_postgres_pod(self) -> str:
         if self.config.pg_pod_name:
@@ -305,6 +335,64 @@ def _sql_string_literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
+def _psql_env_from_dsn(dsn: str) -> dict[str, str]:
+    env = os.environ.copy()
+    for key in ("PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE", "PGSSLMODE"):
+        env.pop(key, None)
+    stripped = dsn.strip()
+    parsed = urlparse(stripped)
+    if parsed.scheme in {"postgres", "postgresql"}:
+        mapped = False
+        if parsed.hostname:
+            env["PGHOST"] = parsed.hostname
+            mapped = True
+        if parsed.port:
+            env["PGPORT"] = str(parsed.port)
+            mapped = True
+        if parsed.username:
+            env["PGUSER"] = unquote(parsed.username)
+            mapped = True
+        if parsed.password:
+            env["PGPASSWORD"] = unquote(parsed.password)
+            mapped = True
+        database = parsed.path.lstrip("/")
+        if database:
+            env["PGDATABASE"] = unquote(database)
+            mapped = True
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        if query.get("sslmode"):
+            env["PGSSLMODE"] = query["sslmode"][-1]
+            mapped = True
+        if not mapped:
+            raise ValueError("RUNTIME_MANAGER_CLOUD_META_PG_DSN did not include PostgreSQL connection values")
+        return env
+
+    params: dict[str, str] = {}
+    for token in shlex.split(stripped):
+        key, sep, value = token.partition("=")
+        if sep:
+            params[key] = value
+    if params:
+        mapping = {
+            "host": "PGHOST",
+            "port": "PGPORT",
+            "user": "PGUSER",
+            "password": "PGPASSWORD",
+            "dbname": "PGDATABASE",
+            "sslmode": "PGSSLMODE",
+        }
+        mapped = False
+        for key, env_key in mapping.items():
+            if params.get(key):
+                env[env_key] = params[key]
+                mapped = True
+        if not mapped:
+            raise ValueError("RUNTIME_MANAGER_CLOUD_META_PG_DSN did not include PostgreSQL connection values")
+        return env
+
+    raise ValueError("RUNTIME_MANAGER_CLOUD_META_PG_DSN must be a PostgreSQL URL or libpq conninfo string")
+
+
 def _decode_kubeconfig(encoded_value: str, environment_name: str) -> str:
     compact_value = "".join(encoded_value.split())
     try:
@@ -344,7 +432,12 @@ def _command_failure_message(action: str, result: CommandResult) -> str:
     return f"failed to {action}: {stderr[:500]}"
 
 
-def _run_command(cmd: list[str], *, timeout: float) -> subprocess.CompletedProcess[str]:
+def _run_command(
+    cmd: list[str],
+    *,
+    timeout: float,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
             cmd,
@@ -352,6 +445,7 @@ def _run_command(cmd: list[str], *, timeout: float) -> subprocess.CompletedProce
             text=True,
             timeout=timeout,
             check=False,
+            env=env,
         )
     except subprocess.TimeoutExpired as exc:
         return subprocess.CompletedProcess(

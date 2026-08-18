@@ -131,7 +131,11 @@ Expected health response:
   fields such as `orgId`, `environmentName`, `clusterName`, and `namespace`.
   Runtime Manager then:
 
-  1. Queries the Cloud metadata Postgres pod through `kubectl exec`.
+  1. Queries Cloud metadata Postgres. When
+     `RUNTIME_MANAGER_CLOUD_META_PG_DSN` is set, Runtime Manager uses local
+     `psql` with libpq `PG*` environment variables derived from the DSN. The
+     DSN is not passed in process arguments. If no DSN is configured, Runtime
+     Manager falls back to querying a Postgres pod through `kubectl exec`.
   2. Writes each kubeconfig under the user's `${HERMES_HOME}/kubeconfigs/`
      with mode `0600`.
   3. Injects only the kubeconfig path and context alias into the effective
@@ -143,18 +147,23 @@ Expected health response:
 
   ```text
   RUNTIME_MANAGER_CLOUD_META_NAMESPACE=kb-cloud
+  RUNTIME_MANAGER_CLOUD_META_PG_DSN=postgres://kubeblockscloud:...@apecloud-pg-postgresql-postgresql.kb-cloud.svc.cluster.local.:5432/kubeblockscloud?sslmode=disable
+  RUNTIME_MANAGER_PSQL=psql
   RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME=apecloud-pg-0
-  RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR=
-  RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER=
+  RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR=app.kubernetes.io/instance=apecloud-pg,apps.kubeblocks.io/component-name=postgresql
+  RUNTIME_MANAGER_CLOUD_META_PG_CONTAINER=postgresql
   RUNTIME_MANAGER_CLOUD_META_PG_DATABASE=kubeblockscloud
   RUNTIME_MANAGER_CLOUD_META_ENVIRONMENT_TABLE=admin_environment
   RUNTIME_MANAGER_CLOUD_META_QUERY_TIMEOUT_SECONDS=15
   ```
 
-  If `RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR` is set and
+  Prefer sourcing `RUNTIME_MANAGER_CLOUD_META_PG_DSN` from a Kubernetes Secret,
+  such as the same `DSN` key used by apiserver. If the DSN is unset and
+  `RUNTIME_MANAGER_CLOUD_META_PG_POD_SELECTOR` is set while
   `RUNTIME_MANAGER_CLOUD_META_PG_POD_NAME` is empty, Runtime Manager discovers
-  the first matching pod. The `psql` command runs inside the Postgres pod and
-  normally relies on the pod's existing `PGPASSWORD` environment variable.
+  the first matching pod. In pod-exec fallback mode, `psql` runs inside the
+  Postgres pod and normally relies on the pod's existing `PGPASSWORD`
+  environment variable.
 - When a user home is resolved, Runtime Manager copies managed skills from the
   default profile into `${HERMES_HOME}/skills/`. Skill directories are copied
   recursively, preserving the relative path below `skills/`, so Hermes can load
